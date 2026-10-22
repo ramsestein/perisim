@@ -25,7 +25,7 @@ from sklearn.model_selection import GroupKFold
 
 from perisim.baselines import parametric
 from perisim.evaluation.html import box, page, table
-from perisim.evaluation.report import _binary_block, evaluate_predictions, p4_metrics
+from perisim.evaluation.report import eval_sections, evaluate_predictions, p4_metrics, paired_between
 from perisim.experiment import SEVERE, TARGET_CLASSES, fit_perisim, knn_predict, labels_for, load_cohort_data, swift_inputs
 from perisim.knn.predict import KNNModel
 from perisim.utils import set_threads, write_json, write_parquet
@@ -101,7 +101,8 @@ def run_external(pipe) -> None:
            "note": "External validation with a frozen pipeline (§6.3)."}
     kp = int(cfg.experiment["knn"]["k_primary"])
     write_json(ws.artifacts() / "external.json", out)
-    (ws.reports / "external.html").write_text(render_external(out, kp), encoding="utf-8")
+    (ws.reports / "external.html").write_text(render_external(out, kp, int(cfg.experiment["evaluation"]["n_bootstrap"])),
+                                           encoding="utf-8")
 
 
 def _external_target(args: dict) -> dict:
@@ -124,8 +125,9 @@ def _external_target(args: dict) -> dict:
 def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
     names, d7, dev, threads = args["names"], args["d7"], args["dev"], int(args["threads"])
     st = {k: d7[k] for k in ("W", "P", "n_min", "n_max", "min_delta", "tol_delta") if k in d7}
-    kp = int(cfg.experiment["knn"]["k_primary"])
-    k_grid = [int(k) for k in cfg.experiment["knn"]["k_grid"]]
+    kcfg = cfg.experiment["knn"]
+    kp = int(kcfg["k_primary"])
+    k_grid = [int(k) for k in kcfg["k_grid"]]
     nb = int(cfg.experiment["evaluation"]["n_bootstrap"])
     D = load_cohort_data(ws.common(dev), ws.derived(dev), names)
     idx = np.arange(len(D))
@@ -136,16 +138,35 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
     ft_dev = D.ft.take(tr)
     fp = fit_perisim(cfg, ft_dev, y[tr], C, seed=cfg.seed, threads=threads, stopping_override=st,
                      exclude_families=set(d7.get("exclude_families", [])), early_stop=True)
-    euc = KNNModel(fp.enc.transform(ft_dev), fp.enc.weights_dims(np.ones(fp.enc.n_features)), y[tr], C,
-                   ft_dev.subjects, k_grid)
-    euc.fit_alpha_and_ood(cfg.experiment["knn"]["alpha_grid"], kp, cfg.experiment["knn"]["ood_percentile"])
+    E_dev = fp.enc.transform(ft_dev)
+    ones = np.ones(fp.enc.n_features)
+    euc = KNNModel(E_dev, fp.enc.weights_dims(ones), y[tr], C, ft_dev.subjects, k_grid)
+    euc.fit_alpha_and_ood(kcfg["alpha_grid"], kp, kcfg["ood_percentile"])
     Xm_dev, _ = fp.enc.transform_model(ft_dev)
-    lr_f, _ = parametric.fit_logreg(Xm_dev, y[tr], cfg.model_space["baselines"]["logreg_C_grid"],
-                                    [(a, b) for a, b in GroupKFold(3).split(Xm_dev, y[tr], ft_dev.subjects)], C)
+    splits = [(a, b) for a, b in GroupKFold(3).split(Xm_dev, y[tr], ft_dev.subjects)]
+    lr_f, _ = parametric.fit_logreg(Xm_dev, y[tr], cfg.model_space["baselines"]["logreg_C_grid"], splits, C)
     sev = SEVERE[target]
     sw = None
     if target == "t1":
         sw, _ = parametric.fit_swift(swift_inputs(ft_dev), (y[tr] == sev).astype(int))
+
+    # AUDIT E1: for a cohort whose T1 is reduced (eICU: readmission or death only) the INSPIRE case base must
+    # carry the SAME reduced label; the learned metric (weights) is unchanged — the kNN only counts labels.
+    red = None
+    if target == "t1" and any(_eval_target_for(target, c, cfg) == "t1_bin" for c in args["externals"]):
+        yr = D.extra["t1_reduced"][tr]
+        ok = np.where(yr >= 0)[0]
+        if ok.size >= 20 and 0 < yr[ok].sum() < ok.size:
+            ftr = ft_dev.take(ok)
+            kr = KNNModel(E_dev[ok], fp.enc.weights_dims(fp.w), yr[ok], 2, ftr.subjects, k_grid)
+            kr.fit_alpha_and_ood(kcfg["alpha_grid"], kp, kcfg["ood_percentile"])
+            er = KNNModel(E_dev[ok], fp.enc.weights_dims(ones), yr[ok], 2, ftr.subjects, [kp])
+            er.fit_alpha_and_ood(kcfg["alpha_grid"], kp, kcfg["ood_percentile"])
+            sp = [(a, b) for a, b in GroupKFold(3).split(Xm_dev[ok], yr[ok], ftr.subjects)]
+            lr_r, _ = parametric.fit_logreg(Xm_dev[ok], yr[ok], cfg.model_space["baselines"]["logreg_C_grid"], sp, 2)
+            sw_r, _ = parametric.fit_swift(swift_inputs(ftr), yr[ok])
+            red = {"knn": kr, "euc": er, "lr": lr_r, "swift": sw_r, "prevalence": float(yr[ok].mean())}
+
     tres: dict = {"final_model": {"lambda": fp.info["lambda"], "m": fp.info["m"], "alpha": fp.info["alpha"],
                                   "weights": dict(zip(fp.enc.feature_names, np.round(fp.w, 8).tolist())),
                                   "vdm_tables": fp.enc.vdm_tables(int(cfg.experiment["evaluation"]["small_cell_threshold"])),
@@ -154,35 +175,41 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
     for c in args["externals"]:
         E = load_cohort_data(ws.common(c), ws.derived(c), names)
         et = _eval_target_for(target, c, cfg)
-        if target == "t3" and et == "t3" and (E.t1 < 0).all():
+        reduced = et == "t1_bin"
+        if target == "t3" and (E.t1 < 0).all():
+            LOG.info("external: %s has no full T1 → T3 not evaluable (skipped, declared)", c)
+            continue
+        if reduced and red is None:
+            LOG.warning("external: no usable reduced INSPIRE label for %s → T1 not evaluated", c)
             continue
         eidx = np.arange(len(E))
-        if et == "t1_bin":
+        if reduced:
             ye = E.t1_severe.copy()
         else:
-            ye, _ = labels_for(target, E, eidx, cfg.targets)   # target cohort's own tertiles
+            ye, _ = labels_for(target, E, eidx, cfg.targets)   # target cohort's own tertiles (see AUDIT C4)
         te = eidx[ye >= 0]
         if te.size < 20:
+            LOG.warning("external: only %d evaluable stays in %s for %s → skipped", te.size, c, target)
             continue
         ft_e = E.ft.take(te)
         yt = ye[te]
-        Cb = 2 if et == "t1_bin" else C
+        Cb = 2 if reduced else C
+        knnA = red["knn"] if reduced else fp.knn
         frames = []
-        res_c: dict = {"n": int(te.size), "eval_target": et}
+        res_c: dict = {"n": int(te.size), "eval_target": et,
+                       "note": ("Mode A uses the INSPIRE case base labelled with the reduced definition "
+                                "(readmission or death), as in eICU." if reduced else "")}
         for suf, fte in {"": ft_e, "_discretized": discretize_like(ft_e, ft_dev)}.items():
             Ee = fp.enc.transform(fte)
             # ---- mode A: INSPIRE case base
-            probs, (Dd, I, valid) = knn_predict(fp.knn, Ee, fte.subjects, k_grid)
-            _, _, ood = fp.knn.kth_info(Dd, valid, kp)
+            probs, (Dd, I, valid) = knn_predict(knnA, Ee, fte.subjects, k_grid)
+            _, _, ood = knnA.kth_info(Dd, valid, kp)
             res_c[f"ood_rate_modeA{suf}"] = float(ood.mean())
             for k in k_grid:
-                P = probs[k]
-                if et == "t1_bin":
-                    P = np.column_stack([1 - P[:, sev], P[:, sev]])
-                frames.append(_pred_frame(fte.ids, fte.subjects, yt, f"A_perisim{suf}", k, P))
-            # ---- mode B: target-cohort case base, patient-level LOO, INSPIRE weights
+                frames.append(_pred_frame(fte.ids, fte.subjects, yt, f"A_perisim{suf}", k, probs[k]))
+            # ---- mode B: target-cohort case base, patient-level LOO, INSPIRE weights (α from the same task)
             kb = KNNModel(Ee, fp.enc.weights_dims(fp.w), yt, Cb, fte.subjects, k_grid)
-            kb.alpha = dict(fp.knn.alpha)
+            kb.alpha = dict(knnA.alpha)
             _, Ib, vb = kb.neighbors(None, loo=True)
             for k in k_grid:
                 frames.append(_pred_frame(fte.ids, fte.subjects, yt, f"B_perisim{suf}", k,
@@ -190,45 +217,41 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
             if suf:
                 continue
             # ---- B-VDM: VDM tables recomputed in the target cohort (patient-level CV)
-            Pv = _mode_b_vdm(fp, fte, yt, Cb, k_grid)
+            Pv = _mode_b_vdm(fp, fte, yt, Cb, k_grid, alpha=dict(knnA.alpha))
             for k in k_grid:
                 frames.append(_pred_frame(fte.ids, fte.subjects, yt, "B_vdm_target", k, Pv[k]))
             # ---- comparators
-            Pe, _ = knn_predict(euc, Ee, fte.subjects, [kp])
-            Pa = Pe[kp] if et != "t1_bin" else np.column_stack([1 - Pe[kp][:, sev], Pe[kp][:, sev]])
-            frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_euclidean", kp, Pa))
-            kbe = KNNModel(Ee, fp.enc.weights_dims(np.ones(fp.enc.n_features)), yt, Cb, fte.subjects, [kp])
-            kbe.alpha = dict(euc.alpha)
+            eA = red["euc"] if reduced else euc
+            Pe, _ = knn_predict(eA, Ee, fte.subjects, [kp])
+            frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_euclidean", kp, Pe[kp]))
+            kbe = KNNModel(Ee, fp.enc.weights_dims(ones), yt, Cb, fte.subjects, [kp])
+            kbe.alpha = dict(eA.alpha)
             _, Ibe, vbe = kbe.neighbors(None, loo=True)
             frames.append(_pred_frame(fte.ids, fte.subjects, yt, "B_euclidean", kp, kbe.probs(Ibe, vbe, min(kp, kbe.k_max))))
             Xe, _ = fp.enc.transform_model(fte)
-            Pl = lr_f(Xe)
-            if et == "t1_bin":
-                Pl = np.column_stack([1 - Pl[:, sev], Pl[:, sev]])
-            frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_logreg", 0, Pl))
-            if sw is not None:
-                pg = sw(swift_inputs(fte))
-                yb = yt if et == "t1_bin" else (yt == sev).astype(int)
-                frames.append(_pred_frame(fte.ids, fte.subjects, yb, "swift_bin", 0, np.column_stack([1 - pg, pg])))
-            # ---- P4 in the target cohort (mode B: neighbours from the target cohort itself)
+            frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_logreg", 0, (red["lr"] if reduced else lr_f)(Xe)))
+            swf = red["swift"] if reduced else sw
+            if swf is not None:
+                pg = swf(swift_inputs(fte))
+                frames.append(_pred_frame(fte.ids, fte.subjects, yt, "swift", 0, np.column_stack([1 - pg, pg])))
+            # ---- Q4 in the target cohort (mode B: neighbours from the target cohort itself)
             car = {k_: v[te] for k_, v in E.carried.items() if np.isfinite(v[te]).any()}
             rows = []
             for meth, (II, vv) in {"B_perisim": (Ib, vb), "B_euclidean": (Ibe, vbe)}.items():
                 for var, pr in kb.carried_summary(II, vv, kp, car).items():
                     rows.append(pl.DataFrame({"stay_id": fte.ids.astype(str), "method": meth, "variable": var,
                                               "pred": pr.astype(float), "obs": car[var].astype(float)}))
-            res_c["p4"] = p4_metrics(pl.concat(rows)) if rows else {}
+            res_c["q4"] = p4_metrics(pl.concat(rows)) if rows else {}
         pred = pl.concat(frames, how="diagonal_relaxed")
-        swift = pred.filter(pl.col("method") == "swift_bin")
-        pred = pred.filter(pl.col("method") != "swift_bin")
-        # PERISIM in mode A at the primary k is the reference for the paired differences
-        ref = (pl.col("method") == "A_perisim") & (pl.col("k") == kp)
-        res_c["evaluation"] = evaluate_predictions(
-            pred.with_columns(pl.when(ref).then(pl.lit("perisim")).otherwise(pl.col("method")).alias("method")),
-            et, kp, nb, cfg.seed)
-        if swift.height:
-            res_c["swift"] = _binary_block(swift["p1"].to_numpy(), swift["y"].to_numpy(), swift["subject_id"].to_numpy(),
-                                           nb, cfg.seed)
+        # Reference = PERISIM mode A at the primary k (explicit; no renaming, so the k-curve stays complete)
+        res_c["evaluation"] = evaluate_predictions(pred, et, kp, nb, cfg.seed, ref=("A_perisim", kp))
+        # Q3 and metric-transport contrasts (a − b on common stays; negative = a better)
+        res_c["q3_contrasts"] = {k: v for k, v in {
+            "B_perisim − A_perisim": paired_between(pred, ("B_perisim", kp), ("A_perisim", kp), nb, cfg.seed),
+            "B_perisim − B_euclidean": paired_between(pred, ("B_perisim", kp), ("B_euclidean", kp), nb, cfg.seed),
+            "B_vdm_target − B_perisim": paired_between(pred, ("B_vdm_target", kp), ("B_perisim", kp), nb, cfg.seed),
+            "A_perisim − A_euclidean": paired_between(pred, ("A_perisim", kp), ("A_euclidean", kp), nb, cfg.seed),
+        }.items() if v is not None}
         if c == "eicu" and target == "t2":
             st_e = pl.read_parquet(ws.common(c) / "stays_index.parquet").select("stay_id", "apache_pred_hosp_los")
             j = pl.DataFrame({"stay_id": E.ft.ids.astype(str), "los": E.los}).join(st_e, on="stay_id", how="left") \
@@ -244,7 +267,7 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
     return tres
 
 
-def _mode_b_vdm(fp, ft, y, C, k_grid, n_splits: int = 5) -> dict[int, np.ndarray]:
+def _mode_b_vdm(fp, ft, y, C, k_grid, n_splits: int = 5, alpha: dict | None = None) -> dict[int, np.ndarray]:
     """Mode B with VDM tables recomputed in the target cohort: for each fold f the tables are fitted on the
     other folds (patient-level) and the queries of f are resolved against the target cohort excluding their
     own patient."""
@@ -274,16 +297,17 @@ def _mode_b_vdm(fp, ft, y, C, k_grid, n_splits: int = 5) -> dict[int, np.ndarray
         enc._index()
         Ee = enc.transform(ft)
         kn = KNNModel(Ee, enc.weights_dims(fp.w), y, C, ft.subjects, k_grid)
-        kn.alpha = {k: fp.knn.alpha.get(k, 1.0) for k in k_grid}
+        kn.alpha = {k: (alpha or fp.knn.alpha).get(k, 1.0) for k in k_grid}
         _, Iq, vq = kn.neighbors(Ee[te], ft.subjects[te])
         for k in k_grid:
             P[k][te] = kn.probs(Iq, vq, min(k, kn.k_max))
     return P
 
 
-def render_external(out: dict, kp: int) -> str:
+def render_external(out: dict, kp: int, n_boot: int = 2000) -> str:
     sec = [box("Mode A: INSPIRE case base. Mode B: INSPIRE weights with the target cohort's case base (patient-level "
-               "LOO). The A − B difference answers P3. eICU: reduced target, severe / not severe.")]
+               "LOO). The B − A contrast answers Q3. eICU: reduced target (severe = readmission or death), with the "
+               "INSPIRE case base labelled the same way. Target-cohort tertiles for T2/T3 (see AUDIT C4).")]
     for t, r in out["targets"].items():
         sec.append(f"<h2>{t.upper()}</h2>")
         fm = r["final_model"]
@@ -291,18 +315,22 @@ def render_external(out: dict, kp: int) -> str:
                                                               ["accepted models", fm["n_accepted"]],
                                                               ["stopping", fm["stop_reason"]]]))
         for c, rc in r["cohorts"].items():
-            ev = rc["evaluation"]
             sec.append(f"<h3>{c} (n={rc['n']}, target {rc['eval_target']})</h3>")
-            rows = [[k, s["n"], s["ci"]["logloss"]["mean"], f"{s['ci']['logloss']['ci_low']:.3f}–{s['ci']['logloss']['ci_high']:.3f}",
-                     s["ci"]["brier"]["mean"], s.get("auroc_severe"), s.get("auprc_severe")]
-                    for k, s in ev["methods"].items() if k.endswith(f"@{kp}") or "@" not in k]
-            sec.append(table(["Method@k", "n", "Log-loss", "95 % CI", "Brier", "AUROC severe", "AUPRC severe"], rows))
+            if rc.get("note"):
+                sec.append(box(rc["note"]))
+            sec.extend(eval_sections(rc["evaluation"], n_boot))
+            if rc.get("q3_contrasts"):
+                sec.append("<h4>Q3 / metric-transport contrasts at the primary k (Δ log-loss; negative = first better)</h4>")
+                sec.append(table(["Contrast", "Δ log-loss", "CI low", "CI high", "p", "common stays"],
+                                 [[k, v["mean"], v["ci_low"], v["ci_high"], v.get("p_two_sided"), v["n_common"]]
+                                  for k, v in rc["q3_contrasts"].items()], nd=4))
             sec.append(table(["OOD mode A", "OOD mode A (discretized)"],
                              [[rc.get("ood_rate_modeA"), rc.get("ood_rate_modeA_discretized")]]))
-            if rc.get("swift"):
-                s = rc["swift"]
-                sec.append(table(["SWIFT (recalibrated on INSPIRE)", "Log-loss", "Brier", "AUROC"],
-                                 [["severe / not severe", s["logloss"], s["brier"], s.get("auroc", {}).get("mean")]]))
+            if rc.get("q4"):
+                rows = [[var, meth, v.get("logloss"), v.get("brier"), v.get("mae_days"), v["n"]]
+                        for var, d in rc["q4"].items() for meth, v in d.items()]
+                sec.append("<h4>Q4 in the target cohort (mode B neighbours)</h4>")
+                sec.append(table(["Variable", "Method", "Log-loss", "Brier", "MAE days", "n"], rows))
             if rc.get("apache_iv_los_descriptive"):
                 a = rc["apache_iv_los_descriptive"]
                 sec.append(box(f"APACHE IV (eICU): Spearman ρ with the post-ICU stay = {a['spearman_rho_vs_post_icu_los']:.3f} "

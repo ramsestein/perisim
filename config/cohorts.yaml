@@ -21,6 +21,16 @@ mimic:
   service_lookback_min: 60              # service in effect at intime + 60 min
   surgical_services: [CSURG, NSURG, ORTHO, PSURG, SURG, TSURG, VSURG, GU, GYN, ENT, TRAUM, DENT]
   procedure_days_before: 1              # procedure on the ICU admission date or the day before
+  # True ICU careunits of hosp.transfers (step-down / intermediate units are NOT ICU) — AUDIT D3 [VERIFY values]
+  icu_careunits:
+    - "Medical Intensive Care Unit (MICU)"
+    - "Surgical Intensive Care Unit (SICU)"
+    - "Medical/Surgical Intensive Care Unit (MICU/SICU)"
+    - "Cardiac Vascular Intensive Care Unit (CVICU)"
+    - "Coronary Care Unit (CCU)"
+    - "Neuro Surgical Intensive Care Unit (Neuro SICU)"
+    - "Trauma SICU (TSICU)"
+  icu_episode_merge_gap_min: 60         # consecutive ICU transfers closer than this form one ICU episode
   # Surgical ICD-10-PCS [VERIFY]: section "0" (medical-surgical), approach (5th character)
   # open (0) or percutaneous endoscopic (4), excluding root operation "2" (change).
   or_icd10_approaches: ["0", "4"]

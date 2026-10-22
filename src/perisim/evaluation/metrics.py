@@ -14,9 +14,15 @@ def row_logloss(p: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def row_brier(p: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Multiclass Brier score Σ_c (p_c − y_c)² (Brier's original definition, range 0–2)."""
     oh = np.zeros_like(p)
     oh[np.arange(len(y)), y] = 1
     return ((p - oh) ** 2).sum(1)
+
+
+def row_brier_binary(p: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Binary Brier score (p − y)², range 0–1 (the multiclass `row_brier` sums over classes, range 0–2)."""
+    return (np.asarray(p, float) - np.asarray(y, float)) ** 2
 
 
 def row_rps(p: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -80,8 +86,9 @@ def calibration_curve(p: np.ndarray, y: np.ndarray, bins: int = 10, min_n: int =
     out = []
     for b in range(bins):
         s = idx == b
-        if s.sum() >= min_n:
-            out.append({"p_mean": float(p[s].mean()), "obs": float(y[s].mean()), "n": int(s.sum())})
+        ev = float(y[s].sum())
+        if s.sum() >= min_n and ev >= min_n and s.sum() - ev >= min_n:   # ≥ 10 events and ≥ 10 non-events (A6)
+            out.append({"p_mean": float(p[s].mean()), "obs": float(y[s].mean()), "n": int(round(s.sum(), -1))})
     return out
 
 
@@ -106,7 +113,8 @@ def summary(p: np.ndarray, y: np.ndarray, ordinal: bool, severe_class: int | Non
         if 0 < ys.sum() < len(ys):
             out["auroc_severe"] = float(roc_auc_score(ys, p[:, severe_class]))
             out["auprc_severe"] = float(average_precision_score(ys, p[:, severe_class]))
-            out["prevalence_severe"] = float(ys.mean())
+            if ys.sum() >= 10 and len(ys) - ys.sum() >= 10:
+                out["prevalence_severe"] = float(ys.mean())
     return out
 
 

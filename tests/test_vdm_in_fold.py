@@ -53,4 +53,5 @@ def test_real_vdm_counts_within_training(real_workdir):
     for f in folds:
         r = read_json(f)
         for name, tab in r["perisim"]["vdm_tables"].items():
-            assert sum(v["n"] for v in tab.values()) <= r["n_train"], f"{f}: {name}"
+            # exported n are rounded to the nearest 10 (privacy, AUDIT A6): allow ±5 per category
+            assert sum(v["n"] for v in tab.values()) <= r["n_train"] + 5 * len(tab), f"{f}: {name}"

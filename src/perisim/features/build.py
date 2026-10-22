@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 
+import numpy as np
 import polars as pl
 
 from perisim.cohort.select import add_cutoff
@@ -194,3 +195,40 @@ def _spec_for(name: str) -> FeatureSpec | None:
 def check_no_leakage(prov: pl.DataFrame) -> pl.DataFrame:
     """Rows that violate the anti-leakage rule (max_time_used > cutoff). Empty = OK."""
     return prov.filter(pl.col("max_time_used_min") > pl.col("cutoff_min") + 1e-6)
+
+
+def truncate_at_cutoff(stays: pl.DataFrame, inputs: pl.DataFrame, margin_hours: float) -> pl.DataFrame:
+    """inputs_long as it would look AT the cutoff: rows after t0 − margin removed, interval ends clipped to it."""
+    cut = add_cutoff(stays, margin_hours).select("stay_id", "cutoff_min")
+    return (inputs.join(cut, on="stay_id", how="inner")
+            .filter(pl.col("time_min") <= pl.col("cutoff_min"))
+            .with_columns(pl.when(pl.col("end_min").is_not_null())
+                          .then(pl.min_horizontal("end_min", "cutoff_min")).otherwise(None).alias("end_min"))
+            .drop("cutoff_min"))
+
+
+def metamorphic_leak_check(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str,
+                           X: pl.DataFrame | None = None) -> list[str]:
+    """§4.4.1, metamorphic form (AUDIT C1): the feature matrix must be IDENTICAL whether or not the data after the
+    cutoff exist. Unlike the provenance test, this catches every input family (medication intervals, supports,
+    anthropometry…), including future code that would read unfiltered inputs. Returns the differing columns."""
+    margin = float(cfg.experiment["time"]["cutoff_margin_hours"])
+    X1 = X if X is not None else build_features(stays, inputs, cfg, cohort)[0]
+    X2 = build_features(stays, truncate_at_cutoff(stays, inputs, margin), cfg, cohort)[0]
+    X1, X2 = X1.sort("stay_id"), X2.sort("stay_id")
+    bad = []
+    if X1["stay_id"].to_list() != X2["stay_id"].to_list():
+        return ["stay_id"]
+    for c in X1.columns:
+        if c == "stay_id":
+            continue
+        a, b = X1[c], X2[c] if c in X2.columns else pl.Series([None] * X1.height)
+        if a.dtype == pl.Utf8 or b.dtype == pl.Utf8:
+            same = a.cast(pl.Utf8).fill_null("∅").to_list() == b.cast(pl.Utf8).fill_null("∅").to_list()
+        else:
+            av, bv = a.cast(pl.Float64).to_numpy(), b.cast(pl.Float64).to_numpy()
+            both_nan = np.isnan(av) & np.isnan(bv)
+            same = bool(np.all(both_nan | (np.abs(av - bv) <= 1e-9 * (1 + np.abs(av)))))
+        if not same:
+            bad.append(c)
+    return bad

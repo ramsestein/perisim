@@ -157,7 +157,11 @@ def cmd_freeze(args) -> int:
 
     cfg = _cfg(args)
     ws = Workspace(cfg.workdir)
-    tag = f"perisim-freeze-{now_iso()[:10]}"
+    tag = f"perisim-freeze-{now_iso()[:19].replace(':', '').replace('T', '-')}"
+    if (ws.artifacts() / "external.json").exists():
+        print("[perisim] External results already exist: re-freezing would allow iterating after looking at them "
+              "(§6.3). Refused.")
+        return 2
     git = {}
     if not args.no_git and (REPO_ROOT / ".git").exists() and shutil.which("git"):
         dirty = subprocess.run(["git", "-C", str(REPO_ROOT), "status", "--porcelain"], capture_output=True, text=True).stdout
@@ -165,7 +169,11 @@ def cmd_freeze(args) -> int:
             print("[perisim] The repository has uncommitted changes: commit them (git commit) before freezing.")
             print(dirty)
             return 2
-        subprocess.run(["git", "-C", str(REPO_ROOT), "tag", "-f", "-a", tag, "-m", "PERISIM freeze §6.3"], check=False)
+        r = subprocess.run(["git", "-C", str(REPO_ROOT), "-c", "user.name=perisim", "-c", "user.email=perisim@localhost",
+                            "tag", "-a", tag, "-m", "PERISIM freeze §6.3"], capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"[perisim] Could not create the git tag {tag}: {r.stderr.strip()}")
+            return 2
         git = {"commit": subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"], capture_output=True,
                                         text=True).stdout.strip(), "tag": tag}
     else:
@@ -177,10 +185,23 @@ def cmd_freeze(args) -> int:
     for path in cfg.sources.values():
         shutil.copyfile(path, snap / Path(path).name)
     write_json(ws.state / "freeze.json", {"tag": tag, "at": now_iso(), "code_hash": code_hash(),
-                                          "config_hash": cfg.hash(), "git": git,
-                                          "registration": args.registration or "PENDING"})
+                                          "config_hash": cfg.scientific_hash(), "git": git,
+                                          "registration": args.registration or "PENDING",
+                                          "packages": _package_versions()})
     print(f"[perisim] Frozen ({tag}). The external stage can now run: bash run_pod.sh")
     return 0
+
+
+def _package_versions() -> dict:
+    import importlib
+
+    out = {}
+    for m in ("numpy", "polars", "pyarrow", "scipy", "sklearn", "lightgbm", "xgboost", "torch", "faiss"):
+        try:
+            out[m] = getattr(importlib.import_module(m), "__version__", "?")
+        except Exception:
+            out[m] = None
+    return out
 
 
 def cmd_export(args) -> int:

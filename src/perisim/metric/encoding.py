@@ -216,7 +216,8 @@ class Encoder:
         out = {}
         for b in self.blocks:
             if b.kind == "nominal":
-                out[b.name] = {c: {"n": n, "p": [round(float(x), 4) for x in p]}
+                # n rounded to 10 and p to 2 decimals: class counts per category cannot be back-calculated (A6)
+                out[b.name] = {c: {"n": int(round(n, -1)), "p": [round(float(x), 2) for x in p]}
                                for c, (p, n) in b.params["table"].items() if n >= min_n}
         return out
 

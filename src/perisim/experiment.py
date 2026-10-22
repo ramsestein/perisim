@@ -74,7 +74,25 @@ def load_cohort_data(common_dir: Path, derived_dir: Path, feature_names: list[st
         carried=carried,
         t0=st["icu_out_min"].to_numpy(),
         year=st["year"].cast(pl.Float64).fill_null(np.nan).to_numpy(),
+        extra={"t1_reduced": _reduced_severe(tg)},
     )
+
+
+def _reduced_severe(tg: pl.DataFrame) -> np.ndarray:
+    """Severe restricted to the components eICU can observe (ICU readmission or in-hospital death); used as the
+    INSPIRE case-base label when INSPIRE predicts the reduced eICU target (AUDIT E1). −1 when unobservable."""
+    r = tg["icu_readmission"].cast(pl.Float64) if "icu_readmission" in tg.columns else pl.Series([None] * tg.height)
+    d = tg["death"].cast(pl.Float64) if "death" in tg.columns else pl.Series([None] * tg.height)
+    out = pl.DataFrame({"r": r, "d": d}).select(
+        pl.when(pl.col("r").is_null() & pl.col("d").is_null()).then(-1)
+        .when((pl.col("r").fill_null(0) == 1) | (pl.col("d").fill_null(0) == 1)).then(1).otherwise(0)
+        .cast(pl.Int64).alias("x"))
+    return out["x"].to_numpy()
+
+
+def fold_seed(cfg, fold: int) -> int:
+    """Seed of an outer-fold job (part of the hashed scientific code, unlike the orchestration in pipeline.py)."""
+    return int(cfg.seed) + 1000 * int(fold)
 
 
 # --------------------------------------------------------------------------- partitions
@@ -191,7 +209,10 @@ def fit_perisim(cfg, ft: FeatureTable, y: np.ndarray, C: int, *, seed: int, thre
     ecfg = cfg.experiment
     timings = {} if timings is None else timings
     inner = inner_splits(y, ft.subjects, int(ecfg["cv"]["inner_folds"]), seed)
-    info: dict = {"n_train": int(len(y)), "class_counts": np.bincount(y, minlength=C).tolist()}
+    from perisim.evaluation.privacy import counts as _counts
+
+    info: dict = {"n_train": int(len(y)),
+                  "class_counts": _counts({str(c): int(v) for c, v in enumerate(np.bincount(y, minlength=C))})}
 
     t = time.perf_counter()
     if select_hparams and len(ecfg["metric"]["vdm_m_grid"]) > 1:
@@ -297,7 +318,7 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
     preds[("perisim_kernel", kp)] = probs[("kernel", kp)]
     kth, pct, ood = fp.knn.kth_info(D, valid, kp)
 
-    # P4: carried variables summarized over the k neighbours (learned metric vs Euclidean)
+    # Q4: carried variables summarized over the k neighbours (learned metric vs Euclidean)
     car_tr = {k: v[tr] for k, v in data.carried.items() if np.isfinite(v[tr]).any()}
     car_te = {k: data.carried[k][te] for k in car_tr}
     p4 = {"perisim": fp.knn.carried_summary(I, valid, kp, car_tr)}

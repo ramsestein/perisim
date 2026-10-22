@@ -18,6 +18,7 @@ SRC_ROOT = REPO_ROOT / "src" / "perisim"
 CONFIG_SECTIONS = ("experiment", "cohorts", "harmonization", "targets", "model_space")
 
 _ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
+_SCALAR_RE = re.compile(r"(?i)true|false|yes|no|on|off|-?\d+(\.\d+)?([eE][-+]?\d+)?")
 
 
 def _expand_env(obj: Any) -> Any:
@@ -27,13 +28,12 @@ def _expand_env(obj: Any) -> Any:
         return [_expand_env(v) for v in obj]
     if isinstance(obj, str) and "${" in obj:
         full = _ENV_RE.fullmatch(obj)
-        if full:  # whole value -> reinterpreted as YAML (true/false/numbers)
-            raw = os.environ.get(full.group(1), full.group(2) if full.group(2) is not None else "")
-            try:
-                return yaml.safe_load(raw) if raw != "" else ""
-            except yaml.YAMLError:
-                return raw
-        return _ENV_RE.sub(lambda m: os.environ.get(m.group(1), m.group(2) or ""), obj)
+        if full:  # whole value -> booleans and numbers are typed; anything else (paths…) stays a string
+            raw = os.environ.get(full.group(1)) or (full.group(2) if full.group(2) is not None else "")
+            if _SCALAR_RE.fullmatch(raw.strip()):
+                return yaml.safe_load(raw)
+            return raw
+        return _ENV_RE.sub(lambda m: os.environ.get(m.group(1)) or m.group(2) or "", obj)
     return obj
 
 
@@ -65,7 +65,7 @@ def code_hash(subpackages: list[str] | None = None, n: int = 12) -> str:
         elif r.is_dir():
             files.extend(sorted(r.rglob("*.py")))
     for f in sorted(set(files)):
-        h.update(str(f.relative_to(SRC_ROOT)).encode())
+        h.update(f.relative_to(SRC_ROOT).as_posix().encode())   # same hash on Windows and Linux
         h.update(f.read_bytes().replace(b"\r\n", b"\n"))
     return h.hexdigest()[:n]
 
@@ -87,6 +87,13 @@ class Config:
     def hash(self, *sections: str) -> str:
         sections = sections or CONFIG_SECTIONS
         return stable_hash({s: self.section(s) for s in sections})
+
+    def scientific_hash(self) -> str:
+        """Hash of everything that can change a RESULT — i.e. without machine/run-specific settings (paths,
+        compute resources, gate acknowledgements). Used by the §6.3 freeze (AUDIT A4)."""
+        d = self.to_dict()
+        exp = {k: v for k, v in d["experiment"].items() if k not in ("paths", "resources", "gates")}
+        return stable_hash({**d, "experiment": exp})
 
     def get(self, dotted: str, default: Any = None) -> Any:
         """cfg.get('experiment.knn.k_primary')"""

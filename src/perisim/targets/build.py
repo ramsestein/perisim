@@ -147,7 +147,7 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
     trunc = float(tcfg["t2"]["truncate_days"])
     los = (s["disch"] - s["t0"]) / 1440.0
     t = t.join(s.select("stay_id", ((pl.col("disch") - pl.col("t0")) / 1440.0).alias("los_raw"),
-                        pl.col("death").is_null().alias("survivor"), "discharge_location"), on="stay_id", how="left")
+                        (pl.col("death").is_null() | (pl.col("death") > pl.col("t0") + fu)).alias("survivor"), "discharge_location"), on="stay_id", how="left")
     t = t.with_columns(
         (pl.col("los_raw") > trunc).alias("los_truncated"),
         pl.when(pl.col("survivor")).then(pl.col("los_raw").clip(0, trunc)).otherwise(None).alias("los_post_icu_days"),

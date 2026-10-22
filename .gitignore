@@ -11,9 +11,9 @@
 KHDP_settings.md
 
 # Patient data and extracts (never in the repo, §9)
-data/
-work/
-workdir/
+/data/
+/work/
+/workdir/
 *.parquet
 *.csv
 *.csv.gz

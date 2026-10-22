@@ -56,18 +56,41 @@ def sage_permutation(model, X: np.ndarray, y: np.ndarray, n_groups: int, rng: np
 
 
 def normalize(values: np.ndarray, se: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Truncates negatives to 0 and divides by the sum (§5.3.6). The standard error is scaled the same way."""
+    """Truncates negatives to 0 and divides by the sum (§5.3.6). The standard error is scaled the same way.
+    A model whose SAGE values are all ≤ 0 carries no information: uniform values with a very large SE, so it
+    gets ~no weight in the aggregation (AUDIT B11)."""
     v = np.clip(values, 0, None)
     s = v.sum()
     if s <= 0:
-        return np.full_like(v, 1.0 / len(v)), se
+        return np.full_like(v, 1.0 / len(v)), np.full_like(v, 1e3)
     return v / s, se / s
 
 
 def aggregate(imp: np.ndarray, se: np.ndarray, floor: float = 1e-8) -> np.ndarray:
-    """Inverse-variance weighted mean, per group, in the style of ShapleyVIC (§5.3.7).
-    imp, se: (models × groups)."""
-    w = 1.0 / np.maximum(se ** 2, floor)
-    agg = (w * imp).sum(0) / w.sum(0)
+    """Random-effects (DerSimonian–Laird) weighted mean per group, in the spirit of ShapleyVIC (§5.3.7).
+
+    imp, se: (models × groups). The within-model SE is only Monte-Carlo noise: a model that never uses a group
+    has SE = 0, which means "no sampling noise", not "infinite precision about the consensus". Plain
+    inverse-variance weights would give such a model weight ~1e8 and drive the consensus to 0 (AUDIT B1).
+    The between-model variance τ² is therefore added to every model's variance, so models are weighted by
+    1 / (se² + τ²); with real heterogeneity this tends to the plain mean, without it to inverse variance.
+    """
+    imp = np.asarray(imp, dtype=float)
+    se = np.asarray(se, dtype=float)
+    if imp.shape[0] == 1:
+        agg = imp[0].copy()
+    else:
+        M = imp.shape[0]
+        v = se ** 2
+        pos = v[v > 0]
+        v = np.maximum(v, max(floor, 1e-3 * float(np.median(pos))) if pos.size else floor)
+        w = 1.0 / v
+        mu_fe = (w * imp).sum(0) / w.sum(0)
+        q = (w * (imp - mu_fe) ** 2).sum(0)
+        c = w.sum(0) - (w ** 2).sum(0) / w.sum(0)
+        tau2 = np.maximum(0.0, (q - (M - 1)) / np.maximum(c, 1e-300))
+        w_re = 1.0 / (v + tau2)
+        agg = (w_re * imp).sum(0) / w_re.sum(0)
+    agg = np.clip(agg, 0, None)
     s = agg.sum()
     return agg / s if s > 0 else np.full(imp.shape[1], 1.0 / imp.shape[1])

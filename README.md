@@ -85,7 +85,7 @@ models of the external validation are fitted in parallel.
 1. Review `reports/schema_*.md` and `reports/completeness_*.html` inside the workdir.
 2. Fix `config/harmonization.yaml` on your machine, push, and then `git pull` in the pod.
 3. Record the decisions in `docs/OPEN_QUESTIONS.md` and `docs/DECISIONS.md`.
-4. To continue after the audit: `PERISIM_ACK_AUDIT=true bash run_pod.sh`.
+4. To continue after the audit: `PERISIM_ACK_AUDIT=true bash run_pod.sh` (once: the acknowledgement is stored for that exact set of issues; a different set stops the pipeline again).
 
 **External validation:** once internal validation is closed, confirm the state of the repository and
 freeze:
@@ -95,7 +95,9 @@ bash run_pod.sh freeze --registration <ID_OSF>
 ```
 
 Then relaunch `bash run_pod.sh`. From that moment on, any change to code or configuration blocks
-the `external` stage, because §6.3 forbids iterating after looking at external results.
+the `external` stage, because §6.3 forbids iterating after looking at external results. Paths, compute
+resources (`PERISIM_JOBS`, `PERISIM_THREADS`) and gate acknowledgements are not part of the frozen method, so
+changing them does not break the freeze; a second freeze is refused once external results exist.
 
 ## Export (KHDP §3.2)
 

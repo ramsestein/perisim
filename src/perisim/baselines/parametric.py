@@ -82,7 +82,7 @@ def swift_score(icu_los_h, pf_ratio, gcs, paco2, admit_source) -> np.ndarray:
     pf = np.asarray(pf_ratio, float)
     s += np.where(np.isfinite(pf), np.where(pf < 100, 13, np.where(pf < 150, 10, np.where(pf < 400, 5, 0))), 0)
     g = np.asarray(gcs, float)
-    s += np.where(np.isfinite(g), np.where(g < 8, 24, np.where(g <= 10, 14, np.where(g < 14, 6, 0))), 0)
+    s += np.where(np.isfinite(g), np.where(g < 8, 24, np.where(g <= 10, 14, np.where(g <= 14, 6, 0))), 0)
     pc = np.asarray(paco2, float)
     s += np.where(np.isfinite(pc) & (pc > 45), 5, 0)
     src = np.asarray(admit_source, dtype=object)

@@ -119,6 +119,9 @@ def read_json(path: Path, default: Any = None) -> Any:
             return json.load(fh)
     except FileNotFoundError:
         return default
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:   # e.g. truncated by an OOM kill
+        LOG.warning("Unreadable JSON %s (%s): treated as missing", path, exc)
+        return default
 
 
 def atomic_write_text(path: Path, text: str) -> None:

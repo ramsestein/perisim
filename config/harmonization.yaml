@@ -83,6 +83,10 @@ sources:
         file: icu/icustays
         columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, intime: intime, outtime: outtime,
                   first_careunit: first_careunit}
+      transfers:                   # ICU episodes are rebuilt from true ICU careunits (AUDIT D3)
+        file: hosp/transfers
+        columns: {subject_id: subject_id, hadm_id: hadm_id, transfer_id: transfer_id, eventtype: eventtype,
+                  careunit: careunit, intime: intime, outtime: outtime}
       services:
         file: hosp/services
         columns: {subject_id: subject_id, hadm_id: hadm_id, transfertime: transfertime, curr_service: curr_service}
@@ -175,6 +179,7 @@ sources:
         columns: {unit_id: patientunitstayid, offset: treatmentoffset, text: treatmentstring}
       medication:
         file: medication
+        optional_columns: {route: routeadmin}
         columns: {unit_id: patientunitstayid, start: drugstartoffset, stop: drugstopoffset, drug: drugname,
                   cancelled: drugordercancelled}
       diagnosis:
@@ -317,7 +322,7 @@ variables:
     units: °F
     rename_to: vital_temp
     transform: f_to_c
-    bounds: [77, 113]
+    bounds: [25, 45]            # applied AFTER the F→C transform, so in °C (AUDIT D2)
     sources:
       mimic:   {table: chartevents, items: [223761], status: VERIFY}
   vital_fio2:
@@ -356,6 +361,12 @@ medications:
   atc_feature_level_chars: 4       # ATC level 3 = 4 characters (e.g. J01C)
   antibiotic_prefix: J01
   vasopressor_atc: [C01CA03, C01CA24, C01CA04, C01CA06, H01BA01]
+  # Drug NAMES (MIMIC-IV eMAR, eICU orders) only feed ATC inputs and the antibiotic course. Vasopressor SUPPORT
+  # comes only from IV infusion sources (inputevents, infusionDrug, treatment) — AUDIT D4. Local / topical /
+  # ophthalmic / otic / nasal / inhaled products and flushes are excluded before mapping. [VERIFY]
+  name_exclude_regex: '(?i)(lidocaine|lidocain|xylocaine|bupivacaine|ropivacaine|mepivacaine|racepinephrine|ophth|\beye\b|\botic\b|\bear\b|nasal|inhal|\bneb\b|nebul|ointment|\boint\b|cream|\bgel\b|topical|lotion|drops|irrigation|flush|\block\b|vaginal|patch)'
+  # eICU medication.routeadmin values that are not systemic [VERIFY]
+  route_exclude_regex: '(?i)(topical|ophth|\beye\b|\botic\b|\bear\b|nasal|inhal|\bneb|vaginal|transdermal|irrig)'
   name_to_atc:                     # evaluated on unique names; one name can map to several ATC codes
     - {pattern: "(?i)cefazolin", atc: J01DB04}
     - {pattern: "(?i)cephalexin|cefalexin", atc: J01DB01}
@@ -489,10 +500,13 @@ surgical_groups:
     ENT: ent_head_neck
     DENT: ent_head_neck
     PSURG: plastic_other
-  eicu_admitdx_regex:              # evaluated in order on admitdxpath [VERIFY]
+  # Evaluated only on the specific "Operative|Diagnosis|<system>|<dx>" rows; the FIRST matching pattern wins and,
+  # per unit, the highest-priority (lowest index) match is kept, so the result never depends on row order (D11).
+  eicu_admitdx_row_regex: '(?i)\|Operative\|Diagnosis\|'
+  eicu_admitdx_regex:              # [VERIFY]
     - {pattern: "(?i)CABG|valve|aortic root|cardiac|heart transplant|ventricular assist", group: cardiac}
     - {pattern: "(?i)\\|Respiratory\\||thoracotomy|lobectomy|pneumonectomy|esophag", group: thoracic}
-    - {pattern: "(?i)aneurysm|endarterectomy|bypass graft|vascular|embolectomy|amputation", group: vascular}
+    - {pattern: "(?i)aneurysm|endarterectomy|bypass graft|(?<!cardio)vascular|embolectomy|amputation", group: vascular}
     - {pattern: "(?i)\\|Neurologic\\||craniotomy|spinal|laminectomy", group: neuro}
     - {pattern: "(?i)\\|Gastrointestinal\\||bowel|colectomy|whipple|liver|pancrea|gastrectomy|cholecyst", group: general_gi}
     - {pattern: "(?i)\\|Musculoskeletal|fracture|hip|knee|orthopedic", group: ortho}

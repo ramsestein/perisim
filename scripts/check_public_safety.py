@@ -22,10 +22,19 @@ SECRET_PATTERNS = [
     (r"khdp_pat_[A-Za-z0-9]{10,}", "KHDP token"),
     (r"ghp_[A-Za-z0-9]{30,}", "GitHub token"),
     (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "private key"),
-    (r"(?i)\b(api[_-]?key|secret|password|passwd|token)\s*[:=]\s*['\"][^'\"\s]{12,}['\"]", "hard-coded credential"),
+    (r"(?i)(api[_-]?key|secret|password|passwd|token)\w*\s*[:=]\s*['\"][^'\"\s]{12,}['\"]", "hard-coded credential"),
+    (r"\bhf_[A-Za-z0-9]{30,}", "Hugging Face token"),
+    (r"\bAKIA[0-9A-Z]{16}\b", "AWS access key"),
+    (r"github_pat_[A-Za-z0-9_]{30,}", "GitHub fine-grained token"),
+    (r"\b(INSPIRE|MIMIC|EICU)-\d{5,}", "patient/stay identifier"),
 ]
-FORBIDDEN_NAMES = re.compile(r"(^|/)(\.env(\..*)?|KHDP_settings\.md)$")
-FORBIDDEN_EXT = {".parquet", ".csv", ".gz", ".feather", ".arrow", ".npy", ".npz", ".pkl", ".joblib", ".zip"}
+# Unquoted KEY=value credentials are only checked in non-code text files (env/ini/yaml/shell)
+UNQUOTED_CRED = (r"(?im)^\s*(export\s+)?\w*(api[_-]?key|secret|password|passwd|token)\w*\s*[:=]\s*[^\s'\"#]{16,}",
+                 "hard-coded credential (unquoted)")
+TEXT_CONFIG_EXT = {".env", ".ini", ".cfg", ".yaml", ".yml", ".sh", ".txt", ".toml", ".conf", ""}
+FORBIDDEN_NAMES = re.compile(r"(^|/)(\.env(\..*)?|[^/]*\.env|secrets?\.[a-z]+|KHDP_settings\.md)$")
+FORBIDDEN_EXT = {".parquet", ".csv", ".tsv", ".gz", ".feather", ".arrow", ".npy", ".npz", ".pkl", ".joblib", ".zip",
+                 ".xlsx", ".xls", ".sav", ".rds", ".rdata", ".sqlite", ".db", ".h5", ".hdf5", ".dta", ".sas7bdat"}
 MAX_BYTES = 2_000_000
 
 
@@ -40,6 +49,10 @@ def _files(all_files: bool) -> list[str]:
 
 
 def main() -> int:
+    try:  # never crash the git hook on a non-UTF-8 console (Windows cp1252)
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, ValueError):
+        pass
     files = _files("--all" in sys.argv)
     problems = []
     for f in files:
@@ -56,7 +69,8 @@ def main() -> int:
             problems.append(f"{f}: too large ({p.stat().st_size} bytes) — data or outputs?")
             continue
         text = p.read_text(encoding="utf-8", errors="ignore")
-        for pat, what in SECRET_PATTERNS:
+        pats = SECRET_PATTERNS + ([UNQUOTED_CRED] if p.suffix.lower() in TEXT_CONFIG_EXT else [])
+        for pat, what in pats:
             if f.endswith("check_public_safety.py"):
                 break
             if re.search(pat, text):

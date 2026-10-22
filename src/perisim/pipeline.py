@@ -54,32 +54,41 @@ class StageDef:
     per_cohort: bool = False
 
 
+# Config dependencies may contain "{cohort}" (per-cohort slices). Only what changes a stage's OUTPUT is listed,
+# so that e.g. a bootstrap setting does not re-run the CV (AUDIT F6); upstream stages are chained through the
+# run_id of their last execution (AUDIT A5).
+_EXTRACT_CFG = ("harmonization.sources.{cohort}", "harmonization.variables", "harmonization.medications",
+                "harmonization.surgical_groups", "harmonization.admit_source", "harmonization.discharge_location",
+                "cohorts.common", "cohorts.{cohort}", "experiment.features.preop_lab_lookback_days", "targets.window")
+_MODEL_CFG = ("experiment.importance", "experiment.metric", "experiment.knn", "experiment.cv.outer_folds",
+              "experiment.cv.inner_folds", "model_space", "experiment.seed", "experiment.features.feature_set")
 STAGE_DEFS: dict[str, StageDef] = {
     "env": StageDef((), ("utils.py", "resources.py"), ()),
-    "discover": StageDef(("harmonization.sources", "experiment.paths"), ("data",), ()),
-    "extract": StageDef(("harmonization", "cohorts", "experiment.features.preop_lab_lookback_days", "targets.window"),
-                        ("data", "cohort"), ("discover",), True),
+    "discover": StageDef(("harmonization.sources", "experiment.paths.datasets_root", "experiment.paths.inspire_dir",
+                          "experiment.paths.mimic_dir", "experiment.paths.eicu_dir"), ("data",), ()),
+    "extract": StageDef(_EXTRACT_CFG, ("data", "cohort"), ("discover",), True),
     "targets": StageDef(("targets", "experiment.time", "experiment.features.support_gap_hours"),
                         ("targets", "timeline.py"), ("extract",), True),
     "features": StageDef(("experiment.features", "experiment.time", "harmonization.medications",
                           "harmonization.preop_labs"), ("features", "timeline.py", "cohort"), ("extract",), True),
-    "leakage": StageDef((), ("features",), ("features",)),
-    "audit": StageDef(("experiment.evaluation", "targets.t1"), ("evaluation/audit.py", "evaluation/html.py"),
-                      ("targets", "features")),
-    "harmonize": StageDef(("experiment.features", "experiment.cohorts"), (), ("features", "audit")),
-    "pilot": StageDef(("experiment.importance", "experiment.metric", "experiment.knn", "experiment.pilot",
-                       "experiment.cv", "model_space", "experiment.seed"),
-                      ("importance", "metric", "knn", "experiment.py"), ("harmonize", "targets")),
-    "cv": StageDef(("experiment.importance", "experiment.metric", "experiment.knn", "experiment.cv",
-                    "experiment.baselines", "experiment.targets_to_model", "model_space", "targets.t2", "targets.t3",
-                    "experiment.seed"),
+    "leakage": StageDef(("experiment.time",), ("features",), ("features",)),
+    "audit": StageDef(("experiment.evaluation.small_cell_threshold", "targets.t1"),
+                      ("evaluation/audit.py", "evaluation/html.py", "evaluation/privacy.py"), ("targets", "features")),
+    "harmonize": StageDef(("experiment.features", "experiment.cohorts"), ("pipeline.py",), ("features", "audit")),
+    "pilot": StageDef(_MODEL_CFG + ("experiment.pilot",), ("importance", "metric", "knn", "experiment.py", "pipeline.py"),
+                      ("harmonize", "targets")),
+    "cv": StageDef(_MODEL_CFG + ("experiment.baselines", "experiment.targets_to_model", "targets.t2", "targets.t3"),
                    ("importance", "metric", "knn", "experiment.py", "baselines"), ("pilot", "harmonize", "targets")),
     "temporal": StageDef(("experiment.cv.temporal",), (), ("cv",)),
     "report": StageDef(("experiment.evaluation", "experiment.knn"), ("evaluation",), ("cv",)),
     "sensitivity": StageDef(("experiment.sensitivity",), (), ("cv",)),
-    "external": StageDef(("experiment",), ("experiment.py", "external.py", "evaluation"), ("cv", "harmonize")),
+    "external": StageDef(_MODEL_CFG + ("experiment.cohorts", "experiment.targets_to_model", "experiment.evaluation",
+                                       "experiment.time", "targets"),
+                         ("experiment.py", "external.py", "evaluation"), ("cv", "harmonize")),
     "export": StageDef((), ("evaluation",), ()),
 }
+# Stages computed once for the main analysis and shared by the sensitivity variants
+_SHARED_STAGES = {"env": "_", "discover": "_", "extract": "_", "harmonize": "main", "pilot": "main"}
 
 
 def _get(d: dict, dotted: str):
@@ -121,15 +130,31 @@ class Pipeline:
 
     # ------------------------------------------------------------------ keys and markers
     def key(self, stage: str, cohort: str | None = None) -> str:
+        """hash(relevant config + relevant code + key AND output digest of every upstream stage).
+
+        Including the upstream OUTPUT digest means that an upstream re-run that changes its outputs (``--force``,
+        a re-discovered cohort, a cohort mounted later…) invalidates everything downstream, while a re-run that
+        reproduces identical outputs invalidates nothing (AUDIT A5)."""
         cache_k = f"{stage}:{cohort}"
         if cache_k in self._keys:
             return self._keys[cache_k]
         sd = STAGE_DEFS[stage]
         cfgd = self.cfg.to_dict()
-        payload = {"stage": stage, "cohort": cohort, "variant": self.variant if stage not in ("discover", "extract") else "_",
-                   "config": {p: _get(cfgd, p) for p in sd.config},
-                   "code": code_hash(list(sd.code)) if sd.code else None,
-                   "up": [self.key(u, cohort if STAGE_DEFS[u].per_cohort and cohort else None) for u in sd.upstream]}
+        conf = {}
+        for path in sd.config:
+            if "{cohort}" in path:
+                for c in ([cohort] if cohort else COHORTS):
+                    conf[path.format(cohort=c)] = _get(cfgd, path.format(cohort=c))
+            else:
+                conf[path] = _get(cfgd, path)
+        up = []
+        for u in sd.upstream:
+            cs = ([cohort] if cohort else self.available_cohorts()) if STAGE_DEFS[u].per_cohort else [None]
+            for c in cs:
+                m = read_json(self._marker(u, c)) or {}
+                up.append([u, c, self.key(u, c), m.get("digest") or m.get("run_id")])
+        payload = {"stage": stage, "cohort": cohort, "variant": _SHARED_STAGES.get(stage, self.variant),
+                   "config": conf, "code": code_hash(list(sd.code)) if sd.code else None, "up": up}
         if stage == "extract" and cohort:
             payload["src"] = self.disc.get(cohort, {}).get("path")
         k = stable_hash(payload, 16)
@@ -137,7 +162,7 @@ class Pipeline:
         return k
 
     def _marker(self, stage: str, cohort: str | None) -> Path:
-        variant = "_" if stage in ("env", "discover", "extract") else self.variant
+        variant = _SHARED_STAGES.get(stage, self.variant)
         d = self.ws.state / variant
         d.mkdir(parents=True, exist_ok=True)
         return d / (f"{stage}__{cohort}.json" if cohort else f"{stage}.json")
@@ -146,9 +171,18 @@ class Pipeline:
         m = read_json(self._marker(stage, cohort))
         return bool(m) and m.get("key") == self.key(stage, cohort) and m.get("status") == "done"
 
-    def mark(self, stage: str, cohort: str | None = None, **info) -> None:
+    def mark(self, stage: str, cohort: str | None = None, outputs: list[Path] | None = None,
+             digest: str | None = None, **info) -> None:
+        """Marks a stage done. `digest` (or the content hash of `outputs`) identifies WHAT it produced; stages
+        without declared outputs get a random run_id, so any re-run invalidates their dependants."""
+        import uuid
+
+        if digest is None and outputs:
+            digest = _files_digest(outputs)
         write_json(self._marker(stage, cohort), {"key": self.key(stage, cohort), "status": "done",
+                                                 "digest": digest, "run_id": uuid.uuid4().hex,
                                                  "finished": now_iso(), **info})
+        self._keys.clear()          # downstream keys depend on this digest
 
     # ------------------------------------------------------------------ helpers
     def available_cohorts(self) -> list[str]:
@@ -189,6 +223,7 @@ class Pipeline:
                 write_json(self.ws.state / "last_error.json", {"stage": st, "trace": traceback.format_exc(), "at": now_iso()})
                 return 1
         (self.ws.state / "last_stop.json").unlink(missing_ok=True)
+        (self.ws.state / "last_error.json").unlink(missing_ok=True)
         LOG.info("✔ Stages completed in %.1f min (variant %s)", (time.perf_counter() - t0) / 60, self.variant)
         return 0
 
@@ -234,9 +269,12 @@ class Pipeline:
     def stage_discover(self) -> None:
         from perisim.data.discover import discover_cohorts, schema_markdown, schema_report
 
-        if self.done("discover") and not self.force:
+        paths_ok = all(self.disc.get(c, {}).get("path") and os.path.isdir(self.disc[c]["path"]) for c in COHORTS)
+        if self.done("discover") and not self.force and paths_ok:
             LOG.info("discover: unchanged (%s)", ", ".join(f"{c}={self.disc.get(c, {}).get('path')}" for c in COHORTS))
             return
+        if self.done("discover") and not paths_ok:
+            LOG.info("discover: a cohort is missing or its folder disappeared → searching again")
         disc = discover_cohorts(self.cfg)
         min_n = int(self.cfg.experiment["evaluation"]["small_cell_threshold"])
         for c in COHORTS:
@@ -254,6 +292,7 @@ class Pipeline:
         write_json(self.ws.shared_artifacts() / "discovery.json", disc)
         self.disc = disc
         self._keys.clear()
+        self._disc_digest = stable_hash({c: disc[c].get("path") for c in COHORTS})
         dev = self.cfg.experiment["cohorts"]["development"]
         if not disc[dev].get("path"):
             raise Stop(f"Development cohort ({dev}) not found under {disc['_datasets_root']['path']}.\n"
@@ -261,7 +300,7 @@ class Pipeline:
                        f"Set PERISIM_INSPIRE_DIR=/path/to/inspire and relaunch.")
         if not disc[dev].get("schema_ok", True):
             raise Stop(f"The {dev} schema does not match config/harmonization.yaml: see {self.ws.reports}/schema_{dev}.md")
-        self.mark("discover")
+        self.mark("discover", digest=self._disc_digest)
 
     def stage_extract(self) -> None:
         """Common-format extraction; the cohorts run in parallel processes when CPU and memory allow."""
@@ -300,7 +339,9 @@ class Pipeline:
                     LOG.info("  [%s] %-62s %8s stays", c, f["step"], f"{f['n_stays']:,}")
                 LOG.info("extract[%s]: %d index stays, %s inputs_long rows, %s outcomes", c, r["n_index"],
                          f"{r['n_inputs']:,}", f"{r['n_outcomes']:,}")
-                self.mark("extract", c, n_index=r["n_index"], n_inputs=r["n_inputs"])
+                cm = self.ws.common(c)
+                self.mark("extract", c, outputs=[cm / "stays_index.parquet", cm / "inputs_long.parquet",
+                                                 cm / "outcomes.parquet"], n_index=r["n_index"], n_inputs=r["n_inputs"])
         if errors:
             raise RuntimeError("Extraction failed (relaunching only redoes the failed cohorts):\n" + "\n".join(errors))
         if stops:
@@ -323,7 +364,7 @@ class Pipeline:
             write_parquet(tg, dv / "targets.parquet")
             write_parquet(car, dv / "carried.parquet")
             LOG.info("targets[%s]: T1 severe %.2f %%", c, 100 * float(tg["t1_severe"].mean() or 0))
-            self.mark("targets", c, **diag)
+            self.mark("targets", c, outputs=[dv / "targets.parquet", dv / "carried.parquet"], **diag)
 
     def stage_features(self) -> None:
         from perisim.features.build import build_features
@@ -341,7 +382,8 @@ class Pipeline:
             avail = {s.name: float(1 - X[s.name].is_null().mean()) for s in specs}
             write_json(dv / "feature_availability.json", avail)
             LOG.info("features[%s]: %d stays × %d variables", c, X.height, len(specs))
-            self.mark("features", c, n_features=len(specs))
+            self.mark("features", c, outputs=[dv / "features.parquet", dv / "feature_specs.json"],
+                      n_features=len(specs))
 
     def stage_leakage(self) -> None:
         """§4.4.1: automatic, row-by-row test that no input is later than t0 − margin."""
@@ -356,6 +398,16 @@ class Pipeline:
                 raise Stop(f"TEMPORAL LEAKAGE in {c}: {bad.height} stays with inputs after the cutoff. "
                            f"Check src/perisim/features/build.py")
             LOG.info("leakage[%s]: %d rows checked, 0 violations", c, prov.height)
+            from perisim.features.build import metamorphic_leak_check
+
+            cm, dv = self.ws.common(c), self.ws.derived(c)
+            diff = metamorphic_leak_check(pl.read_parquet(cm / "stays_index.parquet"),
+                                          pl.read_parquet(cm / "inputs_long.parquet"), self.cfg, c,
+                                          X=pl.read_parquet(dv / "features.parquet"))
+            if diff:
+                raise Stop(f"TEMPORAL LEAKAGE in {c}: these inputs change when the data after the cutoff are "
+                           f"removed: {diff[:20]}. Check src/perisim/features/build.py")
+            LOG.info("leakage[%s]: metamorphic check passed (inputs identical without post-cutoff data)", c)
         tests = REPO_ROOT / "tests"
         if tests.is_dir():
             env = {**os.environ, "PERISIM_TEST_WORKDIR": str(self.ws.root), "PERISIM_TEST_VARIANT": self.variant}
@@ -390,12 +442,17 @@ class Pipeline:
                       "\n".join(f"- {i}" for i in issues_all) + "\n\nSee reports/completeness_<cohort>.html.")
             write_json(noted, {"hash": stable_hash(issues_all)})
         gates = self.cfg.experiment["gates"]
-        if issues_all and gates.get("audit_stop_on_issues", True) and not bool(gates.get("audit_acknowledged")):
+        ack_file = self.ws.state / "audit_ack.json"
+        h = stable_hash(issues_all)
+        if issues_all and _truthy(gates.get("audit_acknowledged")):
+            write_json(ack_file, {"issues_hash": h, "issues": issues_all, "at": now_iso()})
+        acked = (read_json(ack_file) or {}).get("issues_hash") == h   # the SAME issues were acknowledged before
+        if issues_all and gates.get("audit_stop_on_issues", True) and not acked:
             raise Stop("§7 completeness audit raised issues:\n  - " + "\n  - ".join(issues_all) +
                        f"\nReports: {self.ws.reports}/completeness_*.html\n"
                        "After reviewing them (and recording the decision in the repo's docs/OPEN_QUESTIONS.md / "
                        "DECISIONS.md), continue with:  PERISIM_ACK_AUDIT=true bash run_pod.sh")
-        self.mark("audit", issues=issues_all)
+        self.mark("audit", digest=stable_hash(issues_all), issues=issues_all)
 
     def stage_harmonize(self) -> None:
         """Input sets: core (intersection of the 3 cohorts), extended (INSPIRE ∩ MIMIC), full (INSPIRE)."""
@@ -412,8 +469,8 @@ class Pipeline:
         sets = {"full": sorted(ok[dev])}
         sets["extended"] = sorted(ok[dev] & ok.get("mimic", ok[dev]))
         sets["core"] = sorted(set.intersection(*[ok[c] for c in ok]))
-        write_json(self.ws.artifacts() / "feature_sets.json", {**sets, "missing_cohorts": missing,
-                                                                "availability": avail})
+        # availability fractions would reveal small missing counts: they stay in derived/ (never exported)
+        write_json(self.ws.artifacts() / "feature_sets.json", {**sets, "missing_cohorts": missing})
         chosen = fcfg["feature_set"]
         LOG.info("harmonize: core=%d, extended=%d, full=%d → using '%s'", len(sets["core"]), len(sets["extended"]),
                  len(sets["full"]), chosen)
@@ -421,7 +478,7 @@ class Pipeline:
             self.note("DECISIONS", "Modelling without all cohorts", f"Missing cohorts: {missing}.")
         if len(sets[chosen]) < 5:
             raise Stop(f"The '{chosen}' set has only {len(sets[chosen])} variables: review the harmonization.")
-        self.mark("harmonize")
+        self.mark("harmonize", digest=stable_hash(sets))
 
     # ------------------------------------------------------------------ modelling
     def feature_names(self) -> list[str]:
@@ -509,7 +566,7 @@ class Pipeline:
                   f"Models until stopping (simulated): {n_stop}. Estimated CV cost: {pilot['extrapolation']['hours_total_cv']:.1f} h.")
         LOG.info("pilot: %.1f min; simulated stop at %d models; estimated CV %.1f h + sensitivity %.1f h", wall / 60,
                  n_stop, pilot["extrapolation"]["hours_total_cv"], pilot["extrapolation"]["hours_sensitivity"])
-        self.mark("pilot")
+        self.mark("pilot", digest=stable_hash({k: v for k, v in d7.items() if k != "fixed_at"}))
 
     def cv_jobs(self, tag: str = "cv", split: tuple[np.ndarray, np.ndarray] | None = None) -> list[dict]:
         """Self-contained (target × fold) jobs still pending for this pipeline/variant."""
@@ -552,7 +609,19 @@ class Pipeline:
         else:
             LOG.info("%s: all jobs already done", tag)
         if tag == "cv":
+            self._real_data_tests(["test_patient_split.py", "test_vdm_in_fold.py"], "after the CV (§6.1, §5.2)")
             self.mark("cv")
+
+    def _real_data_tests(self, files: list[str], when: str) -> None:
+        tests = REPO_ROOT / "tests"
+        if not tests.is_dir():
+            return
+        env = {**os.environ, "PERISIM_TEST_WORKDIR": str(self.ws.root), "PERISIM_TEST_VARIANT": self.variant}
+        r = subprocess.run([sys.executable, "-m", "pytest", "-q", *[str(tests / f) for f in files]], env=env,
+                           capture_output=True, text=True)
+        LOG.info("real-data tests %s:\n%s", when, r.stdout[-1500:])
+        if r.returncode != 0:
+            raise Stop(f"Real-data tests failing {when}:\n{r.stdout[-3000:]}\n{r.stderr[-1000:]}")
 
     def run_jobs(self, jobs: list[dict], label: str) -> None:
         par = max(1, min(len(jobs), self.jobs()))
@@ -607,13 +676,15 @@ class Pipeline:
 
         if self.done("report") and not self.force:
             return
-        res = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.experiment["targets_to_model"], self.cfg)
+        n_outer = int(self.cfg.experiment["cv"]["outer_folds"])
+        res = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.experiment["targets_to_model"], self.cfg,
+                           expected_key=self.key("cv"), expected_folds=set(range(n_outer)))
         write_json(self.ws.artifacts() / "results.json", res)
         (self.ws.reports / f"results_{self.variant}.html").write_text(
             render_results(res, self.cfg, f"PERISIM results — internal validation ({self.variant})"), encoding="utf-8")
         if any(self.ws.artifacts("temporal").rglob("fold*.json")):
             rt = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.experiment["targets_to_model"],
-                              self.cfg, tag="temporal")
+                              self.cfg, tag="temporal", expected_key=self.key("cv"), expected_folds={0})
             write_json(self.ws.artifacts() / "results_temporal.json", rt)
             (self.ws.reports / "results_temporal.html").write_text(
                 render_results(rt, self.cfg, "PERISIM results — temporal validation (2011–2018 → 2019–2020)"),
@@ -667,7 +738,7 @@ class Pipeline:
                 LOG.warning("external: WAITING for the freeze (§6.3). Review reports/results_main.html and, once the "
                             "pipeline is final:  bash run_pod.sh freeze --registration <OSF_ID>  then relaunch.")
                 return
-            if fr.get("code_hash") != code_hash() or fr.get("config_hash") != self.cfg.hash():
+            if fr.get("code_hash") != code_hash() or fr.get("config_hash") != self.cfg.scientific_hash():
                 raise Stop("Code or configuration changed since the freeze (§6.3: iterating is forbidden). "
                            "Restore the frozen version (git checkout <tag>) or freeze again if no external results "
                            "have been looked at yet.")
@@ -680,6 +751,27 @@ class Pipeline:
         from perisim.evaluation.export import build_export
 
         build_export(self.ws, self.cfg)
+
+
+def _files_digest(paths: list[Path]) -> str:
+    """Content hash of a stage's output files (chunked: multi-GB Parquet files are fine)."""
+    import hashlib
+
+    h = hashlib.sha256()
+    for path in paths:
+        h.update(Path(path).name.encode())
+        try:
+            with open(path, "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 22), b""):
+                    h.update(chunk)
+        except FileNotFoundError:
+            h.update(b"<missing>")
+    return h.hexdigest()[:16]
+
+
+def _truthy(v) -> bool:
+    """Strict boolean for gate flags: only true / "true" / "1" / "yes" count (PERISIM_ACK_AUDIT=n is False)."""
+    return v is True or str(v).strip().lower() in ("true", "1", "yes")
 
 
 def _simulate_stop(smooth: list[float], min_delta: float, P: int, n_min: int, n_max: int) -> int:
@@ -771,7 +863,7 @@ def _extract_entry(args: dict) -> dict:
 def _job_entry(args: dict):
     """One (target × fold) job in its own process. Returns True or an error message."""
     try:
-        from perisim.experiment import load_cohort_data, run_fold
+        from perisim.experiment import fold_seed, load_cohort_data, run_fold
         from perisim.utils import setup_logging
 
         setup_logging()
@@ -782,7 +874,7 @@ def _job_entry(args: dict):
         d7 = args["d7"]
         st = {k: d7[k] for k in ("W", "P", "n_min", "n_max", "min_delta", "tol_delta") if k in d7}
         res, out = run_fold(cfg, data, args["target"], np.asarray(args["train"]), np.asarray(args["test"]),
-                            seed=cfg.seed + 1000 * int(args["fold"]), threads=int(args["threads"]),
+                            seed=fold_seed(cfg, int(args["fold"])), threads=int(args["threads"]),
                             baselines=cfg.experiment["baselines"], stopping_override=st,
                             exclude_families=set(d7.get("exclude_families", [])), early_stop=True)
         pred = Path(args["pred"])

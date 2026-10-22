@@ -142,12 +142,15 @@ setup_env() {
       for idx in $PERISIM_TORCH_INDEXES; do
         if _reachable "$vpy" "$idx/torch/"; then
           say "Installing torch from $idx"
-          if "$vpy" -m pip install "${pip_base[@]}" torch --index-url "$idx" \
-               --trusted-host "$(_host_of "$idx")"; then ok=1; break; fi
+          # the torch index may not host torch's own dependencies: they come from the PyPI mirror
+          local extra=()
+          [ ${#pip_args[@]} -gt 0 ] && extra=(--extra-index-url "$PERISIM_PIP_INDEX" --trusted-host "$(_host_of "$PERISIM_PIP_INDEX")")
+          if "$vpy" -m pip install "${pip_base[@]}" torch --index-url "$idx" --trusted-host "$(_host_of "$idx")" \
+               ${extra[@]+"${extra[@]}"}; then ok=1; break; fi
         fi
       done
       if [ "$ok" = 0 ]; then
-        warn "PyTorch indexes not reachable: installing torch from the general index"
+        warn "PyTorch indexes not reachable: installing torch from the general index (on Linux this may pull ~3 GB of CUDA wheels)"
         "$vpy" -m pip install "${pip_base[@]}" ${pip_args[@]+"${pip_args[@]}"} torch
       fi
     fi
@@ -205,7 +208,17 @@ size_threads() {
   say "Resources: $PERISIM_CPUS usable CPUs → $PERISIM_THREADS_PER_JOB threads per job (details: bash run_pod.sh resources)"
 }
 
-is_running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+# A PID file is trusted only if that PID is alive AND is a perisim process (PIDs are reused after a restart)
+is_running() {
+  [ -f "$PIDFILE" ] || return 1
+  local pid; pid="$(cat "$PIDFILE")"
+  kill -0 "$pid" 2>/dev/null || return 1
+  ps -p "$pid" -o args= 2>/dev/null | grep -q "perisim" || return 1
+}
+refuse_if_running() {
+  if is_running; then die "A run is already in progress (PID $(cat "$PIDFILE")). Use: bash run_pod.sh logs | stop"; fi
+  return 0
+}
 
 maybe_smoke() {
   [ "${PERISIM_SKIP_SMOKE:-0}" = 1 ] && return 0
@@ -217,7 +230,7 @@ maybe_smoke() {
 }
 
 launch_bg() {
-  is_running && die "A run is already in progress (PID $(cat "$PIDFILE")). Use: bash run_pod.sh logs | stop"
+  refuse_if_running
   local log="$LOGDIR/run_$(date +%Y%m%d_%H%M%S).log"
   if command -v setsid >/dev/null 2>&1; then
     nohup setsid "$VPY" -m perisim run "$@" >"$log" 2>&1 </dev/null &
@@ -234,15 +247,15 @@ launch_bg() {
 
 case "$CMD" in
   start|run)
-    setup_env; maybe_smoke; launch_bg "$@" ;;
+    refuse_if_running; setup_env; maybe_smoke; launch_bg "$@" ;;
   fg)
-    setup_env; maybe_smoke; exec "$VPY" -m perisim run "$@" ;;
+    refuse_if_running; setup_env; maybe_smoke; echo $$ > "$PIDFILE"; exec "$VPY" -m perisim run "$@" ;;
   setup)
     setup_env; say "Environment ready: $VPY" ;;
   smoke)
     setup_env; exec "$VPY" -m perisim smoke --workdir "$PERISIM_LOCAL/smoke" "$@" ;;
   test)
-    setup_env; cd "$REPO_DIR"; exec "$VPY" -m pytest "$@" ;;
+    setup_env; cd "$REPO_DIR"; export PERISIM_TEST_WORKDIR="$PERISIM_WORKDIR"; exec "$VPY" -m pytest "$@" ;;
   resources)
     setup_env; exec "$VPY" -m perisim resources ;;
   status)
@@ -254,8 +267,8 @@ case "$CMD" in
     tail -n 200 -F "$(cat "$LOGDIR/latest.txt")" ;;
   stop)
     if is_running; then
-      pid="$(cat "$PIDFILE")"; kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid"; say "Stopped (PID $pid)"
-    else say "No run in progress"; fi ;;
+      pid="$(cat "$PIDFILE")"; kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid"; rm -f "$PIDFILE"; say "Stopped (PID $pid)"
+    else rm -f "$PIDFILE"; say "No run in progress"; fi ;;
   freeze)
     setup_env; exec "$VPY" -m perisim freeze "$@" ;;
   *)
