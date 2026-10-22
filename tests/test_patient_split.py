@@ -1,4 +1,4 @@
-"""§6.1 — Partición por paciente: ningún paciente en dos folds (externos ni internos)."""
+"""§6.1 — Patient-level split: no patient in two folds (outer or inner)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def _outer(subjects: np.ndarray, y: np.ndarray, k: int, seed: int) -> np.ndarray
 
 def test_outer_and_inner_disjoint_by_subject():
     rng = np.random.default_rng(0)
-    subjects = rng.integers(0, 300, 1200).astype(str)          # varias hospitalizaciones por paciente
+    subjects = rng.integers(0, 300, 1200).astype(str)          # several hospitalizations per patient
     y = rng.integers(0, 3, 1200)
     fold = _outer(subjects, y, 5, 1)
     per_subject = pl.DataFrame({"s": subjects, "f": fold}).group_by("s").agg(pl.col("f").n_unique())
@@ -32,10 +32,10 @@ def test_outer_and_inner_disjoint_by_subject():
 
 def test_real_folds(real_workdir):
     if real_workdir is None:
-        pytest.skip("sin workdir real")
+        pytest.skip("no real workdir")
     wd, variant = real_workdir
     p = wd / "artifacts" / variant / "folds.parquet"
     if not p.exists():
-        pytest.skip("aún no hay folds")
+        pytest.skip("no folds yet")
     f = pl.read_parquet(p)
     assert f.group_by("subject_id").agg(pl.col("outer_fold").n_unique())["outer_fold"].max() == 1

@@ -1,3 +1,3 @@
-# Opcionales: si fallan, el pipeline sigue (SAGE propio en src/perisim/importance/sage.py;
-# sage-importance solo se usa para contrastar el estimador en los tests).
+# Optional: if they fail to install, the pipeline still runs (own SAGE implementation in
+# src/perisim/importance/sage.py; sage-importance is only used to cross-check the estimator in the tests).
 sage-importance>=0.0.5

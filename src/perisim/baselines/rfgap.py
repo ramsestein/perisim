@@ -1,8 +1,8 @@
-"""kNN con proximidades RF-GAP (Rhodes et al., 2023).
+"""kNN with RF-GAP proximities (Rhodes et al., 2023).
 
-p(i, j) = (1/|S_i|) Σ_{t∈S_i} c_j(t)·1[j ∈ J_i(t)] / |M_i(t)|, con S_i los árboles en los que i es OOB (para
-consultas nuevas, todos), c_j(t) la multiplicidad bootstrap de j en t y |M_i(t)| la multiplicidad total en la
-hoja de i. Se entrena cada árbol con su propia muestra bootstrap para conocer las multiplicidades.
+p(i, j) = (1/|S_i|) Σ_{t∈S_i} c_j(t)·1[j ∈ J_i(t)] / |M_i(t)|, with S_i the trees in which i is OOB (for
+new queries, all of them), c_j(t) the bootstrap multiplicity of j in t and |M_i(t)| the total multiplicity in
+the leaf of i. Each tree is trained on its own bootstrap sample so that the multiplicities are known.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ class RFGAP:
             tree.fit(Xf[boot], y[boot])
             leaves = tree.apply(Xf)
             nl = tree.tree_.node_count
-            # matriz hoja × caso con c_j / |M_hoja|
+            # leaf × case matrix with c_j / |M_leaf|
             M = np.bincount(leaves, weights=c, minlength=nl)
             vals = np.where(c > 0, c / np.maximum(M[leaves], 1e-12), 0.0)
             L = sparse.csr_matrix((vals, (leaves, np.arange(n))), shape=(nl, n))
@@ -44,8 +44,8 @@ class RFGAP:
 
     def proximities(self, Xq: np.ndarray, train_idx: np.ndarray | None = None, chunk: int = 2000
                     ) -> list[sparse.csr_matrix]:
-        """Proximidades de las consultas a los casos de entrenamiento. Si las consultas son casos de
-        entrenamiento (`train_idx`), solo cuentan los árboles en los que el caso es OOB."""
+        """Proximities of the queries to the training cases. If the queries are training cases
+        (`train_idx`), only the trees in which the case is OOB are counted."""
         Xf = np.nan_to_num(Xq.astype(np.float32))
         out = []
         for s in range(0, Xf.shape[0], chunk):
@@ -67,8 +67,8 @@ class RFGAP:
 
     def topk(self, Xq: np.ndarray, k_max: int, train_idx: np.ndarray | None = None, subjects_q=None,
              subjects_train=None) -> np.ndarray:
-        """Índices de los k_max casos de mayor proximidad (−1 si no hay suficientes). Con `train_idx`
-        (consultas del propio entrenamiento) se excluyen el caso y su paciente. Se calcula una sola vez."""
+        """Indices of the k_max cases with the highest proximity (−1 if there are not enough). With `train_idx`
+        (queries from the training set itself) the case and its patient are excluded. Computed only once."""
         out = np.full((Xq.shape[0], k_max), -1, dtype=np.int64)
         offset = 0
         for P in self.proximities(Xq, train_idx=train_idx):
@@ -90,7 +90,7 @@ class RFGAP:
 
     @staticmethod
     def probs_from_topk(NB: np.ndarray, y_train: np.ndarray, n_classes: int, k: int, alpha: float) -> np.ndarray:
-        """Probabilidad con el mismo suavizado α que el kNN métrico."""
+        """Probability with the same α smoothing as the metric kNN."""
         prior = np.bincount(y_train, minlength=n_classes) / len(y_train)
         nb = NB[:, :k]
         valid = nb >= 0

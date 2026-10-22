@@ -1,15 +1,15 @@
 # PERISIM — Perioperative Similarity
 
-kNN con métrica de distancia aprendida (SAGE consensuado entre muchos modelos + NCA diagonal regularizado)
-para pacientes postoperatorios en el alta de UCI. Desarrollo en INSPIRE, validación externa en MIMIC-IV y eICU.
-La especificación completa está en [SPECS.md](SPECS.md).
+kNN with a learned distance metric (SAGE aggregated across many models + regularised diagonal NCA)
+for postoperative patients at ICU discharge. Development in INSPIRE, external validation in MIMIC-IV and eICU.
+The full specification is in [SPECS.md](SPECS.md).
 
-> **Repositorio público.** Solo código y configuración: nunca datos, salidas ni secretos. Antes de cada
-> `git push`: `python scripts/check_public_safety.py --all` (lo hace también el hook `.githooks/pre-commit`).
+> **Public repository.** Code and configuration only: never data, outputs or secrets. Before every
+> `git push`: `python scripts/check_public_safety.py --all` (the `.githooks/pre-commit` hook runs it too).
 
-## Ejecución en el pod de KHDP
+## Running in the KHDP pod
 
-En la terminal de VSCode del pod:
+In the pod's VSCode terminal:
 
 ```bash
 mkdir -p ~/workspace/updown/perisim/$(id -un) && cd ~/workspace/updown/perisim/$(id -un)
@@ -18,87 +18,93 @@ cd perisim
 bash run_pod.sh
 ```
 
-`run_pod.sh` lo hace todo solo:
+`run_pod.sh` does everything on its own:
 
-1. Busca Python ≥ 3.11 (o crea uno con conda, que en KHDP ya apunta al mirror) y crea un entorno virtual en
-   `~/.perisim/venv`, reutilizando los paquetes del sistema.
-2. Instala las dependencias desde el mirror PyPI de KHDP y torch desde el mirror de PyTorch
-   (índice CPU y, si no responde, cu126).
-3. La primera vez que corre cada versión del código, lanza un **smoke test con datos sintéticos**: si falla,
-   no toca los datos reales.
-4. Lanza el pipeline **en segundo plano**, de forma que sobrevive al cierre de la terminal, y muestra el log.
-   Ctrl-C deja de seguir el log, pero no detiene el pipeline.
+1. Finds Python ≥ 3.11 (or creates one with conda, which on KHDP already points to the mirror) and creates a
+   virtual environment in `~/.perisim/venv`, reusing the system packages.
+2. Installs the dependencies from the KHDP PyPI mirror and torch from the PyTorch mirror
+   (CPU index and, if it does not respond, cu126).
+3. The first time each version of the code runs, it launches a **smoke test on synthetic data**: if it fails,
+   the real data are not touched.
+4. Launches the pipeline **in the background**, so that it survives closing the terminal, and shows the log.
+   Ctrl-C stops following the log, but does not stop the pipeline.
 
-| Orden | Para qué |
+It also detects the container's real CPU and memory limits (cgroup) and sizes processes × threads
+automatically, at most 4 × 4 (SPECS §9.1).
+
+| Command | Purpose |
 |---|---|
-| `bash run_pod.sh` | preparar el entorno y lanzar / **reanudar** el pipeline |
-| `bash run_pod.sh status` | qué etapas están hechas y dónde se ha parado |
-| `bash run_pod.sh logs` | seguir el log de la ejecución en marcha |
-| `bash run_pod.sh stop` | detenerla |
-| `bash run_pod.sh fg --until audit` | ejecutar en primer plano hasta una etapa concreta |
-| `bash run_pod.sh test` | pytest, incluidos los tests anti-fuga sobre los datos reales |
-| `bash run_pod.sh freeze --registration <ID>` | congelación §6.3 (habilita la validación externa) |
+| `bash run_pod.sh` | set up the environment and launch / **resume** the pipeline |
+| `bash run_pod.sh status` | which stages are done and where it stopped |
+| `bash run_pod.sh logs` | follow the log of the running execution |
+| `bash run_pod.sh stop` | stop it |
+| `bash run_pod.sh fg --until audit` | run in the foreground up to a given stage |
+| `bash run_pod.sh test` | pytest, including the anti-leakage tests on the real data |
+| `bash run_pod.sh freeze --registration <ID>` | §6.3 freeze (enables external validation) |
 
-Para actualizar el código: `git pull` y `bash run_pod.sh`. Solo se rehacen las etapas cuyo código o
-configuración han cambiado, porque cada etapa guarda un marcador con su hash. Tras un OOM o un reinicio del
-pod basta con relanzar: se retoma desde la última etapa (o el último fold) completado.
+To update the code: `git pull` and `bash run_pod.sh`. Only the stages whose code or configuration have changed
+are rerun, because each stage stores a marker with its hash. After an OOM or a pod restart, just relaunch:
+it resumes from the last completed stage (or fold).
 
-### Rutas (configurables con variables de entorno)
+### Paths (configurable with environment variables)
 
-| Qué | Por defecto | Variable |
+| What | Default | Variable |
 |---|---|---|
-| Datos (solo lectura) | `/home/khdp-user/workspace/datasets` | `PERISIM_DATASETS` |
-| INSPIRE / MIMIC-IV / eICU | descubrimiento automático bajo datasets | `PERISIM_INSPIRE_DIR`, `PERISIM_MIMIC_DIR`, `PERISIM_EICU_DIR` |
-| Trabajo y resultados | `~/workspace/updown/perisim/<usuario>/work` | `PERISIM_WORKDIR` |
-| Entorno y logs de la terminal | `~/.perisim` | `PERISIM_LOCAL` |
+| Data (read-only) | `/home/khdp-user/workspace/datasets` | `PERISIM_DATASETS` |
+| INSPIRE / MIMIC-IV / eICU | automatic discovery under datasets | `PERISIM_INSPIRE_DIR`, `PERISIM_MIMIC_DIR`, `PERISIM_EICU_DIR` |
+| Work and results | `~/workspace/updown/perisim/<user>/work` | `PERISIM_WORKDIR` |
+| Environment and terminal logs | `~/.perisim` | `PERISIM_LOCAL` |
 
-## Qué hace el pipeline y dónde se para
+## What the pipeline does and where it stops
 
 ```
 env → discover → extract → targets → features → leakage → audit ⛔ → harmonize ⛔ → pilot → cv → temporal
     → report → sensitivity → external ⛔ → export
 ```
 
-| Etapa | Salida (en el workdir) | Puerta |
+| Stage | Output (in the workdir) | Gate |
 |---|---|---|
-| `discover` | `reports/schema_<cohorte>.md`: columnas e ítems reales frente a `config/harmonization.yaml` | para si no encuentra INSPIRE o su esquema no coincide |
-| `extract` | `common/<cohorte>/`: `stays`, `inputs_long`, `outcomes` y diagrama de flujo (§8.3) | — |
-| `targets`, `features` | `derived/…`: T1/T2/T3, variables arrastradas e inputs con corte t0 − 2 h | — |
-| `leakage` | test fila a fila de que ningún input supera el corte, más pytest | **para** si hay fuga (§4.4) |
-| `audit` | `reports/completeness_<cohorte>.html` (§7) | **para** si algún componente de T1 tiene prevalencia < 0,5 % o ausencia > 30 % |
-| `harmonize` | conjuntos de inputs `core` / `extended` / `full` | **para** si falta alguna cohorte montada |
-| `pilot` | `reports/pilot.html`: tiempos, memoria y coste estimado; fija D7 con una regla declarada | — |
-| `cv` | CV anidada 5 × 3 por paciente, PERISIM + 10 comparadores, k ∈ {10…200} | — |
+| `discover` | `reports/schema_<cohort>.md`: actual columns and items versus `config/harmonization.yaml` | stops if INSPIRE is not found or its schema does not match |
+| `extract` | `common/<cohort>/`: `stays`, `inputs_long`, `outcomes` and flow diagram (§8.3) | — |
+| `targets`, `features` | `derived/…`: T1/T2/T3, carried variables and inputs with the t0 − 2 h cutoff | — |
+| `leakage` | row-by-row test that no input exceeds the cutoff, plus pytest | **stops** if there is leakage (§4.4) |
+| `audit` | `reports/completeness_<cohort>.html` (§7) | **stops** if any T1 component has prevalence < 0.5% or missingness > 30% |
+| `harmonize` | `core` / `extended` / `full` input sets | **stops** if any cohort is not mounted |
+| `pilot` | `reports/pilot.html`: times, memory and estimated cost; fixes D7 with a declared rule | — |
+| `cv` | nested 5 × 3 patient-level CV, PERISIM + 10 comparators, k ∈ {10…200} | — |
 | `report` | `reports/results_main.html` (TRIPOD+AI) | — |
-| `sensitivity` | variantes de `experiment.yaml: sensitivity` | — |
-| `external` | modos A y B en MIMIC-IV y eICU (§6.2) | **espera** a `freeze` (§6.3) |
-| `export` | `export/`: solo agregados, con manifiesto y escaneo de identificadores | — |
+| `sensitivity` | variants in `experiment.yaml: sensitivity` | — |
+| `external` | modes A and B in MIMIC-IV and eICU (§6.2) | **waits** for `freeze` (§6.3) |
+| `export` | `export/`: aggregates only, with a manifest and an identifier scan | — |
 
-**Primera ejecución esperable:** casi seguro se para en `discover` o en `audit`. En ese caso:
+The three cohorts are extracted in parallel, the sensitivity variants share a single job queue, and the final
+models of the external validation are fitted in parallel.
 
-1. Revisa `reports/schema_*.md` y `reports/completeness_*.html` dentro del workdir.
-2. Corrige `config/harmonization.yaml` en tu equipo, haz push y luego `git pull` en el pod.
-3. Anota las decisiones en `docs/OPEN_QUESTIONS.md` y `docs/DECISIONS.md`.
-4. Para continuar tras la auditoría: `PERISIM_ACK_AUDIT=true bash run_pod.sh`.
+**Expected first run:** it will almost certainly stop at `discover` or at `audit`. In that case:
 
-**Validación externa:** cuando la validación interna esté cerrada, confirma el estado del repositorio y
-congela:
+1. Review `reports/schema_*.md` and `reports/completeness_*.html` inside the workdir.
+2. Fix `config/harmonization.yaml` on your machine, push, and then `git pull` in the pod.
+3. Record the decisions in `docs/OPEN_QUESTIONS.md` and `docs/DECISIONS.md`.
+4. To continue after the audit: `PERISIM_ACK_AUDIT=true bash run_pod.sh`.
+
+**External validation:** once internal validation is closed, confirm the state of the repository and
+freeze:
 
 ```bash
 bash run_pod.sh freeze --registration <ID_OSF>
 ```
 
-Después relanza `bash run_pod.sh`. A partir de ese momento, cualquier cambio de código o configuración bloquea
-la etapa `external`, porque §6.3 prohíbe iterar mirando resultados externos.
+Then relaunch `bash run_pod.sh`. From that moment on, any change to code or configuration blocks
+the `external` stage, because §6.3 forbids iterating after looking at external results.
 
-## Exportación (KHDP §3.2)
+## Export (KHDP §3.2)
 
-`<workdir>/export/` contiene solo agregados: informes HTML, métricas, pesos w_j, importancias y tablas VDM con
-celdas de n ≥ 10. Incluye `EXPORT_MANIFEST.md` y un zip. Para sacarlo del pod hay que escribir a
-`admin@khdp.net` indicando el propósito y el destino, y seguir su revisión. Las predicciones por paciente
-(`predictions/`) y los extractos (`common/`, `derived/`, `cache/`) **nunca** se exportan.
+`<workdir>/export/` contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with
+cells of n ≥ 10. It includes `EXPORT_MANIFEST.md` and a zip. To take it out of the pod, write to
+`admin@khdp.net` stating the purpose and the destination, and follow their review. Per-patient predictions
+(`predictions/`) and the extracts (`common/`, `derived/`, `cache/`) are **never** exported.
 
-## Desarrollo local (sin datos reales)
+## Local development (no real data)
 
 ```bash
 pip install -r requirements.txt torch
@@ -106,24 +112,27 @@ PYTHONPATH=src python -m pytest
 PYTHONPATH=src python -m perisim smoke
 ```
 
-`smoke` genera datos sintéticos con el esquema de las tres cohortes y ejecuta el pipeline completo, incluidas
-la congelación y la validación externa, con el perfil `config/profiles/smoke.yaml`.
+`smoke` generates synthetic data with the schema of the three cohorts and runs the full pipeline, including
+the freeze and the external validation, with the `config/profiles/smoke.yaml` profile.
 
-## Estructura
+## Structure
 
 ```
-config/            cohorts, harmonization (único sitio con nombres originales), targets, model_space, experiment
+config/            cohorts, harmonization (the only place with original names), targets, model_space, experiment
 src/perisim/
-  data/            lectura perezosa (Parquet zstd), descubrimiento, extractores INSPIRE / MIMIC-IV / eICU, sintéticos
-  cohort/          inclusión, exclusión, t0 y corte
-  targets/         T1 (KDIGO, curso de antibiótico, reingreso…), T2, T3, variables arrastradas
-  features/        inputs con procedencia temporal (test anti-fuga) y tipos métricos
-  importance/      sustitutos con feature dropout, SAGE por permutaciones, agregación y parada (§5.3)
-  metric/          δ_j (continuas, ordinales, binarias, VDM, jerárquicas) y NCA diagonal regularizado (§5.4)
-  knn/             FAISS, probabilidades suavizadas, fuera de soporte y salida por paciente (§5.5–5.6)
-  baselines/       comparadores de §6.4
-  evaluation/      métricas, bootstrap por paciente, auditoría, informes y exportación
-  pipeline.py      etapas, puertas y paralelismo (4 procesos × 4 hilos)
-tests/             anti-fuga, partición por paciente, VDM en el fold, métrica y targets
-docs/              OPEN_QUESTIONS.md y DECISIONS.md
+  data/            lazy reading (Parquet zstd), discovery, INSPIRE / MIMIC-IV / eICU extractors, synthetic data
+  cohort/          inclusion, exclusion, t0 and cutoff
+  targets/         T1 (KDIGO, antibiotic course, readmission…), T2, T3, carried variables
+  features/        inputs with temporal provenance (anti-leakage test) and metric types
+  importance/      feature-dropout surrogates, permutation SAGE, aggregation and stopping (§5.3)
+  metric/          δ_j (continuous, ordinal, binary, VDM, hierarchical) and regularised diagonal NCA (§5.4)
+  knn/             FAISS, smoothed probabilities, out of support and per-patient output (§5.5–5.6)
+  baselines/       §6.4 comparators
+  evaluation/      metrics, patient-level bootstrap, audit, reports and export
+  experiment.py    nested fitting and evaluation of PERISIM and the comparators within one fold
+  external.py      external validation, modes A / B (final models fitted in parallel)
+  resources.py     real container limits (cgroup CPU quota, affinity, memory) → jobs × threads plan
+  pipeline.py      stages, gates and parallelism (at most 4 processes × 4 threads)
+tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets
+docs/              OPEN_QUESTIONS.md and DECISIONS.md
 ```

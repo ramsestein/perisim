@@ -1,7 +1,7 @@
-"""Construcción de componentes de T1, T1, T2 (continua) y variables arrastradas desde el formato común.
+"""Construction of T1 components, T1, T2 (continuous) and carried variables from the common format.
 
-T2 por categorías y T3 dependen de umbrales del fold de entrenamiento: se calculan en el modelado
-(`t2_categories`, `t3_labels`), nunca aquí (§4.4.4).
+Categorical T2 and T3 depend on thresholds from the training fold: they are computed during modelling
+(`t2_categories`, `t3_labels`), never here (§4.4.4).
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ def _flag(stays: pl.DataFrame, ids: pl.Series | list, name: str) -> pl.DataFrame
 
 
 def _antibiotic_courses(times: pl.DataFrame, s: pl.DataFrame, cfg: dict) -> list[str]:
-    """Curso nuevo de antibiótico sistémico: 1.ª administración tras t0 + 24 h, sin J01 en las 48 h previas,
-    y administración en ≥ N días consecutivos (ventanas de 24 h desde esa administración)."""
+    """New systemic antibiotic course: first administration after t0 + 24 h, with no J01 in the previous 48 h,
+    and administration on ≥ N consecutive days (24 h windows from that administration)."""
     after = float(cfg["start_after_t0_hours"]) * 60
     wash = float(cfg["washout_hours"]) * 60
     ndays = int(cfg["min_consecutive_days"])
@@ -90,7 +90,7 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
                         & (pl.col("start_min") <= pl.col("win_end")))
         comp[f"{kind}_start"] = _flag(s, r["stay_id"], f"{kind}_start")
 
-    # LRA por creatinina (KDIGO), basal = última creatinina antes del corte
+    # AKI by creatinine (KDIGO), baseline = last creatinine before the cutoff
     kd = tcfg["kdigo"]
     cr = li.filter(pl.col("variable") == "lab_creatinine")
     base = (cr.filter((pl.col("time_min") <= pl.col("cutoff"))
@@ -122,7 +122,7 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
     spo2 = li.filter((pl.col("variable") == "vital_spo2") & in_win).select("stay_id", "time_min", "value")
     comp["hypoxemia_ward"] = _flag(s, _hypoxemia(spo2, hx["spo2_threshold"], hx["min_consecutive"]), "hypoxemia_ward")
 
-    # Ensamblado; lo no observable en la cohorte queda nulo
+    # Assembly; components not observable in the cohort are left null
     t = s.select("stay_id", "subject_id")
     for name in ALL_COMPONENTS:
         col = comp[name].select("stay_id", pl.col(name).cast(pl.Int8))
@@ -134,15 +134,15 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
 
     t1c = tcfg["t1"]
     excl = set(t1c.get("exclude_components") or [])
-    grave = [c for c in t1c["grave_components"] if c in observable and c not in excl]
-    leve = [c for c in t1c["leve_components"] + list(t1c.get("include_sensitivity_components") or [])
+    severe = [c for c in t1c["severe_components"] if c in observable and c not in excl]
+    mild = [c for c in t1c["mild_components"] + list(t1c.get("include_sensitivity_components") or [])
             if c in observable and c not in excl]
     any_of = lambda cols: pl.any_horizontal([pl.col(c).fill_null(0) == 1 for c in cols]) if cols else pl.lit(False)  # noqa: E731
     reduced = cohort in set(t1c.get("reduced_cohorts") or [])
-    t = t.with_columns(any_of(grave).cast(pl.Int8).alias("t1_grave"))
+    t = t.with_columns(any_of(severe).cast(pl.Int8).alias("t1_severe"))
     t = t.with_columns(
         (pl.lit(None, pl.Int8) if reduced else
-         pl.when(pl.col("t1_grave") == 1).then(2).when(any_of(leve)).then(1).otherwise(0).cast(pl.Int8)).alias("t1"))
+         pl.when(pl.col("t1_severe") == 1).then(2).when(any_of(mild)).then(1).otherwise(0).cast(pl.Int8)).alias("t1"))
 
     trunc = float(tcfg["t2"]["truncate_days"])
     los = (s["disch"] - s["t0"]) / 1440.0
@@ -166,14 +166,14 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
     return t, carried, diag
 
 
-# --------------------------------------------------------------------------- dentro del fold
+# --------------------------------------------------------------------------- within the fold
 def t2_thresholds(los_train: np.ndarray, tcfg: dict) -> tuple[float, float]:
     if tcfg["t2"]["categories"] == "absolute":
         a, b = tcfg["t2"]["absolute_cut_days"]
         return float(a), float(b)
     v = los_train[np.isfinite(los_train)]
     q1, q2 = np.quantile(v, [1 / 3, 2 / 3])
-    if q2 <= q1:  # estancias muy discretas: se garantiza un umbral estrictamente mayor
+    if q2 <= q1:  # highly discrete stays: guarantee a strictly greater threshold
         q2 = np.nextafter(q1, np.inf)
     return float(q1), float(q2)
 
@@ -194,13 +194,14 @@ def t3_thresholds(los_train: np.ndarray, t1_train: np.ndarray, tcfg: dict) -> tu
 
 
 def t3_labels(t1: np.ndarray, los: np.ndarray, thr: tuple[float, float]) -> np.ndarray:
-    """0 alta precoz sin complicación < 1 esperada < 2 prolongada o leve < 3 grave o muerte."""
+    """0 early discharge without complication < 1 expected without complication < 2 prolonged or mild complication
+    < 3 severe complication or death."""
     out = np.full(t1.shape, -1, dtype=np.int64)
-    grave = t1 == 2
-    leve = t1 == 1
+    severe = t1 == 2
+    mild = t1 == 1
     none = t1 == 0
-    out[grave] = 3
-    out[leve] = 2
+    out[severe] = 3
+    out[mild] = 2
     fin = np.isfinite(los)
     out[none & fin & (los > thr[1])] = 2
     out[none & fin & (los <= thr[0])] = 0

@@ -1,4 +1,4 @@
-"""HTML autocontenido para informes de agregados (sin datos de pacientes)."""
+"""Self-contained HTML for aggregate reports (no patient data)."""
 
 from __future__ import annotations
 
@@ -54,11 +54,11 @@ def fig_img(fig) -> str:
     import matplotlib.pyplot as plt
 
     plt.close(fig)
-    return f'<img alt="figura" src="data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"/>'
+    return f'<img alt="figure" src="data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"/>'
 
 
 def page(title: str, sections: list[str], subtitle: str = "") -> str:
-    return (f"<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' "
+    return (f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' "
             f"content='width=device-width,initial-scale=1'><title>{esc(title)}</title><style>{CSS}</style></head>"
             f"<body><h1>{esc(title)}</h1><p class='muted'>{esc(subtitle)}</p>{''.join(sections)}</body></html>")
 

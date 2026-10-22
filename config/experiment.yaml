@@ -1,6 +1,6 @@
-# PERISIM — semillas, rutas, folds, tolerancias y rejillas (§5, §6, §9.1, §10).
-# Los valores ${VAR:-defecto} se toman de variables de entorno (run_pod.sh las fija para KHDP).
-# Todo lo que aquí se fija ANTES de ejecutar no se ajusta a la vista de los resultados (§5.3.2, §6.3).
+# PERISIM — seeds, paths, folds, tolerances and grids (§5, §6, §9.1, §10).
+# ${VAR:-default} values are read from environment variables (run_pod.sh sets them for KHDP).
+# Everything fixed here BEFORE running is not tuned after looking at the results (§5.3.2, §6.3).
 
 project: perisim
 seed: 20261021
@@ -8,14 +8,16 @@ seed: 20261021
 paths:
   datasets_root: ${PERISIM_DATASETS:-/home/khdp-user/workspace/datasets}
   workdir: ${PERISIM_WORKDIR:-/home/khdp-user/workspace/updown/perisim/work}
-  # "auto" = descubrimiento bajo datasets_root (src/perisim/data/discover.py)
+  # "auto" = discovery under datasets_root (src/perisim/data/discover.py)
   inspire_dir: ${PERISIM_INSPIRE_DIR:-auto}
   mimic_dir: ${PERISIM_MIMIC_DIR:-auto}
   eicu_dir: ${PERISIM_EICU_DIR:-auto}
 
-resources:            # §9.1: 16 vCPU, 128 GB, 100 GB, sin GPU
-  max_parallel_jobs: 4
-  threads_per_job: 4
+resources:            # §9.1: 16 vCPU, 128 GB, 100 GB, no GPU
+  # "auto" = derived from the container's real limits (cgroup CPU quota, affinity, memory limit):
+  # at most 4 jobs × 4 threads, fewer if the pod has fewer cores or less memory (src/perisim/resources.py).
+  max_parallel_jobs: ${PERISIM_JOBS:-auto}
+  threads_per_job: ${PERISIM_THREADS:-auto}
   min_free_disk_gb: 10
   discovery_max_depth: 7
   discovery_time_budget_s: 300
@@ -23,54 +25,54 @@ resources:            # §9.1: 16 vCPU, 128 GB, 100 GB, sin GPU
 cohorts:
   development: inspire
   external: [mimic, eicu]
-  # Si falta alguna cohorte montada, el modelado se para (la intersección de inputs no estaría definida).
+  # If a cohort is not mounted, modelling stops (the input intersection would be undefined).
   allow_missing_cohorts: false
 
 time:
-  cutoff_margin_hours: 2        # D2 (sensibilidad: 4 h, ver sensitivity)
+  cutoff_margin_hours: 2        # D2 (sensitivity: 4 h, see sensitivity)
   followup_days: 30
 
 cv:
   outer_folds: 5
   inner_folds: 3
   temporal:
-    enabled: auto               # auto = solo si stays.year existe en INSPIRE (§6.1 [VERIFICAR])
+    enabled: auto               # auto = only if stays.year exists in INSPIRE (§6.1 [VERIFY])
     train_years: [2011, 2018]
     test_years: [2019, 2020]
 
 features:
-  feature_set: core             # core (intersección 3 cohortes) | extended (INSPIRE ∩ MIMIC) | full (solo INSPIRE)
+  feature_set: core             # core (intersection of the 3 cohorts) | extended (INSPIRE ∩ MIMIC) | full (INSPIRE only)
   max_missing_for_availability: 0.95
   missing_indicator_threshold: 0.05
   dx_min_prevalence: 0.005      # D6
-  dx_window: before_surgery     # before_surgery (principal, §4.4.2) | before_cutoff (sensibilidad)
+  dx_window: before_surgery     # before_surgery (main, §4.4.2) | before_cutoff (sensitivity)
   med_window_hours: 24
   vital_window_hours: 24
   lab_lookback_hours: 72
   preop_lab_lookback_days: 180
-  support_gap_hours: 6          # fusión de registros de soporte en intervalos (fin inferido por ausencia)
+  support_gap_hours: 6          # merging of support records into intervals (end inferred from absence)
   min_points_slope: 3
   hier_min_count: 10
   hier_max_levels: 200
   nominal_min_count: 10
   nominal_max_categories: 50
   corr_cluster_threshold: 0.8   # §5.3.1
-  block_group_threshold: 50     # §5.3.1 [decisión abierta]
+  block_group_threshold: 50     # §5.3.1 [open decision]
 
 importance:                     # §5.3
-  epsilon: 0.05                 # filtro de competitividad (D7)
+  epsilon: 0.05                 # competitiveness filter (D7)
   n_explain: 2000
-  augment_copies: 2             # copias con máscara aleatoria para el feature dropout
-  stopping:                     # D7: W, P, n_min, n_max fijos; min_delta y tol_delta desde el piloto
+  augment_copies: 2             # randomly masked copies for feature dropout
+  stopping:                     # D7: W, P, n_min, n_max fixed; min_delta and tol_delta from the pilot
     W: 5
     P: 10
     n_min: 20
     n_max: 150
-    min_delta: auto             # auto = regla declarada en pilot.min_delta_rule
+    min_delta: auto             # auto = pre-declared rule in pilot.min_delta_rule
     tol_delta: 0.01
     max_attempts_factor: 3
   n_reference_pairs: 20000
-  lambda_loop: 1.0              # λ de la conversión dentro del bucle de parada (el λ final se elige en CV interna)
+  lambda_loop: 1.0              # λ of the conversion inside the stopping loop (the final λ is chosen by inner CV)
   nca_epochs_per_iter: 3
   candidate_refresh_every: 5
   sage:
@@ -78,7 +80,7 @@ importance:                     # §5.3
     max_passes: 3
     convergence_threshold: 0.025
   variance_floor: 1.0e-8
-  privileged_information: false # D8 (análisis secundario)
+  privileged_information: false # D8 (secondary analysis)
 
 metric:                         # §5.2, §5.4
   vdm_m_grid: [1, 5, 20, 50]
@@ -99,7 +101,7 @@ knn:                            # §5.5
   ood_percentile: 99
 
 targets_to_model: [t1, t2, t3]
-patient_output_target: t1       # métrica cuyos vecinos se usan en la salida clínica §5.6 (ver OPEN_QUESTIONS)
+patient_output_target: t1       # metric whose neighbours feed the clinical output §5.6 (see OPEN_QUESTIONS)
 
 baselines: [euclidean, shap_lgbm, rf_importance, relieff, nca_diag, power_prior, rf_gap, logreg, lgbm, swift]
 
@@ -108,34 +110,34 @@ pilot:                          # §9.1, M3
   target: t1
   n_models: 60
   include_baselines: false
-  # Regla declarada antes de ejecutar: min_delta = fracción × Δ̃ del piloto en la iteración n_min
+  # Rule declared before running: min_delta = fraction × the pilot's Δ̃ at iteration n_min
   min_delta_rule:
     fraction_of_delta_at_nmin: 0.05
-  mlp_cost_ratio_exclude: 3.0   # si la MLP cuesta >3× la mediana del resto, se excluye (§9.1)
+  mlp_cost_ratio_exclude: 3.0   # if the MLP costs > 3× the median of the others, it is excluded (§9.1)
 
 gates:
-  audit_stop_on_issues: true    # §7: parar si prevalencia <0,5 % o ausencia >30 %
+  audit_stop_on_issues: true    # §7: stop if prevalence < 0.5 % or missingness > 30 %
   audit_acknowledged: ${PERISIM_ACK_AUDIT:-false}
   external_requires_freeze: true
 
 evaluation:
   n_bootstrap: 2000
-  small_cell_threshold: 10      # §9: celdas n < 10 se suprimen en lo exportable
+  small_cell_threshold: 10      # §9: cells with n < 10 are suppressed in anything exportable
 
-sensitivity:                    # §4.2, §6.6 — se ejecutan tras la CV principal
+sensitivity:                    # §4.2, §6.6 — run after the main CV; all variants share one job queue
   enabled: true
   variants:
     - name: margin_4h
       overrides: {experiment: {time: {cutoff_margin_hours: 4}}}
-    - name: t1_sin_antibiotico
+    - name: t1_no_antibiotic
       overrides: {targets: {t1: {exclude_components: [antibiotic_course]}}}
-    - name: t1_sin_lra
+    - name: t1_no_aki
       overrides: {targets: {t1: {exclude_components: [aki_12, aki_3]}}}
-    - name: kdigo_alternativo
+    - name: kdigo_alternative
       overrides: {targets: {kdigo: {ratio_stage1: 1.3, abs_increase_48h: 0.5}}}
-    - name: t2_absoluta
+    - name: t2_absolute
       overrides: {targets: {t2: {categories: absolute}}}
-    - name: dx_antes_del_corte
+    - name: dx_before_cutoff
       overrides: {experiment: {features: {dx_window: before_cutoff}}}
-    - name: hipoxemia_planta
+    - name: ward_hypoxemia
       overrides: {targets: {t1: {include_sensitivity_components: [hypoxemia_ward]}}}

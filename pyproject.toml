@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "perisim"
 version = "0.3.0"
-description = "PERISIM: kNN con métrica aprendida (SAGE multimodelo + NCA diagonal regularizado) para pacientes postoperatorios al alta de UCI"
+description = "PERISIM: kNN with a learned metric (multi-model SAGE + regularised diagonal NCA) for postoperative patients at ICU discharge"
 requires-python = ">=3.11"
 readme = "README.md"
 license = { text = "MIT" }

@@ -1,4 +1,4 @@
-"""Utilidades transversales: logging, cronómetro con memoria, disco, E/S atómica y notas automáticas."""
+"""Cross-cutting utilities: logging, timer with memory usage, disk, atomic I/O and automatic notes."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ def setup_logging(logfile: Path | None = None, level: int = logging.INFO) -> Non
             fh = logging.FileHandler(logfile, encoding="utf-8")
             fh.setFormatter(fmt)
             root.addHandler(fh)
-        except OSError as exc:  # almacenamiento de objetos sin append: solo consola
-            root.warning("No se puede escribir el log en %s (%s); solo consola", logfile, exc)
+        except OSError as exc:  # object storage without append: console only
+            root.warning("Cannot write the log to %s (%s); console only", logfile, exc)
     root.propagate = False
 
 
@@ -126,13 +126,13 @@ def atomic_write_text(path: Path, text: str) -> None:
     tmp.write_text(text, encoding="utf-8")
     try:
         os.replace(tmp, path)
-    except OSError:  # algunos montajes de objetos no admiten rename atómico
+    except OSError:  # some object-storage mounts do not support atomic rename
         shutil.copyfile(tmp, path)
         tmp.unlink(missing_ok=True)
 
 
 def write_parquet(df, path: Path) -> Path:
-    """Escribe un DataFrame de polars en Parquet zstd de forma atómica (§9.1)."""
+    """Writes a polars DataFrame to zstd Parquet atomically (§9.1)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     df.write_parquet(tmp, compression="zstd")
@@ -145,16 +145,16 @@ def write_parquet(df, path: Path) -> Path:
 
 
 def append_note(path: Path, title: str, body: str) -> None:
-    """Añade una entrada fechada a OPEN_QUESTIONS / DECISIONS automáticos del workdir."""
+    """Appends a dated entry to the workdir's automatic OPEN_QUESTIONS / DECISIONS."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    head = "" if path.exists() else f"# {path.stem.replace('_', ' ')} (generado en el pod)\n\n"
+    head = "" if path.exists() else f"# {path.stem.replace('_', ' ')} (generated in the pod)\n\n"
     entry = f"{head}## {now_iso()} — {title}\n\n{body.strip()}\n\n"
     old = path.read_text(encoding="utf-8") if path.exists() else ""
     atomic_write_text(path, old + entry)
 
 
 def set_threads(n: int) -> None:
-    """Fija hilos de BLAS/OpenMP/torch para un trabajo (§9.1: 4 trabajos × 4 hilos)."""
+    """Sets BLAS/OpenMP/torch threads for a job (§9.1: 4 jobs × 4 threads)."""
     for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
         os.environ[var] = str(n)
     try:

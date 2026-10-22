@@ -1,6 +1,6 @@
-# Dependencias principales (rangos; run_pod.sh las instala desde el mirror de KHDP).
-# torch se instala aparte desde el mirror de PyTorch (índice CPU, con reserva cu126).
-# Versiones probadas en local: ver requirements-lock.txt.
+# Main dependencies (ranges; run_pod.sh installs them from the KHDP mirror).
+# torch is installed separately from the PyTorch mirror (CPU index, with cu126 as fallback).
+# Versions tested locally: see requirements-lock.txt.
 numpy>=1.26,<3
 polars>=1.10,<2
 pyarrow>=15

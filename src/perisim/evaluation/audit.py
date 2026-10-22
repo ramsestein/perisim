@@ -1,7 +1,7 @@
-"""Auditoría de completitud por cohorte (§7): primer entregable técnico y puerta de parada.
+"""Per-cohort completeness audit (§7): first technical deliverable and stop gate.
 
-Si algún componente de T1 tiene prevalencia < 0,5 % o ausencia > 30 % en alguna cohorte, el pipeline se
-detiene y lo anota en OPEN_QUESTIONS (en el workdir) hasta que se confirme `gates.audit_acknowledged`.
+If any T1 component has prevalence < 0.5 % or missingness > 30 % in any cohort, the pipeline stops and
+records it in OPEN_QUESTIONS (in the workdir) until `gates.audit_acknowledged` is confirmed.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
     n = targets.height
     rep: dict = {"cohort": cohort, "n_index": n, "flow": flow, "issues": []}
 
-    # --- inputs: ausencia, distribución y unidades
+    # --- inputs: missingness, distribution and units
     units = {}
     for vname, v in cfg.harmonization.get("variables", {}).items():
         units[vname.replace("lab_", "").replace("vital_", "")] = v.get("units")
@@ -49,17 +49,17 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
         inp_rows.append(row)
     rep["inputs"] = inp_rows
 
-    # --- frecuencia de medición en planta tras t0 (viabilidad de la categoría leve)
+    # --- ward measurement frequency after t0 (feasibility of the mild category)
     fu = float(tcfg["window"]["followup_days"]) * 1440
     s = stays.select("stay_id", pl.col("icu_out_min").alias("t0"),
                      pl.min_horizontal(pl.col("icu_out_min") + fu, pl.col("hosp_disch_min").fill_null(float("inf"))).alias("we"))
     post = inputs.join(s, on="stay_id").filter((pl.col("time_min") > pl.col("t0")) & (pl.col("time_min") <= pl.col("we")))
     los_days = s.with_columns(((pl.col("we") - pl.col("t0")) / 1440).clip(1 / 24, None).alias("d"))
     freq = []
-    for label, cond in [("creatinina", pl.col("variable") == "lab_creatinine"),
-                        ("hemoglobina", pl.col("variable") == "lab_hb"),
-                        ("antibiótico J01", pl.col("variable").str.starts_with("atc:J01")),
-                        ("SpO2 en planta", pl.col("variable") == "vital_spo2")]:
+    for label, cond in [("creatinine", pl.col("variable") == "lab_creatinine"),
+                        ("hemoglobin", pl.col("variable") == "lab_hb"),
+                        ("J01 antibiotic", pl.col("variable").str.starts_with("atc:J01")),
+                        ("ward SpO2", pl.col("variable") == "vital_spo2")]:
         c = post.filter(cond).group_by("stay_id").len()
         c = los_days.join(c, on="stay_id", how="left").with_columns(pl.col("len").fill_null(0))
         with_any = int((c["len"] > 0).sum())
@@ -69,11 +69,11 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
                      "median_per_day": float(np.median(per_day)) if per_day.size >= min_n else None})
     rep["ward_frequency"] = freq
 
-    # --- prevalencias de componentes, clases y estancia
+    # --- component prevalences, classes and length of stay
     comp_rows = []
     miss_map = {"aki_3": "aki_observable", "aki_12": "aki_observable", "antibiotic_course": "med_observable",
                 "transfusion": None}
-    t1_def = set(tcfg["t1"]["grave_components"]) | set(tcfg["t1"]["leve_components"])
+    t1_def = set(tcfg["t1"]["severe_components"]) | set(tcfg["t1"]["mild_components"])
     for comp in ["icu_readmission", "death", "reoperation", "vent_start", "vaso_start", "rrt_start", "aki_3", "aki_12",
                  "antibiotic_course", "transfusion", "hypoxemia_ward"]:
         obs = comp in observable
@@ -87,16 +87,16 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
         comp_rows.append(row)
         if obs and comp in t1_def:
             if prev is not None and prev < PREV_MIN:
-                rep["issues"].append(f"{cohort}: componente {comp} con prevalencia {100 * prev:.2f} % (< 0,5 %)")
+                rep["issues"].append(f"{cohort}: component {comp} with prevalence {100 * prev:.2f} % (< 0.5 %)")
             if miss > MISS_MAX:
-                rep["issues"].append(f"{cohort}: componente {comp} con ausencia {100 * miss:.1f} % (> 30 %)")
+                rep["issues"].append(f"{cohort}: component {comp} with missingness {100 * miss:.1f} % (> 30 %)")
     rep["components"] = comp_rows
     if "t1" in targets.columns and targets["t1"].drop_nulls().len():
         vc = targets["t1"].drop_nulls().value_counts().sort("t1")
-        rep["t1_classes"] = [{"class": ["ninguna", "leve", "grave"][int(r["t1"])], "n": suppress(int(r["count"]), min_n)}
+        rep["t1_classes"] = [{"class": ["none", "mild", "severe"][int(r["t1"])], "n": suppress(int(r["count"]), min_n)}
                              for r in vc.to_dicts()]
-    kg = int(targets["t1_grave"].fill_null(0).sum())
-    rep["t1_grave"] = {"n": suppress(kg, min_n), "pct": round(100 * kg / max(n, 1), 2) if kg >= min_n else None}
+    kg = int(targets["t1_severe"].fill_null(0).sum())
+    rep["t1_severe"] = {"n": suppress(kg, min_n), "pct": round(100 * kg / max(n, 1), 2) if kg >= min_n else None}
     los = targets["los_post_icu_days"].drop_nulls().to_numpy()
     if los.size >= min_n:
         rep["t2"] = {"n_survivors": int(los.size), "quantiles": dict(zip(["p10", "p25", "p50", "p75", "p90"],
@@ -107,8 +107,8 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
         k = int(targets["icu_readmission"].fill_null(0).sum())
         rep["icu_readmission_inspire"] = {
             "n_detected": suppress(k, min_n),
-            "note": "Detectado como nueva entrada en UCI ligada a otra cirugía de la misma hospitalización. "
-                    "Los reingresos no quirúrgicos no son observables por esta vía (D1)."}
+            "note": "Detected as a new ICU admission linked to another surgery within the same hospitalization. "
+                    "Non-surgical readmissions are not observable this way (D1)."}
     return rep, render(rep, min_n)
 
 
@@ -116,34 +116,34 @@ def render(rep: dict, min_n: int) -> str:
     c = rep["cohort"]
     sec = []
     if rep["issues"]:
-        sec.append(box("<b>Puerta §7: PARAR.</b><br>" + "<br>".join(rep["issues"]) +
-                       "<br>Anotado en docs/OPEN_QUESTIONS (workdir). Para continuar tras revisarlo: "
+        sec.append(box("<b>Gate §7: STOP.</b><br>" + "<br>".join(rep["issues"]) +
+                       "<br>Recorded in docs/OPEN_QUESTIONS (workdir). To continue after reviewing it: "
                        "<code>PERISIM_ACK_AUDIT=true bash run_pod.sh</code>", "bad"))
     else:
-        sec.append(box("Sin incidencias de prevalencia (< 0,5 %) ni ausencia (> 30 %) en los componentes de T1.", "ok"))
-    sec.append("<h2>Diagrama de flujo</h2>" + table(["Paso", "Estancias", "Pacientes", "Excluidas"],
-                                                    [[f["step"], suppress(f["n_stays"], min_n), suppress(f["n_subjects"], min_n),
-                                                      suppress(f["excluded"], min_n) if f["excluded"] is not None else None]
-                                                     for f in rep["flow"]]))
-    sec.append("<h2>Componentes de T1, clases y estancia</h2>" + table(
-        ["Componente", "Observable", "n", "Prevalencia %", "Ausencia %"],
-        [[r["component"], "sí" if r["observable"] else "no (por diseño)", r["n"], r["prev_pct"], r["missing_pct"]]
+        sec.append(box("No prevalence (< 0.5 %) or missingness (> 30 %) issues in the T1 components.", "ok"))
+    sec.append("<h2>Flow diagram</h2>" + table(["Step", "Stays", "Patients", "Excluded"],
+                                               [[f["step"], suppress(f["n_stays"], min_n), suppress(f["n_subjects"], min_n),
+                                                 suppress(f["excluded"], min_n) if f["excluded"] is not None else None]
+                                                for f in rep["flow"]]))
+    sec.append("<h2>T1 components, classes and length of stay</h2>" + table(
+        ["Component", "Observable", "n", "Prevalence %", "Missing %"],
+        [[r["component"], "yes" if r["observable"] else "no (by design)", r["n"], r["prev_pct"], r["missing_pct"]]
          for r in rep["components"]], nd=2))
     if rep.get("t1_classes"):
-        sec.append(table(["Clase T1", "n"], [[r["class"], r["n"]] for r in rep["t1_classes"]]))
-    sec.append(table(["T1 grave / no grave", "n", "%"], [["grave", rep["t1_grave"]["n"], rep["t1_grave"]["pct"]]], nd=2))
+        sec.append(table(["T1 class", "n"], [[r["class"], r["n"]] for r in rep["t1_classes"]]))
+    sec.append(table(["T1 severe / not severe", "n", "%"], [["severe", rep["t1_severe"]["n"], rep["t1_severe"]["pct"]]], nd=2))
     if rep.get("t2"):
         t2 = rep["t2"]
-        sec.append(table(["Estancia post-UCI (supervivientes)", "valor"],
+        sec.append(table(["Post-ICU length of stay (survivors)", "value"],
                          [["n", t2["n_survivors"]]] + [[k, v] for k, v in t2["quantiles"].items()] +
-                         [["terciles (descriptivos; en el modelado se calculan en cada fold)", " / ".join(f"{x:.2f}" for x in t2["tertiles_descriptive"])],
-                          ["% truncada a 30 d", t2["truncated_pct"]]], nd=2))
-    sec.append("<h2>Frecuencia de medición tras t0 (viabilidad de la categoría leve)</h2>" + table(
-        ["Medida", "Estancias con ≥1", "% estancias", "Mediana por día"],
+                         [["tertiles (descriptive; for modeling they are computed within each fold)", " / ".join(f"{x:.2f}" for x in t2["tertiles_descriptive"])],
+                          ["% truncated at 30 d", t2["truncated_pct"]]], nd=2))
+    sec.append("<h2>Measurement frequency after t0 (feasibility of the mild category)</h2>" + table(
+        ["Measure", "Stays with ≥1", "% of stays", "Median per day"],
         [[r["measure"], r["stays_with_any"], r["pct_stays"], r["median_per_day"]] for r in rep["ward_frequency"]], nd=2))
     if rep.get("icu_readmission_inspire"):
         r = rep["icu_readmission_inspire"]
-        sec.append("<h2>Viabilidad del reingreso en UCI (INSPIRE, D1)</h2>" + box(f"Detectados: {r['n_detected']}. {r['note']}", "warn"))
+        sec.append("<h2>Feasibility of ICU readmission (INSPIRE, D1)</h2>" + box(f"Detected: {r['n_detected']}. {r['note']}", "warn"))
     rows = []
     for r in rep["inputs"]:
         dist = ""
@@ -154,7 +154,7 @@ def render(rep: dict, min_n: int) -> str:
         elif r.get("top"):
             dist = r["top"]
         rows.append([r["feature"], r["type"], r["block"], r["missing_pct"], r.get("units") or "", dist])
-    sec.append("<h2>Inputs: ausencia, distribución y unidades</h2>" + table(
-        ["Variable", "Tipo", "Bloque", "Ausencia %", "Unidades", "Distribución"], rows, nd=1))
-    return page(f"Auditoría de completitud — {c}", sec,
-                f"PERISIM · §7 · celdas con n < {min_n} suprimidas · solo agregados")
+    sec.append("<h2>Inputs: missingness, distribution and units</h2>" + table(
+        ["Variable", "Type", "Block", "Missing %", "Units", "Distribution"], rows, nd=1))
+    return page(f"Completeness audit — {c}", sec,
+                f"PERISIM · §7 · cells with n < {min_n} suppressed · aggregates only")

@@ -1,5 +1,5 @@
-# Versiones con las que se ha probado el pipeline (smoke test con datos sintéticos), Python 3.11.
-# Solo informativo: el entorno real queda registrado en <workdir>/artifacts/env.json en cada ejecución.
+# Versions the pipeline has been tested with (smoke test on synthetic data), Python 3.11.
+# Informational only: the actual environment is recorded in <workdir>/artifacts/env.json on every run.
 numpy==2.3.5
 polars==1.36.1
 pyarrow==23.0.1

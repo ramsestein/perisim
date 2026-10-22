@@ -1,4 +1,4 @@
-"""§5.2 / §4.4.4 — El VDM (y todo lo que usa el target) se calcula SOLO con el fold de entrenamiento."""
+"""§5.2 / §4.4.4 — The VDM (and everything that uses the target) is computed ONLY on the training fold."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from perisim.utils import read_json
 
 
 def _table(n: int, rng) -> FeatureTable:
-    specs = [FeatureSpec("grp", "nominal", "grp", "cirugia"), FeatureSpec("x", "continuous", "x", "uci")]
+    specs = [FeatureSpec("grp", "nominal", "grp", "surgery"), FeatureSpec("x", "continuous", "x", "icu")]
     cat = {"grp": rng.choice(["a", "b", "c"], n).astype(object)}
     num = {"x": rng.normal(size=n)}
     return FeatureTable(np.arange(n).astype(str).astype(object), np.arange(n).astype(str).astype(object), specs, num, cat)
@@ -25,7 +25,7 @@ def test_vdm_uses_only_training_labels():
     tr, te = np.arange(300), np.arange(300, 400)
     e1 = Encoder(m=5).fit(ft.take(tr), y[tr], 3)
     y2 = y.copy()
-    y2[te] = rng.integers(0, 3, te.size)                    # cambiar las etiquetas de test
+    y2[te] = rng.integers(0, 3, te.size)                    # change the test labels
     e2 = Encoder(m=5).fit(ft.take(tr), y2[tr], 3)
     np.testing.assert_allclose(e1.transform(ft.take(te)), e2.transform(ft.take(te)))
     tab = next(b for b in e1.blocks if b.kind == "nominal").params["table"]
@@ -45,11 +45,11 @@ def test_vdm_smoothing_toward_prior():
 
 def test_real_vdm_counts_within_training(real_workdir):
     if real_workdir is None:
-        pytest.skip("sin workdir real")
+        pytest.skip("no real workdir")
     wd, variant = real_workdir
     folds = list((wd / "artifacts" / variant / "cv").glob("*/fold*.json"))
     if not folds:
-        pytest.skip("aún no hay folds")
+        pytest.skip("no folds yet")
     for f in folds:
         r = read_json(f)
         for name, tab in r["perisim"]["vdm_tables"].items():

@@ -1,7 +1,7 @@
-"""§4.4.1 — Ningún input puede tener marca temporal > t0 − 2 h. Se comprueba fila a fila.
+"""§4.4.1 — No input may have a timestamp > t0 − 2 h. Checked row by row.
 
-Con PERISIM_TEST_WORKDIR (en el pod) se comprueban las matrices reales de todas las cohortes; si no, se
-comprueba la construcción sobre datos sintéticos, incluida una fila "trampa" posterior al corte.
+With PERISIM_TEST_WORKDIR (on the pod) the real matrices of all cohorts are checked; otherwise the
+construction is checked on synthetic data, including a "trap" row after the cutoff.
 """
 
 from __future__ import annotations
@@ -14,15 +14,15 @@ from perisim.features.build import build_features, check_no_leakage
 
 def test_real_feature_matrices(real_workdir):
     if real_workdir is None:
-        pytest.skip("sin workdir real")
+        pytest.skip("no real workdir")
     wd, variant = real_workdir
     provs = list((wd / "derived" / variant).glob("*/feature_provenance.parquet"))
-    assert provs, "no hay feature_provenance en el workdir"
+    assert provs, "no feature_provenance in the workdir"
     for p in provs:
         prov = pl.read_parquet(p)
         assert prov["cutoff_min"].null_count() == 0
         bad = check_no_leakage(prov)
-        assert bad.height == 0, f"{p.parent.name}: {bad.height} filas con inputs posteriores al corte"
+        assert bad.height == 0, f"{p.parent.name}: {bad.height} rows with inputs after the cutoff"
 
 
 def test_synthetic_no_leakage(synthetic_inspire, cfg):
@@ -33,7 +33,7 @@ def test_synthetic_no_leakage(synthetic_inspire, cfg):
 
 
 def test_trap_row_after_cutoff_is_ignored(synthetic_inspire, cfg):
-    """Una analítica absurda 1 minuto después del corte no puede alterar la matriz."""
+    """An absurd lab value 1 minute after the cutoff must not alter the matrix."""
     s = synthetic_inspire
     st = s["stays"].head(5)
     margin = float(cfg.experiment["time"]["cutoff_margin_hours"]) * 60

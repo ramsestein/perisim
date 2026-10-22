@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------
-# PERISIM — este repositorio es PÚBLICO. Nada de secretos ni de datos.
+# PERISIM — this repository is PUBLIC. No secrets and no data.
 # ------------------------------------------------------------------
 
-# Secretos y configuración local
+# Secrets and local configuration
 .env
 .env.*
 *.key
@@ -10,7 +10,7 @@
 .claude/
 KHDP_settings.md
 
-# Datos de pacientes y extractos (nunca al repo, §9)
+# Patient data and extracts (never in the repo, §9)
 data/
 work/
 workdir/
@@ -24,7 +24,7 @@ workdir/
 *.pkl
 *.joblib
 
-# Salidas generadas (viven en el workdir de updown, no aquí)
+# Generated outputs (they live in the updown workdir, not here)
 reports/*
 !reports/.gitkeep
 export/
@@ -44,7 +44,7 @@ build/
 dist/
 wheelhouse/
 
-# Editores / SO
+# Editors / OS
 .vscode/
 .idea/
 .DS_Store

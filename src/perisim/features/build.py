@@ -1,8 +1,8 @@
-"""Matriz de inputs por estancia, con procedencia temporal para el test anti-fuga (§4.4.1).
+"""Per-stay input matrix, with temporal provenance for the anti-leakage test (§4.4.1).
 
-Solo se usan filas de inputs_long con marca temporal ≤ corte (t0 − margen). Los intervalos (soportes,
-órdenes de medicación) se recortan al corte. Por cada fila de la matriz se guarda la marca temporal máxima
-efectivamente usada (`feature_provenance`), que el test compara con el corte.
+Only inputs_long rows with timestamp ≤ cutoff (t0 − margin) are used. Intervals (supports, medication
+orders) are clipped at the cutoff. For each row of the matrix the maximum timestamp actually used is stored
+(`feature_provenance`), which the test compares with the cutoff.
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ SUPPORTS = ("vent", "vaso", "rrt")
 class FeatureSpec:
     name: str
     type: str            # continuous | ordinal | binary | nominal | hier
-    group: str           # grupo para el feature dropout / SAGE (§5.3.1)
-    block: str           # bloque clínico (§4.1)
-    levels: list = field(default_factory=list)   # ordinal: orden de los niveles
+    group: str           # group for feature dropout / SAGE (§5.3.1)
+    block: str           # clinical block (§4.1)
+    levels: list = field(default_factory=list)   # ordinal: order of the levels
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -46,19 +46,19 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
     long_parts: list[pl.DataFrame] = []   # (stay_id, name, value, t_used)
     specs: list[FeatureSpec] = []
 
-    # --- estado en el alta: última analítica dentro de la estancia (con margen previo)
+    # --- discharge status: last lab result within the stay (with a preceding margin)
     lab_lo = pl.col("icu_in_min") - float(f["lab_lookback_hours"]) * 60
     labs = L.filter(pl.col("variable").str.starts_with("lab_") & (pl.col("time_min") >= lab_lo))
     long_parts.append(_last(labs, "lab_", "last_"))
 
-    # --- basal: analítica preoperatoria más reciente (antes del inicio de la cirugía índice)
+    # --- baseline: most recent preoperative lab result (before the start of the index surgery)
     preop_vars = cfg.harmonization.get("preop_labs", [])
     pre_lo = pl.col("surgery_start_min") - float(f["preop_lab_lookback_days"]) * 1440
     pre = L.filter(pl.col("variable").is_in(preop_vars) & pl.col("surgery_start_min").is_not_null()
                    & (pl.col("time_min") <= pl.col("surgery_start_min")) & (pl.col("time_min") >= pre_lo))
     long_parts.append(_last(pre, "lab_", "preop_"))
 
-    # --- constantes: última y tendencia (pendiente por hora) en las 24 h previas al corte
+    # --- vital signs: last value and trend (slope per hour) in the 24 h before the cutoff
     vlo = pl.col("cutoff_min") - float(f["vital_window_hours"]) * 60
     vit = L.filter(pl.col("variable").str.starts_with("vital_") & (pl.col("time_min") >= vlo))
     long_parts.append(_last(vit, "vital_", "last_"))
@@ -75,7 +75,7 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
                            (pl.lit("slope_") + pl.col("variable").str.replace("^vital_", "")).alias("name")))
     long_parts.append(slope.select("stay_id", "variable", "value", "t_used", "name"))
 
-    # --- soportes durante la estancia en UCI y horas desde su retirada
+    # --- supports during the ICU stay and hours since their withdrawal
     sup = L.filter(pl.col("variable").str.starts_with("support_"))
     runs = merge_runs(sup.select("stay_id", "variable", "time_min", "end_min"), float(f["support_gap_hours"]) * 60)
     runs = (runs.join(base, on="stay_id")
@@ -90,7 +90,7 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
                                       (pl.lit("hours_since_") + pl.col("variable").str.replace("^support_", "")
                                        + pl.lit("_off")).alias("name")))
 
-    # --- medicación activa: grupos ATC de nivel 3 en las 24 h previas al corte
+    # --- active medication: level-3 ATC groups in the 24 h before the cutoff
     lvl = int(cfg.harmonization["medications"]["atc_feature_level_chars"])
     mlo = pl.col("cutoff_min") - float(f["med_window_hours"]) * 60
     med = L.filter(pl.col("variable").str.starts_with("atc:")
@@ -101,7 +101,7 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
     long_parts.append(med.select("stay_id", pl.lit("med").alias("variable"), pl.lit(1.0).alias("value"), "t_used",
                                  (pl.lit("med_") + pl.col("atc3")).alias("name")))
 
-    # --- diagnósticos: antes del inicio de la cirugía índice (principal) o del corte (sensibilidad)
+    # --- diagnoses: before the start of the index surgery (main) or before the cutoff (sensitivity)
     dx = L.filter(pl.col("variable").str.starts_with("dx:"))
     if f["dx_window"] == "before_surgery":
         dx = dx.filter(pl.col("surgery_start_min").is_null() | (pl.col("time_min") < pl.col("surgery_start_min")))
@@ -109,7 +109,7 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
     long_parts.append(dx.select("stay_id", "variable", pl.lit(1.0).alias("value"), "t_used",
                                 (pl.lit("dx_") + pl.col("variable").str.slice(3)).alias("name")))
 
-    # --- antropometría registrada (MIMIC-IV) para el IMC si no viene en stays
+    # --- recorded anthropometry (MIMIC-IV) for BMI if it is not provided in stays
     anth = _last(L.filter(pl.col("variable").str.starts_with("anthro_")), "anthro_", "anthro_")
 
     long = pl.concat([p.select("stay_id", "name", pl.col("value").cast(pl.Float64), pl.col("t_used").cast(pl.Float64))
@@ -117,7 +117,7 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
     wide = long.pivot(on="name", index="stay_id", values="value", aggregate_function="first") if long.height else \
         s.select("stay_id")
 
-    # --- estáticos y cirugía
+    # --- static variables and surgery
     st = s.select(
         "stay_id", "age", "sex_male", "asa", "emergency", "anesthesia_type", "surgical_group", "admit_source",
         ((pl.col("surgery_end_min") - pl.col("surgery_start_min"))).alias("surgery_duration_min"),
@@ -135,7 +135,7 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
                          on="stay_id", how="left").with_columns(pl.coalesce("bmi", "_bmi").alias("bmi")).drop("_bmi")
     X = st.join(wide, on="stay_id", how="left").sort("stay_id")
 
-    # --- especificación de tipos métricos (§5.2) y grupos (§5.3.1)
+    # --- specification of metric types (§5.2) and groups (§5.3.1)
     for c in X.columns:
         if c == "stay_id":
             continue
@@ -144,9 +144,9 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
             specs.append(spec)
     keep = ["stay_id"] + [sp.name for sp in specs]
     X = X.select(keep)
-    # columnas totalmente vacías en esta cohorte: se conservan (la disponibilidad se mide después)
+    # columns that are entirely empty in this cohort are kept (availability is measured later)
 
-    # --- procedencia temporal por estancia
+    # --- temporal provenance per stay
     static_t = s.select("stay_id", pl.max_horizontal(
         "icu_in_min", pl.col("surgery_start_min"), pl.col("surgery_end_min")).alias("t_used"))
     prov_parts = [long.select("stay_id", "t_used"), static_t]
@@ -159,38 +159,38 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
 
 def _spec_for(name: str) -> FeatureSpec | None:
     if name in ("age", "bmi"):
-        return FeatureSpec(name, "continuous", name, "demografia")
+        return FeatureSpec(name, "continuous", name, "demographics")
     if name == "sex_male":
-        return FeatureSpec(name, "binary", name, "demografia")
+        return FeatureSpec(name, "binary", name, "demographics")
     if name == "asa":
-        return FeatureSpec(name, "ordinal", name, "basal", levels=[1, 2, 3, 4, 5, 6])
+        return FeatureSpec(name, "ordinal", name, "baseline", levels=[1, 2, 3, 4, 5, 6])
     if name == "emergency":
-        return FeatureSpec(name, "binary", name, "basal")
+        return FeatureSpec(name, "binary", name, "baseline")
     if name.startswith("preop_"):
-        return FeatureSpec(name, "continuous", name, "basal")
+        return FeatureSpec(name, "continuous", name, "baseline")
     if name.startswith("pcs_l"):
-        return FeatureSpec(name, "hier", "pcs", "cirugia")
+        return FeatureSpec(name, "hier", "pcs", "surgery")
     if name in ("surgical_group", "anesthesia_type", "admit_source"):
-        return FeatureSpec(name, "nominal", name, "cirugia")
+        return FeatureSpec(name, "nominal", name, "surgery")
     if name == "surgery_duration_min":
-        return FeatureSpec(name, "continuous", name, "cirugia")
+        return FeatureSpec(name, "continuous", name, "surgery")
     if name == "icu_los_h":
-        return FeatureSpec(name, "continuous", name, "uci")
+        return FeatureSpec(name, "continuous", name, "icu")
     if name.startswith("used_"):
         k = name[5:]
-        return FeatureSpec(name, "binary", f"support_{k}", "uci")
+        return FeatureSpec(name, "binary", f"support_{k}", "icu")
     if name.startswith("hours_since_"):
         k = name[len("hours_since_"):-len("_off")]
-        return FeatureSpec(name, "continuous", f"support_{k}", "uci")
+        return FeatureSpec(name, "continuous", f"support_{k}", "icu")
     if name.startswith("last_") or name.startswith("slope_"):
-        return FeatureSpec(name, "continuous", name, "estado_alta")
+        return FeatureSpec(name, "continuous", name, "discharge_status")
     if name.startswith("dx_"):
-        return FeatureSpec(name, "binary", name, "diagnosticos")
+        return FeatureSpec(name, "binary", name, "diagnoses")
     if name.startswith("med_"):
-        return FeatureSpec(name, "binary", name, "medicacion")
+        return FeatureSpec(name, "binary", name, "medication")
     return None
 
 
 def check_no_leakage(prov: pl.DataFrame) -> pl.DataFrame:
-    """Filas que violan la regla anti-fuga (max_time_used > corte). Vacío = OK."""
+    """Rows that violate the anti-leakage rule (max_time_used > cutoff). Empty = OK."""
     return prov.filter(pl.col("max_time_used_min") > pl.col("cutoff_min") + 1e-6)

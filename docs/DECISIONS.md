@@ -1,27 +1,27 @@
-# DECISIONS — registro fechado
+# DECISIONS — dated log
 
-Decisiones de implementación tomadas por el responsable o derivadas de SPECS.md. Las que el pipeline toma en
-el pod por reglas declaradas (D7 desde el piloto, λ elegido, mesetas de Δ̃, exclusión de la MLP por coste,
-validación temporal omitida…) se registran automáticamente en `<workdir>/docs/DECISIONS.md`.
+Implementation decisions taken by the lead or derived from SPECS.md. Those that the pipeline takes in
+the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
+temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
-## 2026-10-21 — Infraestructura de ejecución en KHDP
+## 2026-10-21 — Execution infrastructure on KHDP
 
-- Código en repositorio público de GitHub, clonado en el pod a través de `http://github.khdp-forward-server`.
-  El repositorio no contiene datos, secretos ni salidas (`.gitignore` + `scripts/check_public_safety.py`).
-- Punto de entrada único `run_pod.sh`: entorno virtual en disco local del contenedor (`~/.perisim/venv`),
-  dependencias desde el mirror PyPI de KHDP y torch desde el mirror de PyTorch (índice CPU, reserva cu126).
-- Datos de solo lectura en `/home/khdp-user/workspace/datasets` (descubrimiento automático de las tres cohortes);
-  trabajo y artefactos en `updown/perisim/<usuario>/work`.
-- Pipeline por etapas idempotentes con marcadores (hash de configuración + código): un OOM o un reinicio del pod
-  reanuda desde la última etapa (o el último fold) completado.
-- Paralelismo: como mucho 4 procesos × 4 hilos (§9.1); FAISS `IndexFlatL2` en CPU.
+- Code in a public GitHub repository, cloned in the pod through `http://github.khdp-forward-server`.
+  The repository contains no data, secrets or outputs (`.gitignore` + `scripts/check_public_safety.py`).
+- Single entry point `run_pod.sh`: virtual environment on the container's local disk (`~/.perisim/venv`),
+  dependencies from the KHDP PyPI mirror and torch from the PyTorch mirror (CPU index, cu126 fallback).
+- Read-only data in `/home/khdp-user/workspace/datasets` (automatic discovery of the three cohorts);
+  work and artefacts in `updown/perisim/<user>/work`.
+- Pipeline of idempotent stages with markers (hash of configuration + code): an OOM or a pod restart
+  resumes from the last completed stage (or fold).
+- Parallelism: at most 4 processes × 4 threads (§9.1); FAISS `IndexFlatL2` on CPU.
 
-## 2026-10-21 — Interpretaciones de SPECS (ver OPEN_QUESTIONS para confirmar)
+## 2026-10-21 — Interpretations of SPECS (see OPEN_QUESTIONS for confirmation)
 
-- Normalización de δ_j: cada bloque se divide por s_j con s_j² = E[δ_j²] entre pares aleatorios del
-  entrenamiento, de modo que el cuadrado medio de cada disimilitud es 1.
-- Niveles ICD-10-PCS: one-hot por nivel (prefijos de 1 a 5 caracteres); códigos con < 10 casos en el
-  entrenamiento → vector nulo.
-- `carried` lo construye la etapa de targets a partir del formato común (no la extracción).
-- La primera estancia postoperatoria de cada hospitalización es la unidad de análisis: si no cumple un criterio
-  posterior (p. ej. < 4 h), la hospitalización queda fuera.
+- Normalisation of δ_j: each block is divided by s_j, with s_j² = E[δ_j²] over random training pairs,
+  so that the mean square of each dissimilarity is 1.
+- ICD-10-PCS levels: one-hot per level (prefixes of 1 to 5 characters); codes with < 10 cases in
+  training → zero vector.
+- `carried` is built by the targets stage from the common format (not by the extraction).
+- The first postoperative stay of each hospitalisation is the unit of analysis: if it fails a later
+  criterion (e.g. < 4 h), the hospitalisation is excluded.

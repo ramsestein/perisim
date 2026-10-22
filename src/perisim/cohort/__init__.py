@@ -1,1 +1,1 @@
-"""Inclusión, exclusión, t0 y corte temporal (§3)."""
+"""Inclusion, exclusion, t0 and temporal cutoff (§3)."""

@@ -1,5 +1,5 @@
-"""Pesos de comparadores kNN: |SHAP| medio de LightGBM (Weerts et al., 2019), importancia de random forest
-(Addou et al., 2026) y ReliefF. Todos devuelven una importancia por variable métrica (suma 1)."""
+"""Weights for kNN comparators: mean |SHAP| from LightGBM (Weerts et al., 2019), random forest importance
+(Addou et al., 2026) and ReliefF. All return one importance per metric variable (summing to 1)."""
 
 from __future__ import annotations
 
@@ -28,9 +28,9 @@ def shap_lgbm(X: np.ndarray, y: np.ndarray, col_owner: np.ndarray, n_features: i
         contrib = m.predict(X, pred_contrib=True)
     contrib = np.asarray(contrib)
     P = X.shape[1]
-    if contrib.ndim == 2 and contrib.shape[1] == P + 1:            # binario
+    if contrib.ndim == 2 and contrib.shape[1] == P + 1:            # binary
         sh = np.abs(contrib[:, :P]).mean(0)
-    else:                                                           # multiclase: bloques de (P+1) por clase
+    else:                                                           # multiclass: blocks of (P+1) per class
         k = contrib.shape[1] // (P + 1)
         sh = sum(np.abs(contrib[:, c * (P + 1): c * (P + 1) + P]).mean(0) for c in range(k))
     return _to_features(sh, col_owner, n_features)
@@ -47,8 +47,8 @@ def rf_importance(X: np.ndarray, y: np.ndarray, col_owner: np.ndarray, n_feature
 
 def relieff(E: np.ndarray, dim_feature: np.ndarray, n_features: int, y: np.ndarray, n_samples: int, n_neighbors: int,
             seed: int) -> np.ndarray:
-    """ReliefF multiclase sobre el embedding normalizado (δ_j de §5.2): para cada muestra, k aciertos y k fallos
-    por clase; w_j += (δ_j a fallos ponderados por prior − δ_j a aciertos) / k. Negativos → 0."""
+    """Multiclass ReliefF on the normalized embedding (δ_j of §5.2): for each sample, k hits and k misses
+    per class; w_j += (δ_j to prior-weighted misses − δ_j to hits) / k. Negatives → 0."""
     rng = np.random.default_rng(seed)
     n = E.shape[0]
     idx = rng.choice(n, size=min(n_samples, n), replace=False)

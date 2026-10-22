@@ -1,5 +1,5 @@
-"""Comparadores paramétricos: regresión logística multinomial L2, LightGBM multiclase recalibrado
-(escalado de temperatura) y SWIFT (Gajic et al., 2008) para grave / no grave."""
+"""Parametric comparators: L2 multinomial logistic regression, recalibrated multiclass LightGBM
+(temperature scaling) and SWIFT (Gajic et al., 2008) for severe / not severe."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def fit_logreg(X: np.ndarray, y: np.ndarray, C_grid: list[float], inner_folds: l
 
 
 def fit_lgbm_calibrated(X: np.ndarray, y: np.ndarray, params: dict, inner_folds, n_classes: int, seed: int, threads: int):
-    """LightGBM + temperatura ajustada con predicciones fuera de fold internas."""
+    """LightGBM + temperature fitted on inner out-of-fold predictions."""
     import lightgbm as lgb
 
     oof_logit, oof_y = [], []
@@ -76,7 +76,7 @@ def fit_lgbm_calibrated(X: np.ndarray, y: np.ndarray, params: dict, inner_folds,
 
 
 def swift_score(icu_los_h, pf_ratio, gcs, paco2, admit_source) -> np.ndarray:
-    """SWIFT (Gajic et al., 2008). Valores ausentes → categoría de referencia (0 puntos) [VERIFICAR]."""
+    """SWIFT (Gajic et al., 2008). Missing values → reference category (0 points) [VERIFY]."""
     los_d = np.asarray(icu_los_h, float) / 24.0
     s = np.where(los_d > 10, 14, np.where(los_d >= 2, 1, 0)).astype(float)
     pf = np.asarray(pf_ratio, float)
@@ -91,7 +91,7 @@ def swift_score(icu_los_h, pf_ratio, gcs, paco2, admit_source) -> np.ndarray:
 
 
 def fit_swift(score: np.ndarray, y_bin: np.ndarray):
-    """Recalibración logística 1-D de SWIFT en el fold de entrenamiento → p(grave)."""
+    """1-D logistic recalibration of SWIFT on the training fold → p(severe)."""
     from sklearn.linear_model import LogisticRegression
 
     m = LogisticRegression(C=1e6, max_iter=1000)

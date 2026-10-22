@@ -1,5 +1,5 @@
-"""Fixtures: datos sintéticos pequeños (sin datos reales) o, en el pod, los artefactos reales del workdir
-(PERISIM_TEST_WORKDIR) para los tests anti-fuga y de partición."""
+"""Fixtures: small synthetic data (no real data) or, on the pod, the real workdir artifacts
+(PERISIM_TEST_WORKDIR) for the anti-leakage and split tests."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def real_workdir():
 
 @pytest.fixture(scope="session")
 def synthetic_inspire(tmp_path_factory, cfg):
-    """INSPIRE sintético extraído al formato común (stays índice + inputs_long + outcomes)."""
+    """Synthetic INSPIRE extracted to the common format (index stays + inputs_long + outcomes)."""
     from perisim.cohort.select import select_index_stays
     from perisim.data.inspire import InspireExtractor
     from perisim.data.synthetic import synth_inspire

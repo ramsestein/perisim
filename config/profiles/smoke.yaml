@@ -1,5 +1,5 @@
-# Perfil de prueba rápida con datos sintéticos (`python -m perisim smoke`).
-# Solo cambia tamaños y rejillas; la lógica del pipeline es la misma que en KHDP.
+# Quick test profile with synthetic data (`python -m perisim smoke`).
+# Only sizes and grids change; the pipeline logic is the same as on KHDP.
 experiment:
   resources:
     max_parallel_jobs: 2

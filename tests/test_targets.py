@@ -1,4 +1,4 @@
-"""§4.2 — Definiciones operativas: KDIGO, curso nuevo de antibiótico, reingreso, T2/T3 en el fold."""
+"""§4.2 — Operational definitions: KDIGO, new antibiotic course, readmission, T2/T3 within the fold."""
 
 from __future__ import annotations
 
@@ -23,10 +23,10 @@ def _inp(rows):
 def test_kdigo_and_antibiotic(cfg):
     t0 = 10000.0
     cut = t0 - 120
-    rows = [("S0", "lab_creatinine", 1.0, cut - 60), ("S0", "lab_creatinine", 3.2, t0 + 3 * 1440),   # LRA 3
-            ("S1", "lab_creatinine", 1.0, cut - 60), ("S1", "lab_creatinine", 1.6, t0 + 2 * 1440),   # LRA 1
-            ("S2", "lab_creatinine", 1.0, cut - 60), ("S2", "lab_creatinine", 1.1, t0 + 2 * 1440)]   # sin LRA
-    # S3: curso nuevo de J01 que empieza a t0 + 30 h y dura 2 días; S2: J01 continuado desde antes (no cuenta)
+    rows = [("S0", "lab_creatinine", 1.0, cut - 60), ("S0", "lab_creatinine", 3.2, t0 + 3 * 1440),   # AKI 3
+            ("S1", "lab_creatinine", 1.0, cut - 60), ("S1", "lab_creatinine", 1.6, t0 + 2 * 1440),   # AKI 1
+            ("S2", "lab_creatinine", 1.0, cut - 60), ("S2", "lab_creatinine", 1.1, t0 + 2 * 1440)]   # no AKI
+    # S3: new J01 course starting at t0 + 30 h and lasting 2 days; S2: J01 continued from before (does not count)
     rows += [("S3", "atc:J01CR05", 1.0, t0 + 30 * 60 + h * 60) for h in range(0, 48, 8)]
     rows += [("S2", "atc:J01DB04", 1.0, t0 - 60 + h * 60) for h in range(0, 72, 8)]
     tg, car, _ = build_targets(_stays(), _inp(rows), conform(pl.DataFrame(), OUTCOMES_SCHEMA), cfg.targets, "inspire",
@@ -44,10 +44,10 @@ def test_readmission_and_reduced_cohort(cfg):
                                 schema=["stay_id", "component", "time_min", "precision"], orient="row"), OUTCOMES_SCHEMA)
     tg, _, _ = build_targets(_stays(2), _inp([]), outc, cfg.targets, "eicu", 2.0, 6.0)
     d = {r["stay_id"]: r for r in tg.to_dicts()}
-    assert d["S0"]["icu_readmission"] == 1 and d["S0"]["t1_grave"] == 1
+    assert d["S0"]["icu_readmission"] == 1 and d["S0"]["t1_severe"] == 1
     assert d["S1"]["icu_readmission"] == 0
-    assert d["S0"]["t1"] is None                      # eICU: solo grave / no grave
-    assert d["S0"]["aki_12"] is None                   # no observable en eICU
+    assert d["S0"]["t1"] is None                      # eICU: severe / not severe only
+    assert d["S0"]["aki_12"] is None                   # not observable in eICU
 
 
 def test_t2_t3_thresholds_from_training_only(cfg):

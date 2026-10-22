@@ -1,4 +1,4 @@
-"""Carga de configuración YAML con expansión de variables de entorno, perfiles y hashes reproducibles."""
+"""YAML configuration loading with environment-variable expansion, profiles and reproducible hashes."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def _expand_env(obj: Any) -> Any:
         return [_expand_env(v) for v in obj]
     if isinstance(obj, str) and "${" in obj:
         full = _ENV_RE.fullmatch(obj)
-        if full:  # valor completo -> se reinterpreta como YAML (true/false/números)
+        if full:  # whole value -> reinterpreted as YAML (true/false/numbers)
             raw = os.environ.get(full.group(1), full.group(2) if full.group(2) is not None else "")
             try:
                 return yaml.safe_load(raw) if raw != "" else ""
@@ -53,7 +53,7 @@ def stable_hash(obj: Any, n: int = 12) -> str:
 
 
 def code_hash(subpackages: list[str] | None = None, n: int = 12) -> str:
-    """Hash del código fuente (todo src/perisim, o solo los subpaquetes indicados)."""
+    """Hash of the source code (all of src/perisim, or only the given subpackages)."""
     h = hashlib.sha256()
     roots = [SRC_ROOT] if not subpackages else [SRC_ROOT / s for s in subpackages]
     files: list[Path] = []

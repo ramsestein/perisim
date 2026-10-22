@@ -1,15 +1,15 @@
-"""Codificación δ_j (§5.2) ajustada SIEMPRE en el fold de entrenamiento.
+"""δ_j encoding (§5.2), ALWAYS fitted on the training fold.
 
-Cada variable métrica j se representa como un bloque de columnas φ_j tal que ‖φ_j(a) − φ_j(b)‖² = δ_j(a,b)²:
-- continua: valor estandarizado (mediana para imputar; + indicador de ausencia si > 5 %);
-- ordinal: rango escalado a [0, 1];
-- binaria: 0/1;
-- nominal: VDM suavizado, φ = p_c = (n_c·P̂(y|c) + m·P(y)) / (n_c + m) ⇒ δ = ‖p_c − p_c'‖₂ exacto;
-- jerárquica: un nivel ICD-10-PCS por variable, one-hot/√2 ⇒ δ ∈ {0, 1} (códigos raros → vector nulo).
-Normalización (§5.1): cada bloque se divide por s_j con s_j² = E_pares[δ_j²] = 2·Σ Var(φ_j), de modo que el
-cuadrado medio de la disimilitud entre pares aleatorios del entrenamiento es 1 y w_j conserva su significado.
+Each metric variable j is represented as a block of columns φ_j such that ‖φ_j(a) − φ_j(b)‖² = δ_j(a,b)²:
+- continuous: standardized value (median for imputation; + missingness indicator if > 5 %);
+- ordinal: range scaled to [0, 1];
+- binary: 0/1;
+- nominal: smoothed VDM, φ = p_c = (n_c·P̂(y|c) + m·P(y)) / (n_c + m) ⇒ δ = ‖p_c − p_c'‖₂ exactly;
+- hierarchical: one ICD-10-PCS level per variable, one-hot/√2 ⇒ δ ∈ {0, 1} (rare codes → zero vector).
+Normalization (§5.1): each block is divided by s_j with s_j² = E_pairs[δ_j²] = 2·Σ Var(φ_j), so that the
+mean squared dissimilarity between random training pairs is 1 and w_j keeps its meaning.
 
-`transform_model` da la versión para los modelos sustitutos y comparadores (nominal en one-hot, sin target).
+`transform_model` gives the version for the surrogate models and comparators (nominal as one-hot, no target).
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ OTHER = "__other__"
 
 @dataclass
 class _Block:
-    name: str            # variable métrica (puede ser "<var>__missing")
-    source: str          # columna de origen
+    name: str            # metric variable (may be "<var>__missing")
+    source: str          # source column
     kind: str            # continuous | ordinal | binary | missing | nominal | hier
     group: str
     block: str
@@ -58,7 +58,7 @@ class Encoder:
                    hier_max_levels=f["hier_max_levels"], nominal_min_count=f["nominal_min_count"],
                    nominal_max_categories=f["nominal_max_categories"], dx_min_prevalence=f["dx_min_prevalence"])
 
-    # ------------------------------------------------------------------ ajuste
+    # ------------------------------------------------------------------ fitting
     def fit(self, ft: FeatureTable, y: np.ndarray, n_classes: int, y_aux: np.ndarray | None = None) -> "Encoder":
         y = np.asarray(y, dtype=np.int64)
         self.n_classes = n_classes
@@ -100,9 +100,9 @@ class Encoder:
                 cnt = float((x > 0.5).sum())
                 if cnt == 0 or cnt == n:
                     continue
-                if s.block == "diagnosticos" and cnt / n < self.dx_min_prevalence:
+                if s.block == "diagnoses" and cnt / n < self.dx_min_prevalence:
                     continue
-                if s.block == "medicacion" and cnt < self.med_min_count:
+                if s.block == "medication" and cnt < self.med_min_count:
                     continue
                 self.blocks.append(_Block(s.name, s.name, "binary", s.group, s.block, {"prevalence": cnt / n}))
             elif s.type == "nominal":
@@ -139,7 +139,7 @@ class Encoder:
                 if not keep:
                     continue
                 self.blocks.append(_Block(s.name, s.name, "hier", s.group, s.block, {"codes": keep}, dims=len(keep)))
-        # escala s_j: cuadrado medio de δ_j entre pares aleatorios = 1
+        # scale s_j: mean square of δ_j between random pairs = 1
         raw = self._raw_blocks(ft)
         kept = []
         for b, e in zip(self.blocks, raw):
@@ -160,7 +160,7 @@ class Encoder:
         self.n_features = len(self.blocks)
         self.n_dims = int(self.dim_feature.size)
 
-    # ------------------------------------------------------------------ transformación
+    # ------------------------------------------------------------------ transformation
     def _raw_block(self, b: _Block, ft: FeatureTable, mode: str = "metric") -> np.ndarray:
         n = len(ft)
         p = b.params
@@ -196,13 +196,13 @@ class Encoder:
         return [self._raw_block(b, ft) for b in self.blocks]
 
     def transform(self, ft: FeatureTable) -> np.ndarray:
-        """Embedding métrico normalizado (n × D, float32). Sin pesos: aplicar √w por columna después."""
+        """Normalized metric embedding (n × D, float32). Unweighted: apply √w per column afterwards."""
         if not self.blocks:
             return np.zeros((len(ft), 0), dtype=np.float32)
         return np.hstack([self._raw_block(b, ft) / b.scale for b in self.blocks]).astype(np.float32)
 
     def transform_model(self, ft: FeatureTable) -> tuple[np.ndarray, np.ndarray]:
-        """Matriz para modelos (nominal en one-hot) y variable métrica de cada columna."""
+        """Matrix for models (nominal as one-hot) and the metric variable owning each column."""
         cols, owner = [], []
         for j, b in enumerate(self.blocks):
             e = self._raw_block(b, ft, mode="model")
@@ -210,9 +210,9 @@ class Encoder:
             owner.append(np.full(e.shape[1], j))
         return np.hstack(cols).astype(np.float32), np.concatenate(owner).astype(np.int64)
 
-    # ------------------------------------------------------------------ utilidades
+    # ------------------------------------------------------------------ utilities
     def vdm_tables(self, min_n: int = 10) -> dict:
-        """Tablas VDM exportables (celdas con n < min_n suprimidas, §9)."""
+        """Exportable VDM tables (cells with n < min_n suppressed, §9)."""
         out = {}
         for b in self.blocks:
             if b.kind == "nominal":
@@ -227,7 +227,7 @@ class Encoder:
         return {n: j for j, n in enumerate(self.feature_names)}
 
     def mutual_information(self, ft: FeatureTable, y: np.ndarray, n_classes: int) -> np.ndarray:
-        """I(x_j; y) para variables binarias (= SAGE univariante con un modelo bayesiano óptimo); 0 en otras."""
+        """I(x_j; y) for binary variables (= univariate SAGE with a Bayes-optimal model); 0 for the others."""
         y = np.asarray(y)
         py = np.bincount(y, minlength=n_classes) / len(y)
         hy = -np.sum(py[py > 0] * np.log(py[py > 0]))
@@ -260,14 +260,14 @@ def _norm_cat(v: np.ndarray) -> np.ndarray:
     return out.astype(str).astype(object)
 
 
-# ---------------------------------------------------------------------------- grupos (§5.3.1)
+# ---------------------------------------------------------------------------- groups (§5.3.1)
 def build_groups(enc: Encoder, E: np.ndarray, corr_threshold: float, block_threshold: int,
                  max_rows: int = 20000, seed: int = 0) -> tuple[np.ndarray, list[str]]:
-    """Grupo de cada variable métrica: grupo base (valor + indicador; niveles PCS; soporte), bloques grandes de
-    diagnósticos / ATC en un único grupo, y clústeres de |ρ| > umbral (unión de grupos)."""
+    """Group of each metric variable: base group (value + indicator; PCS levels; support), large diagnosis /
+    ATC blocks in a single group, and clusters with |ρ| > threshold (union of groups)."""
     F = enc.n_features
     labels = list(enc.feature_groups)
-    for blk, gname in (("diagnosticos", "dx_block"), ("medicacion", "med_block")):
+    for blk, gname in (("diagnoses", "dx_block"), ("medication", "med_block")):
         members = [j for j in range(F) if enc.feature_blocks[j] == blk]
         if len(members) > block_threshold:
             for j in members:
@@ -304,8 +304,8 @@ def build_groups(enc: Encoder, E: np.ndarray, corr_threshold: float, block_thres
 
 def distribute_group_importance(imp_group: np.ndarray, group_of_feature: np.ndarray, group_names: list[str],
                                 enc: Encoder, ft: FeatureTable, y: np.ndarray, n_classes: int) -> np.ndarray:
-    """Importancia de grupo → importancia por variable métrica (prior del NCA).
-    Bloques grandes: reparto ∝ prevalencia × información mutua; resto: reparto a partes iguales."""
+    """Group importance → importance per metric variable (NCA prior).
+    Large blocks: split ∝ prevalence × mutual information; others: split equally."""
     F = enc.n_features
     imp = np.zeros(F)
     mi = prev = None

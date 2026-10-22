@@ -1,8 +1,8 @@
-"""Comprueba que lo que va a entrar en el repositorio PÚBLICO no contiene secretos ni datos.
+"""Checks that whatever is about to enter the PUBLIC repository contains no secrets and no data.
 
-Uso:  python scripts/check_public_safety.py            (ficheros preparados con git add)
-      python scripts/check_public_safety.py --all      (todos los ficheros versionables)
-Lo ejecuta también el hook .githooks/pre-commit (activar con: git config core.hooksPath .githooks).
+Usage:  python scripts/check_public_safety.py            (files staged with git add)
+        python scripts/check_public_safety.py --all      (all versionable files)
+The .githooks/pre-commit hook runs it too (enable with: git config core.hooksPath .githooks).
 """
 
 from __future__ import annotations
@@ -14,15 +14,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_PATTERNS = [
-    (r"sk-ant-[A-Za-z0-9_\-]{20,}", "clave de Anthropic"),
-    (r"sk-proj-[A-Za-z0-9_\-]{20,}", "clave de OpenAI"),
-    (r"\bsk-[A-Za-z0-9]{20,}", "clave tipo sk-"),
-    (r"\bsk_[A-Za-z0-9_\-]{20,}", "clave tipo sk_"),
-    (r"AIza[0-9A-Za-z_\-]{30,}", "clave de Google"),
-    (r"khdp_pat_[A-Za-z0-9]{10,}", "token de KHDP"),
-    (r"ghp_[A-Za-z0-9]{30,}", "token de GitHub"),
-    (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "clave privada"),
-    (r"(?i)\b(api[_-]?key|secret|password|passwd|token)\s*[:=]\s*['\"][^'\"\s]{12,}['\"]", "credencial literal"),
+    (r"sk-ant-[A-Za-z0-9_\-]{20,}", "Anthropic key"),
+    (r"sk-proj-[A-Za-z0-9_\-]{20,}", "OpenAI key"),
+    (r"\bsk-[A-Za-z0-9]{20,}", "sk- style key"),
+    (r"\bsk_[A-Za-z0-9_\-]{20,}", "sk_ style key"),
+    (r"AIza[0-9A-Za-z_\-]{30,}", "Google key"),
+    (r"khdp_pat_[A-Za-z0-9]{10,}", "KHDP token"),
+    (r"ghp_[A-Za-z0-9]{30,}", "GitHub token"),
+    (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "private key"),
+    (r"(?i)\b(api[_-]?key|secret|password|passwd|token)\s*[:=]\s*['\"][^'\"\s]{12,}['\"]", "hard-coded credential"),
 ]
 FORBIDDEN_NAMES = re.compile(r"(^|/)(\.env(\..*)?|KHDP_settings\.md)$")
 FORBIDDEN_EXT = {".parquet", ".csv", ".gz", ".feather", ".arrow", ".npy", ".npz", ".pkl", ".joblib", ".zip"}
@@ -45,26 +45,26 @@ def main() -> int:
     for f in files:
         p = ROOT / f
         if FORBIDDEN_NAMES.search(f):
-            problems.append(f"{f}: fichero prohibido en un repositorio público")
+            problems.append(f"{f}: file not allowed in a public repository")
             continue
         if p.suffix.lower() in FORBIDDEN_EXT:
-            problems.append(f"{f}: tipo de fichero de datos ({p.suffix})")
+            problems.append(f"{f}: data file type ({p.suffix})")
             continue
         if not p.is_file():
             continue
         if p.stat().st_size > MAX_BYTES:
-            problems.append(f"{f}: demasiado grande ({p.stat().st_size} bytes) — ¿datos o salidas?")
+            problems.append(f"{f}: too large ({p.stat().st_size} bytes) — data or outputs?")
             continue
         text = p.read_text(encoding="utf-8", errors="ignore")
         for pat, what in SECRET_PATTERNS:
             if f.endswith("check_public_safety.py"):
                 break
             if re.search(pat, text):
-                problems.append(f"{f}: posible {what}")
+                problems.append(f"{f}: possible {what}")
     if problems:
-        print("✖ NO SUBIR — problemas encontrados:\n  " + "\n  ".join(problems))
+        print("✖ DO NOT PUSH — problems found:\n  " + "\n  ".join(problems))
         return 1
-    print(f"✔ {len(files)} ficheros revisados: sin secretos ni datos.")
+    print(f"✔ {len(files)} files checked: no secrets or data.")
     return 0
 
 

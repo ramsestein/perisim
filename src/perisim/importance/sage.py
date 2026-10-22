@@ -1,7 +1,7 @@
-"""SAGE por permutaciones sobre log-loss (Covert et al., 2020), con ausencia simulada por la máscara del
-sustituto. Para cada caso se recorre una permutación aleatoria de los grupos y la contribución de cada grupo
-es la reducción de la pérdida al añadirlo. Se para por convergencia (desviación típica máxima relativa al
-rango de los valores < umbral) o al agotar `max_passes` pasadas por la submuestra de explicación.
+"""Permutation SAGE on log-loss (Covert et al., 2020), with absence simulated by the surrogate's mask.
+For each case a random permutation of the groups is traversed and the contribution of each group is the
+reduction in loss when it is added. Stops on convergence (maximum standard deviation relative to the range
+of the values < threshold) or after `max_passes` passes over the explanation subsample.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ def sage_permutation(model, X: np.ndarray, y: np.ndarray, n_groups: int, rng: np
 
 
 def normalize(values: np.ndarray, se: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Trunca negativos a 0 y divide por la suma (§5.3.6). El error típico se escala igual."""
+    """Truncates negatives to 0 and divides by the sum (§5.3.6). The standard error is scaled the same way."""
     v = np.clip(values, 0, None)
     s = v.sum()
     if s <= 0:
@@ -65,8 +65,8 @@ def normalize(values: np.ndarray, se: np.ndarray) -> tuple[np.ndarray, np.ndarra
 
 
 def aggregate(imp: np.ndarray, se: np.ndarray, floor: float = 1e-8) -> np.ndarray:
-    """Media ponderada por la inversa de la varianza, por grupo, al estilo de ShapleyVIC (§5.3.7).
-    imp, se: (modelos × grupos)."""
+    """Inverse-variance weighted mean, per group, in the style of ShapleyVIC (§5.3.7).
+    imp, se: (models × groups)."""
     w = 1.0 / np.maximum(se ** 2, floor)
     agg = (w * imp).sum(0) / w.sum(0)
     s = agg.sum()

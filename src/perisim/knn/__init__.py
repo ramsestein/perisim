@@ -1,1 +1,1 @@
-"""Índice, inferencia, fuera de soporte y salida por paciente (§5.5, §5.6)."""
+"""Index, inference, out of support (OOD) and per-patient output (§5.5, §5.6)."""

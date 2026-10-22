@@ -1,14 +1,14 @@
-"""NCA diagonal regularizado hacia el prior SAGE (§5.4), en PyTorch CPU.
+"""Diagonal NCA regularized towards the SAGE prior (§5.4), in PyTorch on CPU.
 
 L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log c − log(imp_j + ε₀))²
 
-- Kernel softmax sobre −d² entre cada ancla y sus candidatos (excluido el propio caso y su paciente).
-- La métrica se aprende SIN k: el ancho de banda queda absorbido en la escala de w.
-- c es una escala global libre (no penalizada): el prior regulariza el PERFIL de importancias, no el ancho
-  de banda (interpretación registrada en DECISIONS.md / OPEN_QUESTIONS.md).
-- Minibatches de anclas con candidatos precalculados por búsqueda exacta (FAISS) con los pesos vigentes,
-  recalculados cada `refresh_every` épocas. El nº de candidatos es computacional, no una k de predicción.
-- Modos: "nca" (w libre), "power" (w = a·imp^γ, comparador §5.4), "scale" (w = a·w_base, solo la escala).
+- Softmax kernel over −d² between each anchor and its candidates (excluding the case itself and its patient).
+- The metric is learned WITHOUT k: the bandwidth is absorbed into the scale of w.
+- c is a free (unpenalized) global scale: the prior regularizes the importance PROFILE, not the bandwidth
+  (interpretation recorded in DECISIONS.md / OPEN_QUESTIONS.md).
+- Minibatches of anchors with candidates precomputed by exact search (FAISS) with the current weights,
+  recomputed every `refresh_every` epochs. The number of candidates is computational, not a prediction k.
+- Modes: "nca" (free w), "power" (w = a·imp^γ, comparator §5.4), "scale" (w = a·w_base, scale only).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import torch
 
 from perisim.knn.index import search_excluding
 
-INIT_TOTAL_WEIGHT = 10.0  # Σ w inicial ⇒ d² esperado entre pares aleatorios ≈ 10
+INIT_TOTAL_WEIGHT = 10.0  # initial Σ w ⇒ expected d² between random pairs ≈ 10
 
 
 class DiagonalNCA:
@@ -45,7 +45,7 @@ class DiagonalNCA:
     def weights(self) -> np.ndarray:
         return np.exp(self.logw)
 
-    # ------------------------------------------------------------------ candidatos
+    # ------------------------------------------------------------------ candidates
     def refresh_candidates(self, E: np.ndarray, subjects: np.ndarray | None, w: np.ndarray | None = None) -> None:
         w = self.weights if w is None else w
         sw = np.sqrt(w)[self.dim_feature.numpy()].astype(np.float32)
@@ -53,7 +53,7 @@ class DiagonalNCA:
         _, I, valid = search_excluding(Ew, Ew, self.K, subjects, subjects, self_query=True)
         self.cand, self.valid = I, valid
 
-    # ------------------------------------------------------------------ pérdida
+    # ------------------------------------------------------------------ loss
     def _batch_loss(self, Et, E2, yt, prior_y, anchors, cand, valid, logw_t, y_ref=None, E_ref=None, E2_ref=None):
         wd = torch.exp(logw_t)[self.dim_feature]
         Er = Et if E_ref is None else E_ref
@@ -83,7 +83,7 @@ class DiagonalNCA:
             return params["loga"] + log_base
         raise ValueError(mode)
 
-    # ------------------------------------------------------------------ ajuste
+    # ------------------------------------------------------------------ fitting
     def fit(self, E: np.ndarray, y: np.ndarray, *, prior: np.ndarray | None = None, lam: float = 0.0,
             epochs: int = 30, init_logw: np.ndarray | None = None, subjects: np.ndarray | None = None,
             mode: str = "nca", base_w: np.ndarray | None = None) -> "DiagonalNCA":
@@ -132,7 +132,7 @@ class DiagonalNCA:
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
-                with torch.no_grad():  # estabilidad numérica
+                with torch.no_grad():  # numerical stability
                     for k in ("logw", "loga"):
                         if k in params:
                             params[k].clamp_(-20.0, 12.0)
@@ -143,11 +143,11 @@ class DiagonalNCA:
         self.params_ = {k: v.detach().numpy().tolist() for k, v in params.items() if v.numel() == 1}
         return self
 
-    # ------------------------------------------------------------------ evaluación (independiente de k)
+    # ------------------------------------------------------------------ evaluation (independent of k)
     def soft_loss(self, E_ref: np.ndarray, y_ref: np.ndarray, E_q: np.ndarray, y_q: np.ndarray,
                   w: np.ndarray | None = None, subj_ref: np.ndarray | None = None,
                   subj_q: np.ndarray | None = None, self_query: bool = False) -> float:
-        """Log-loss del kNN de kernel suave de las consultas frente a la referencia (sin gradiente)."""
+        """Soft-kernel kNN log-loss of the queries against the reference (no gradient)."""
         w = self.weights if w is None else w
         sw = np.sqrt(w)[self.dim_feature.numpy()].astype(np.float32)
         _, I, valid = search_excluding(E_ref * sw, E_q * sw, self.K, subj_q, subj_ref, self_query=self_query)
@@ -168,7 +168,7 @@ class DiagonalNCA:
 
 
 def pair_sq_diffs(E: np.ndarray, dim_feature: np.ndarray, n_features: int, pairs: np.ndarray) -> np.ndarray:
-    """δ_j(a,b)² por par y variable (R × F): d(a,b) = sqrt(Dsq @ w). Base del criterio de parada §5.3.2."""
+    """δ_j(a,b)² per pair and variable (R × F): d(a,b) = sqrt(Dsq @ w). Basis of the stopping criterion §5.3.2."""
     diff2 = (E[pairs[:, 0]].astype(np.float64) - E[pairs[:, 1]].astype(np.float64)) ** 2
     out = np.zeros((pairs.shape[0], n_features))
     np.add.at(out.T, dim_feature, diff2.T)

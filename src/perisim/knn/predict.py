@@ -1,8 +1,8 @@
-"""Inferencia kNN (§5.5) y salida por paciente (§5.6).
+"""kNN inference (§5.5) and per-patient output (§5.6).
 
-k es un parámetro de ejecución: la métrica es la misma para cualquier k. Probabilidad por clase
-p_c = (n_c + α·P(c)·C) / (k + α·C); variante con kernel exp(−d²) como sensibilidad.
-Fuera de soporte: distancia al k-ésimo vecino > percentil 99 de esa distancia en el entrenamiento (LOO).
+k is a run-time parameter: the metric is the same for any k. Per-class probability
+p_c = (n_c + α·P(c)·C) / (k + α·C); variant with an exp(−d²) kernel as a sensitivity analysis.
+Out of support (OOD): distance to the k-th neighbour > 99th percentile of that distance in training (LOO).
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ class KNNModel:
         return p
 
     def fit_alpha_and_ood(self, alpha_grid: list[float], k_primary: int, ood_percentile: float) -> dict:
-        """α por k con LOO por paciente en la referencia (dentro del fold de entrenamiento) y umbral OOD."""
+        """α per k with patient-level LOO on the reference (within the training fold) and OOD threshold."""
         D, I, valid = self.neighbors(None, loo=True)
         y = self.y
         res = {}
@@ -85,7 +85,7 @@ class KNNModel:
 
     def carried_summary(self, I: np.ndarray, valid: np.ndarray, k: int, carried: dict[str, np.ndarray],
                         alpha: float = 1.0) -> dict[str, np.ndarray]:
-        """Resumen de variables arrastradas sobre los k vecinos (proporciones suavizadas; mediana continua)."""
+        """Summary of carried variables over the k neighbours (smoothed proportions; median for continuous)."""
         kk = min(k, self.k_max)
         out = {}
         for name, v in carried.items():
@@ -102,9 +102,9 @@ class KNNModel:
 
 
 def patient_records(ids, t0, p_t1, p_t2, k, kth_pct, ood, I, D, ref_ids, carried, max_neighbors: int = 20) -> list[dict]:
-    """Salida por paciente en el formato de §5.6. CONTIENE identificadores: nunca se exporta."""
-    t1_lab = ["ninguna", "leve", "grave"]
-    t2_lab = ["corta", "media", "larga"]
+    """Per-patient output in the §5.6 format. CONTAINS identifiers: never exported."""
+    t1_lab = ["none", "mild", "severe"]
+    t2_lab = ["short", "medium", "long"]
     recs = []
     for i in range(len(ids)):
         recs.append({

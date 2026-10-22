@@ -1,1 +1,1 @@
-"""Sustitutos con feature dropout, SAGE, agregación multimodelo y criterio de parada (§5.3)."""
+"""Surrogates with feature dropout, SAGE, multi-model aggregation and stopping criterion (§5.3)."""

@@ -1,10 +1,10 @@
-"""Bucle de importancia consensuada con parada por estabilidad de la distancia aprendida (§5.3.2).
+"""Consensus importance loop with stopping based on the stability of the learned distance (§5.3.2).
 
-En cada iteración: se muestrea familia + hiperparámetros, se entrena el sustituto con feature dropout en el
-train interno, se acepta si log-loss_val ≤ (1+ε)·mejor, se calcula SAGE en la submuestra de explicación del
-val interno, se agrega (inversa de la varianza), se recalculan los pesos w^(n) partiendo de w^(n−1) y se mide
-Δ_n = mediana |d^(n) − d^(n−1)| / d^(n−1) sobre un conjunto fijo de pares. Parada tipo early stopping sobre
-la mediana móvil de Δ (ventana W, paciencia P, min_delta), con n_min / n_max.
+In each iteration: a family + hyperparameters are sampled, the surrogate is trained with feature dropout on
+the inner train set, it is accepted if log-loss_val ≤ (1+ε)·best, SAGE is computed on the explanation
+subsample of the inner val set, results are aggregated (inverse variance), the weights w^(n) are recomputed
+starting from w^(n−1), and Δ_n = median |d^(n) − d^(n−1)| / d^(n−1) is measured over a fixed set of pairs.
+Early-stopping-style stopping on the moving median of Δ (window W, patience P, min_delta), with n_min / n_max.
 """
 
 from __future__ import annotations
@@ -37,13 +37,13 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
     rng = np.random.default_rng(seed)
     mcfg = cfg.experiment["metric"]["nca"]
 
-    # pares de referencia fijos (semilla) del fold de entrenamiento
+    # fixed (seeded) reference pairs from the training fold
     nR = int(min(icfg["n_reference_pairs"], E.shape[0] * (E.shape[0] - 1) // 2))
     pairs = rng.integers(0, E.shape[0], size=(nR * 2, 2))
     pairs = pairs[pairs[:, 0] != pairs[:, 1]][:nR]
     Dsq = pair_sq_diffs(E, enc.dim_feature, enc.n_features, pairs)
 
-    # submuestra de explicación (val interno)
+    # explanation subsample (inner val)
     n_exp = int(min(icfg["n_explain"], inner_val.size))
     exp_idx = rng.choice(inner_val, size=n_exp, replace=False)
     sage_cfg = icfg["sage"]
@@ -88,7 +88,7 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
         agg = aggregate(np.array(imps), np.array(ses), float(icfg.get("variance_floor", 1e-8)))
         imp_feat = distribute_group_importance(agg, group_of_feature, group_names, enc, ft.take(inner_train),
                                                y[inner_train], n_classes)
-        # w^(n) desde w^(n−1) (conversión §5.4 con λ del bucle)
+        # w^(n) from w^(n−1) (§5.4 conversion with the loop λ)
         t1 = time.perf_counter()
         if len(imps) == 1 or (len(imps) - 1) % int(icfg["candidate_refresh_every"]) == 0:
             nca.refresh_candidates(E, subjects, w_prev)
@@ -110,8 +110,8 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
         rows.append(row)
         w_prev, d_prev = w_cur, d_cur
         n_acc = len(imps)
-        LOG.info("  modelo %d (%s) val=%.4f Δ=%.4f Δ̃=%.4f", n_acc, fam, vloss, delta, sm)
-        # criterio de parada (solo con min_delta definido y n ≥ n_min)
+        LOG.info("  model %d (%s) val=%.4f Δ=%.4f Δ̃=%.4f", n_acc, fam, vloss, delta, sm)
+        # stopping criterion (only with min_delta defined and n ≥ n_min)
         md = 0.0 if min_delta is None else min_delta
         if sm < best_smooth - md:
             best_smooth = sm
@@ -141,7 +141,7 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
 
 
 def min_delta_from_pilot(delta_smooth: list[float], n_min: int, fraction: float) -> float:
-    """Regla declarada (experiment.yaml: pilot.min_delta_rule): fracción de Δ̃ en la iteración n_min."""
+    """Declared rule (experiment.yaml: pilot.min_delta_rule): fraction of Δ̃ at iteration n_min."""
     if not delta_smooth:
         return 0.0
     i = min(max(n_min, 1), len(delta_smooth)) - 1

@@ -1,14 +1,14 @@
-"""Estructura del directorio de trabajo (en KHDP: updown/perisim/<usuario>/work).
+"""Working directory layout (on KHDP: updown/perisim/<user>/work).
 
-    common/<cohorte>/       extracción al formato común (stays, inputs_long, outcomes) + flow
-    derived/<variante>/<cohorte>/   targets, carried, features (dependen de la variante)
-    artifacts/<variante>/   folds, pesos, curvas, métricas (agregados)
-    predictions/<variante>/ salidas por paciente (NUNCA se exportan)
-    reports/                informes HTML / MD (agregados)
-    export/                 lo único candidato a revisión de exportación (§9)
-    state/                  marcadores de etapas completadas
-    docs/                   OPEN_QUESTIONS / DECISIONS generados automáticamente en el pod
-    cache/<cohorte>/        extractos filtrados de las tablas originales (Parquet zstd)
+    common/<cohort>/        extraction to the common format (stays, inputs_long, outcomes) + flow
+    derived/<variant>/<cohort>/   targets, carried, features (variant-dependent)
+    artifacts/<variant>/    folds, weights, curves, metrics (aggregates)
+    predictions/<variant>/  per-patient outputs (NEVER exported)
+    reports/                HTML / MD reports (aggregates)
+    export/                 the only candidates for export review (§9)
+    state/                  markers of completed stages
+    docs/                   OPEN_QUESTIONS / DECISIONS generated automatically in the pod
+    cache/<cohort>/         filtered extracts of the original tables (zstd Parquet)
 """
 
 from __future__ import annotations

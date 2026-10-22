@@ -1,37 +1,37 @@
-# Criterios de inclusión y exclusión por cohorte (§3, propuesta v0).
-# Aquí van VALORES de criterio; los nombres de columnas originales están en harmonization.yaml.
+# Inclusion and exclusion criteria per cohort (§3, proposal v0).
+# This file holds criterion VALUES; the original column names live in harmonization.yaml.
 
 common:
   min_age: 18
-  min_icu_hours: 4               # D3 [decisión abierta]
-  icu_death_tolerance_min: 60    # muerte ≤ alta UCI + tolerancia ⇒ muerte en UCI
-  discharge_tolerance_min: 60    # alta hospitalaria ≤ alta UCI + tolerancia ⇒ alta directa desde UCI (excluida)
+  min_icu_hours: 4               # D3 [open decision]
+  icu_death_tolerance_min: 60    # death ≤ ICU discharge + tolerance ⇒ death in the ICU
+  discharge_tolerance_min: 60    # hospital discharge ≤ ICU discharge + tolerance ⇒ direct discharge from the ICU (excluded)
   exclude_organ_donors: true
-  exclude_known_limitation: true # solo si la cohorte lo registra [VERIFICAR disponibilidad]
+  exclude_known_limitation: true # only if the cohort records it [VERIFY availability]
 
 inspire:
   role: development
-  # icuin_time en las 24 h siguientes a opend_time (§3.1). Tolerancia negativa por desajustes de registro.
+  # icuin_time within the 24 h following opend_time (§3.1). Negative tolerance for recording misalignments.
   postop_window_hours: 24
   postop_negative_tolerance_min: 60
 
 mimic:
   role: external_full
-  postop_rule: service_or_procedure     # D10 [VERIFICAR regla]
-  service_lookback_min: 60              # servicio vigente en intime + 60 min
+  postop_rule: service_or_procedure     # D10 [VERIFY rule]
+  service_lookback_min: 60              # service in effect at intime + 60 min
   surgical_services: [CSURG, NSURG, ORTHO, PSURG, SURG, TSURG, VSURG, GU, GYN, ENT, TRAUM, DENT]
-  procedure_days_before: 1              # procedimiento en la fecha de ingreso en UCI o la anterior
-  # ICD-10-PCS quirúrgico [VERIFICAR]: sección "0" (médico-quirúrgica), abordaje (5.º carácter)
-  # abierto (0) o percutáneo endoscópico (4), excluyendo la operación raíz "2" (cambio).
+  procedure_days_before: 1              # procedure on the ICU admission date or the day before
+  # Surgical ICD-10-PCS [VERIFY]: section "0" (medical-surgical), approach (5th character)
+  # open (0) or percutaneous endoscopic (4), excluding root operation "2" (change).
   or_icd10_approaches: ["0", "4"]
   or_icd10_exclude_root_operations: ["2"]
-  # ICD-9-CM: capítulos 01–86, excluyendo prefijos no quirúrgicos frecuentes [VERIFICAR]
+  # ICD-9-CM: chapters 01–86, excluding frequent non-surgical prefixes [VERIFY]
   or_icd9_range: [1, 86]
   or_icd9_exclude_prefixes: ["389", "3995", "3891", "3893", "3324", "4513", "4516"]
   emergency_admission_types: ["EW EMER.", "URGENT", "DIRECT EMER.", "EMERGENCY"]
 
 eicu:
-  role: external_partial                # solo grave / no grave y estancia (§2.1)
+  role: external_partial                # severe / not severe and length of stay only (§2.1)
   postop_admit_sources: ["Operating Room", "Recovery Room", "PACU"]
   postop_admitdx_patterns: ["(?i)\\|Operative\\|", "(?i)admitted from the O\\.R\\.[^|]*\\|Yes"]
   ward_discharge_locations: ["Floor", "Step-Down Unit (SDU)", "Telemetry", "Acute Care/Floor", "Other Internal"]

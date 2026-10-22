@@ -1,4 +1,4 @@
-"""Operaciones temporales compartidas sobre inputs_long (intervalos de soporte)."""
+"""Shared temporal operations on inputs_long (support intervals)."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import polars as pl
 
 
 def merge_runs(rows: pl.DataFrame, gap_minutes: float, by: tuple[str, ...] = ("stay_id", "variable")) -> pl.DataFrame:
-    """Registros puntuales o intervalos → intervalos continuos [start_min, end_min].
+    """Point records or intervals → continuous intervals [start_min, end_min].
 
-    Un registro sin fin cuenta como punto. Dos registros pertenecen al mismo intervalo si el segundo empieza
-    antes de (fin acumulado del anterior + gap). Así se infiere el fin por ausencia de registro (§2.2).
+    A record without an end counts as a point. Two records belong to the same interval if the second starts
+    before (accumulated end of the previous one + gap). This infers the end from the absence of records (§2.2).
     """
     if rows.height == 0:
         return pl.DataFrame(schema={**{b: pl.Utf8 for b in by}, "start_min": pl.Float64, "end_min": pl.Float64})

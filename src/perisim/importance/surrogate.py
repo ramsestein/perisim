@@ -1,9 +1,9 @@
-"""Modelos sustitutos entrenados con *feature dropout* por grupos (Frye et al., 2021).
+"""Surrogate models trained with group-wise *feature dropout* (Frye et al., 2021).
 
-Cada modelo aprende a predecir con cualquier subconjunto de grupos presentes: así SAGE simula la ausencia
-de un grupo con la máscara del propio modelo, sin imputación marginal ni reentrenar por subconjuntos.
-- Árboles (RF, LightGBM, XGBoost): grupo ausente → NaN (los tres admiten NaN de forma nativa).
-- Lineal y MLP: grupo ausente → 0 (media tras estandarizar) + indicador de máscara por grupo.
+Each model learns to predict with any subset of groups present: this way SAGE simulates the absence of a
+group with the model's own mask, without marginal imputation or retraining per subset.
+- Trees (RF, LightGBM, XGBoost): absent group → NaN (all three support NaN natively).
+- Linear and MLP: absent group → 0 (the mean after standardization) + a per-group mask indicator.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def sample_params(space: dict, rng: np.random.Generator, exclude: set[str] | Non
 
 
 def random_masks(n: int, G: int, rng: np.random.Generator) -> np.ndarray:
-    """Máscara de grupos presentes: por fila p ~ U(0,1) y cada grupo presente con prob. 1 − p."""
+    """Mask of present groups: per row p ~ U(0,1) and each group present with prob. 1 − p."""
     p = rng.uniform(0, 1, size=(n, 1))
     return rng.uniform(0, 1, size=(n, G)) >= p
 
@@ -56,7 +56,7 @@ class Surrogate:
         self.threads = int(threads)
         self.fit_seconds = float("nan")
 
-    # ------------------------------------------------------------------ máscara
+    # ------------------------------------------------------------------ mask
     def _apply_mask(self, X: np.ndarray, mask: np.ndarray) -> np.ndarray:
         absent_cols = ~mask[:, self.col_group]
         if self.family in TREE_FAMILIES:
@@ -66,7 +66,7 @@ class Surrogate:
         Xm = np.where(absent_cols, 0.0, X).astype(np.float32)
         return np.hstack([Xm, (~mask).astype(np.float32)])
 
-    # ------------------------------------------------------------------ ajuste
+    # ------------------------------------------------------------------ fitting
     def fit(self, X: np.ndarray, y: np.ndarray, augment_copies: int = 2) -> "Surrogate":
         t0 = time.perf_counter()
         rng = np.random.default_rng(self.seed)
@@ -148,7 +148,7 @@ class Surrogate:
         net.eval()
         self.model = net
 
-    # ------------------------------------------------------------------ predicción
+    # ------------------------------------------------------------------ prediction
     def predict_proba(self, X: np.ndarray, mask: np.ndarray | None = None) -> np.ndarray:
         if mask is None:
             mask = np.ones((X.shape[0], self.G), dtype=bool)

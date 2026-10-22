@@ -1,9 +1,9 @@
-"""Selección de la estancia índice y diagrama de flujo (§3.1–§3.3).
+"""Index stay selection and flow diagram (§3.1–§3.3).
 
-Orden: adultos → UCI postoperatoria → primera estancia postoperatoria de la hospitalización → alta viva
-de UCI → estancia ≥ 4 h → alta de UCI a planta (no directa fuera del hospital) → donantes → limitación.
-La unidad de análisis es la PRIMERA estancia postoperatoria: si no cumple un criterio posterior,
-la hospitalización queda fuera (no se toma la siguiente).
+Order: adults → postoperative ICU → first postoperative stay of the hospitalization → discharged alive
+from the ICU → stay ≥ 4 h → ICU discharge to the ward (not directly out of the hospital) → donors → limitation.
+The unit of analysis is the FIRST postoperative stay: if it fails a later criterion,
+the hospitalization is excluded (the next stay is not taken).
 """
 
 from __future__ import annotations
@@ -22,20 +22,20 @@ def select_index_stays(stays: pl.DataFrame, cohorts_cfg: dict, cohort: str) -> t
     flow: list[dict] = []
     df = stays.filter(pl.col("icu_in_min").is_not_null() & pl.col("icu_out_min").is_not_null()
                       & (pl.col("icu_out_min") > pl.col("icu_in_min")))
-    flow.append(_row("Estancias en UCI con entrada y salida válidas", df, None))
+    flow.append(_row("ICU stays with valid admission and discharge times", df, None))
 
     steps: list[tuple[str, pl.Expr | str]] = [
-        (f"Edad ≥ {c['min_age']} años", pl.col("age") >= c["min_age"]),
-        ("Ingreso en UCI postoperatorio", pl.col("postop").fill_null(False)),
-        ("Primera estancia postoperatoria de la hospitalización", "first"),
-        ("Alta viva de la UCI (muertes en UCI fuera)", ~pl.col("died_in_icu").fill_null(False)),
-        (f"Estancia en UCI ≥ {c['min_icu_hours']} h", (pl.col("icu_out_min") - pl.col("icu_in_min")) >= c["min_icu_hours"] * 60),
-        ("Alta de UCI dentro del hospital (con seguimiento en planta)", pl.col("icu_to_ward").fill_null(False)),
+        (f"Age ≥ {c['min_age']} years", pl.col("age") >= c["min_age"]),
+        ("Postoperative ICU admission", pl.col("postop").fill_null(False)),
+        ("First postoperative stay of the hospitalization", "first"),
+        ("Discharged alive from the ICU (ICU deaths excluded)", ~pl.col("died_in_icu").fill_null(False)),
+        (f"ICU stay ≥ {c['min_icu_hours']} h", (pl.col("icu_out_min") - pl.col("icu_in_min")) >= c["min_icu_hours"] * 60),
+        ("ICU discharge within the hospital (ward follow-up)", pl.col("icu_to_ward").fill_null(False)),
     ]
     if c.get("exclude_organ_donors", True):
-        steps.append(("Excluidos donantes de órganos", ~pl.col("organ_donor").fill_null(False)))
+        steps.append(("Organ donors excluded", ~pl.col("organ_donor").fill_null(False)))
     if c.get("exclude_known_limitation", True):
-        steps.append(("Excluida limitación del esfuerzo conocida antes del corte", ~pl.col("limitation_known").fill_null(False)))
+        steps.append(("Known limitation of life-sustaining treatment before the cutoff excluded", ~pl.col("limitation_known").fill_null(False)))
 
     for label, cond in steps:
         prev = df.height
@@ -48,6 +48,6 @@ def select_index_stays(stays: pl.DataFrame, cohorts_cfg: dict, cohort: str) -> t
 
 
 def add_cutoff(stays: pl.DataFrame, margin_hours: float) -> pl.DataFrame:
-    """t0 = salida física de UCI; corte de inputs = t0 − margen (§3.3, D2)."""
+    """t0 = physical ICU exit; input cutoff = t0 − margin (§3.3, D2)."""
     return stays.with_columns(pl.col("icu_out_min").alias("t0_min"),
                               (pl.col("icu_out_min") - margin_hours * 60.0).alias("cutoff_min"))

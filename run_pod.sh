@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PERISIM — punto de entrada único en el pod de KHDP.
+# PERISIM — single entry point in the KHDP pod.
 #
-#   bash run_pod.sh            # prepara el entorno y lanza TODO el pipeline en 2.º plano
-#   bash run_pod.sh fg         # igual, en primer plano
-#   bash run_pod.sh status     # estado de cada etapa y si hay una ejecución en marcha
-#   bash run_pod.sh logs       # seguir el log de la última ejecución (Ctrl-C no la detiene)
-#   bash run_pod.sh stop       # detener la ejecución en marcha
-#   bash run_pod.sh smoke      # prueba de punta a punta con datos sintéticos
-#   bash run_pod.sh test       # pytest (incluye los tests anti-fuga sobre los datos reales)
-#   bash run_pod.sh freeze --registration <ID_OSF>   # congelación §6.3 (habilita la validación externa)
-#   bash run_pod.sh setup      # solo instalar / comprobar el entorno
+#   bash run_pod.sh            # set up the environment and launch the WHOLE pipeline in the background
+#   bash run_pod.sh fg         # same, in the foreground
+#   bash run_pod.sh status     # status of every stage and whether a run is in progress
+#   bash run_pod.sh logs       # follow the log of the latest run (Ctrl-C does not stop it)
+#   bash run_pod.sh stop       # stop the run in progress
+#   bash run_pod.sh smoke      # end-to-end test on synthetic data
+#   bash run_pod.sh test       # pytest (includes the anti-leakage tests on the real data)
+#   bash run_pod.sh freeze --registration <OSF_ID>   # §6.3 freeze (enables the external validation)
+#   bash run_pod.sh resources  # real CPU/memory limits of the container and the jobs × threads plan
+#   bash run_pod.sh setup      # only install / check the environment
 #
-# Cualquier argumento extra tras start/fg se pasa a `python -m perisim run`
-# (p. ej. `bash run_pod.sh fg --until audit`, `--stage features --force`).
+# Any extra argument after start/fg is passed to `python -m perisim run`
+# (e.g. `bash run_pod.sh fg --until audit`, `--stage features --force`).
 #
-# Variables de entorno (opcionales):
-#   PERISIM_WORKDIR     carpeta de trabajo (defecto: updown/perisim/<usuario>/work)
-#   PERISIM_DATASETS    raíz de datasets (defecto: /home/khdp-user/workspace/datasets)
-#   PERISIM_INSPIRE_DIR / PERISIM_MIMIC_DIR / PERISIM_EICU_DIR  rutas explícitas (si no, auto)
-#   PERISIM_ACK_AUDIT=true   continuar tras revisar la auditoría de completitud (§7)
-#   PERISIM_SKIP_SMOKE=1     no ejecutar el smoke test antes de la primera ejecución real
+# Environment variables (optional):
+#   PERISIM_WORKDIR     working folder (default: updown/perisim/<user>/work)
+#   PERISIM_DATASETS    datasets root (default: /home/khdp-user/workspace/datasets)
+#   PERISIM_INSPIRE_DIR / PERISIM_MIMIC_DIR / PERISIM_EICU_DIR  explicit paths (otherwise auto)
+#   PERISIM_JOBS / PERISIM_THREADS  force jobs × threads (default: auto from the container limits)
+#   PERISIM_ACK_AUDIT=true   continue after reviewing the completeness audit (§7)
+#   PERISIM_SKIP_SMOKE=1     do not run the smoke test before the first real run
 # =============================================================================
 set -euo pipefail
 
@@ -36,13 +38,12 @@ if [ -d "$PERISIM_WORKSPACE/updown" ]; then
 else
   : "${PERISIM_WORKDIR:=$REPO_DIR/work}"
 fi
-# Entorno y logs en disco local del contenedor (updown es almacenamiento de objetos compartido).
+# Environment and terminal logs on the container's local disk (updown is shared object storage).
 : "${PERISIM_LOCAL:=$HOME/.perisim}"
 : "${PERISIM_VENV:=$PERISIM_LOCAL/venv}"
 : "${PERISIM_CONDA_ENV:=$PERISIM_LOCAL/conda-py311}"
 : "${PERISIM_PIP_INDEX:=http://pypi.khdp-forward-server/simple}"
 : "${PERISIM_TORCH_INDEXES:=http://torch-download.khdp-forward-server/whl/cpu http://torch-download.khdp-forward-server/whl/cu126}"
-: "${PERISIM_THREADS_PER_JOB:=4}"
 export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL
 
 PIDFILE="$PERISIM_LOCAL/run.pid"
@@ -53,14 +54,13 @@ say()  { printf '\033[1;34m[perisim]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[perisim]\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m[perisim]\033[0m %s\n' "$*" >&2; exit 1; }
 
-# --- hilos: como mucho 4 trabajos × 4 hilos (§9.1); nunca sobresuscribir ----------------
-export OMP_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
-export MKL_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
-export OPENBLAS_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
-export NUMEXPR_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
-export POLARS_MAX_THREADS="${POLARS_MAX_THREADS:-16}"
+# --- threads: conservative defaults until the real container limits are known (size_threads) -------------
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-4}"
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-4}"
+export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-4}"
 export PYTHONPATH="$REPO_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
-# OpenMP para LightGBM si el sistema no trae libgomp (ver fix_openmp)
+# OpenMP for LightGBM when the system has no libgomp (see fix_openmp)
 [ -e "$PERISIM_LOCAL/lib/libgomp.so.1" ] && export LD_LIBRARY_PATH="$PERISIM_LOCAL/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PYTHONUNBUFFERED=1
 export MPLBACKEND=Agg
@@ -90,44 +90,44 @@ setup_env() {
   local base_py vpy req_hash
   base_py="$(find_python || true)"
   if [ -z "$base_py" ]; then
-    command -v conda >/dev/null 2>&1 || die "No hay Python >= 3.11 ni conda. Instala Python 3.11 o define PERISIM_PYTHON."
-    say "No hay Python >= 3.11: creando entorno conda en $PERISIM_CONDA_ENV (mirror conda-forge de KHDP)"
+    command -v conda >/dev/null 2>&1 || die "No Python >= 3.11 and no conda. Install Python 3.11 or set PERISIM_PYTHON."
+    say "No Python >= 3.11: creating a conda environment in $PERISIM_CONDA_ENV (KHDP conda-forge mirror)"
     conda create -y -p "$PERISIM_CONDA_ENV" python=3.11 >/dev/null
     base_py="$PERISIM_CONDA_ENV/bin/python"
   fi
-  say "Python base: $base_py ($("$base_py" -V 2>&1))"
+  say "Base Python: $base_py ($("$base_py" -V 2>&1))"
 
-  # Entorno: 1) venv (reutiliza paquetes del sistema) → 2) entorno conda (mirror de KHDP) → 3) pip --user
+  # Environment: 1) venv (reuses system packages) → 2) conda environment (KHDP mirror) → 3) pip --user
   local user_mode=0
   if [ ! -x "$PERISIM_VENV/bin/python" ]; then
-    say "Creando entorno virtual en $PERISIM_VENV (reutiliza paquetes del sistema)"
+    say "Creating a virtual environment in $PERISIM_VENV (reuses system packages)"
     "$base_py" -m venv --system-site-packages "$PERISIM_VENV" >/dev/null 2>&1 || true
   fi
   if [ -x "$PERISIM_VENV/bin/python" ] && "$PERISIM_VENV/bin/python" -m pip --version >/dev/null 2>&1; then
     vpy="$PERISIM_VENV/bin/python"
   else
-    rm -rf "$PERISIM_VENV"   # venv sin pip (falta ensurepip): no sirve
+    rm -rf "$PERISIM_VENV"   # venv without pip (ensurepip missing): unusable
     if [ -x "$PERISIM_CONDA_ENV/bin/python" ] && "$PERISIM_CONDA_ENV/bin/python" -m pip --version >/dev/null 2>&1; then
       vpy="$PERISIM_CONDA_ENV/bin/python"
     elif command -v conda >/dev/null 2>&1; then
-      warn "venv no disponible: creando entorno conda en $PERISIM_CONDA_ENV"
+      warn "venv not available: creating a conda environment in $PERISIM_CONDA_ENV"
       conda create -y -q -p "$PERISIM_CONDA_ENV" python=3.11 pip >/dev/null
       vpy="$PERISIM_CONDA_ENV/bin/python"
     elif "$base_py" -m pip --version >/dev/null 2>&1; then
-      warn "venv y conda no disponibles: instalación con pip --user"
+      warn "venv and conda not available: installing with pip --user"
       vpy="$base_py"; user_mode=1
     else
-      die "No hay forma de crear un entorno (sin venv/ensurepip, conda ni pip). Define PERISIM_PYTHON=<python con pip>."
+      die "Cannot create an environment (no venv/ensurepip, conda or pip). Set PERISIM_PYTHON=<python with pip>."
     fi
   fi
 
-  # Índice de paquetes: mirror interno de KHDP si responde; si no, la configuración de pip por defecto.
+  # Package index: KHDP internal mirror if it answers; otherwise pip's default configuration.
   local pip_args=()
   if _reachable "$vpy" "$PERISIM_PIP_INDEX/"; then
     pip_args=(--index-url "$PERISIM_PIP_INDEX" --trusted-host "$(_host_of "$PERISIM_PIP_INDEX")")
-    say "Usando el mirror PyPI de KHDP: $PERISIM_PIP_INDEX"
+    say "Using the KHDP PyPI mirror: $PERISIM_PIP_INDEX"
   else
-    warn "Mirror de KHDP no accesible: se usa la configuración de pip por defecto"
+    warn "KHDP mirror not reachable: using pip's default configuration"
   fi
 
   local pip_base=(--disable-pip-version-check -q)
@@ -135,34 +135,36 @@ setup_env() {
   req_hash="$(cat "$REPO_DIR/requirements.txt" "$REPO_DIR/requirements-optional.txt" | sha256sum | cut -c1-16)"
   local marker="$PERISIM_LOCAL/req_$(printf '%s' "$vpy" | sha256sum | cut -c1-8)"
   if [ "$(cat "$marker" 2>/dev/null || true)" != "$req_hash" ]; then
-    say "Instalando dependencias (requirements.txt)"
+    say "Installing dependencies (requirements.txt)"
     "$vpy" -m pip install "${pip_base[@]}" ${pip_args[@]+"${pip_args[@]}"} -r "$REPO_DIR/requirements.txt"
     if ! "$vpy" -c "import torch" >/dev/null 2>&1; then
       local idx ok=0
       for idx in $PERISIM_TORCH_INDEXES; do
         if _reachable "$vpy" "$idx/torch/"; then
-          say "Instalando torch desde $idx"
+          say "Installing torch from $idx"
           if "$vpy" -m pip install "${pip_base[@]}" torch --index-url "$idx" \
                --trusted-host "$(_host_of "$idx")"; then ok=1; break; fi
         fi
       done
       if [ "$ok" = 0 ]; then
-        warn "Índices de PyTorch no accesibles: se instala torch desde el índice general"
+        warn "PyTorch indexes not reachable: installing torch from the general index"
         "$vpy" -m pip install "${pip_base[@]}" ${pip_args[@]+"${pip_args[@]}"} torch
       fi
     fi
     "$vpy" -m pip install "${pip_base[@]}" ${pip_args[@]+"${pip_args[@]}"} -r "$REPO_DIR/requirements-optional.txt" \
-      || warn "Dependencias opcionales no instaladas (no bloquea el pipeline)"
+      || warn "Optional dependencies not installed (does not block the pipeline)"
     echo "$req_hash" > "$marker"
   fi
   fix_openmp "$vpy"
-  "$vpy" -m perisim env-check || die "La comprobación del entorno ha fallado (ver mensaje anterior)"
+  "$vpy" -m perisim env-check || die "The environment check failed (see the message above)"
   VPY="$vpy"
   echo "$vpy" > "$PERISIM_LOCAL/python_path"
+  size_threads
 }
 
-# LightGBM enlaza contra libgomp.so.1 del sistema. Sin root no se puede instalar con apt, pero las ruedas de
-# scikit-learn / torch (o conda) ya traen una copia: se enlaza en $PERISIM_LOCAL/lib y se añade a LD_LIBRARY_PATH.
+# LightGBM links against the system's libgomp.so.1. Without root it cannot be installed with apt, but the
+# scikit-learn / torch wheels (or conda) already ship a copy: it is linked in $PERISIM_LOCAL/lib and added to
+# LD_LIBRARY_PATH.
 fix_openmp() {
   local py="$1" cand
   "$py" -c "import lightgbm" >/dev/null 2>&1 && return 0
@@ -180,17 +182,27 @@ print(pats[0] if pats else "")
 PY
 )"
   if [ -z "$cand" ]; then
-    warn "LightGBM no encuentra libgomp.so.1 y no hay copia local. Prueba: conda install -c conda-forge libgomp"
+    warn "LightGBM cannot find libgomp.so.1 and there is no local copy. Try: conda install -c conda-forge libgomp"
     return 0
   fi
   mkdir -p "$PERISIM_LOCAL/lib"
   ln -sf "$cand" "$PERISIM_LOCAL/lib/libgomp.so.1"
   export LD_LIBRARY_PATH="$PERISIM_LOCAL/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   if "$py" -c "import lightgbm" >/dev/null 2>&1; then
-    say "OpenMP: se usa $cand para LightGBM"
+    say "OpenMP: using $cand for LightGBM"
   else
-    warn "LightGBM sigue sin cargar con $cand"
+    warn "LightGBM still does not load with $cand"
   fi
+}
+
+# Threads from the container's REAL limits (cgroup quota / affinity), not from the host's core count that
+# os.cpu_count() reports inside a container (§9.1: at most 4 jobs × 4 threads).
+size_threads() {
+  eval "$("$VPY" -m perisim resources --shell)"
+  export OMP_NUM_THREADS="$PERISIM_THREADS_PER_JOB" MKL_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
+  export OPENBLAS_NUM_THREADS="$PERISIM_THREADS_PER_JOB" NUMEXPR_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
+  export POLARS_MAX_THREADS
+  say "Resources: $PERISIM_CPUS usable CPUs → $PERISIM_THREADS_PER_JOB threads per job (details: bash run_pod.sh resources)"
 }
 
 is_running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
@@ -199,13 +211,13 @@ maybe_smoke() {
   [ "${PERISIM_SKIP_SMOKE:-0}" = 1 ] && return 0
   local key; key="$("$VPY" -m perisim code-hash)"
   if [ -f "$PERISIM_LOCAL/smoke_ok_$key" ]; then return 0; fi
-  say "Primera ejecución de esta versión del código: smoke test con datos sintéticos (unos minutos)"
-  "$VPY" -m perisim smoke --workdir "$PERISIM_LOCAL/smoke" || die "El smoke test ha fallado: no se lanza el pipeline real."
+  say "First run of this code version: smoke test on synthetic data (a few minutes)"
+  "$VPY" -m perisim smoke --workdir "$PERISIM_LOCAL/smoke" || die "The smoke test failed: the real pipeline is not launched."
   touch "$PERISIM_LOCAL/smoke_ok_$key"
 }
 
 launch_bg() {
-  is_running && die "Ya hay una ejecución en marcha (PID $(cat "$PIDFILE")). Usa: bash run_pod.sh logs | stop"
+  is_running && die "A run is already in progress (PID $(cat "$PIDFILE")). Use: bash run_pod.sh logs | stop"
   local log="$LOGDIR/run_$(date +%Y%m%d_%H%M%S).log"
   if command -v setsid >/dev/null 2>&1; then
     nohup setsid "$VPY" -m perisim run "$@" >"$log" 2>&1 </dev/null &
@@ -214,8 +226,8 @@ launch_bg() {
   fi
   echo $! > "$PIDFILE"
   echo "$log" > "$LOGDIR/latest.txt"
-  say "Pipeline lanzado en segundo plano (PID $!). Log: $log"
-  say "Ctrl-C deja de seguir el log, pero NO detiene el pipeline. 'bash run_pod.sh stop' para pararlo."
+  say "Pipeline launched in the background (PID $!). Log: $log"
+  say "Ctrl-C stops following the log but does NOT stop the pipeline. Use 'bash run_pod.sh stop' to stop it."
   sleep 1
   tail -n +1 -F "$log"
 }
@@ -226,24 +238,26 @@ case "$CMD" in
   fg)
     setup_env; maybe_smoke; exec "$VPY" -m perisim run "$@" ;;
   setup)
-    setup_env; say "Entorno listo: $VPY" ;;
+    setup_env; say "Environment ready: $VPY" ;;
   smoke)
     setup_env; exec "$VPY" -m perisim smoke --workdir "$PERISIM_LOCAL/smoke" "$@" ;;
   test)
     setup_env; cd "$REPO_DIR"; exec "$VPY" -m pytest "$@" ;;
+  resources)
+    setup_env; exec "$VPY" -m perisim resources ;;
   status)
-    if is_running; then say "En marcha (PID $(cat "$PIDFILE"))"; else say "No hay ninguna ejecución en marcha"; fi
+    if is_running; then say "Running (PID $(cat "$PIDFILE"))"; else say "No run in progress"; fi
     py="$(cat "$PERISIM_LOCAL/python_path" 2>/dev/null || true)"
     [ -n "$py" ] && [ -x "$py" ] && "$py" -m perisim status || true ;;
   logs)
-    [ -f "$LOGDIR/latest.txt" ] || die "No hay logs todavía"
+    [ -f "$LOGDIR/latest.txt" ] || die "No logs yet"
     tail -n 200 -F "$(cat "$LOGDIR/latest.txt")" ;;
   stop)
     if is_running; then
-      pid="$(cat "$PIDFILE")"; kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid"; say "Detenido (PID $pid)"
-    else say "No hay ninguna ejecución en marcha"; fi ;;
+      pid="$(cat "$PIDFILE")"; kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid"; say "Stopped (PID $pid)"
+    else say "No run in progress"; fi ;;
   freeze)
     setup_env; exec "$VPY" -m perisim freeze "$@" ;;
   *)
-    die "Comando desconocido: $CMD (start | fg | status | logs | stop | smoke | test | freeze | setup)" ;;
+    die "Unknown command: $CMD (start | fg | status | logs | stop | smoke | test | freeze | resources | setup)" ;;
 esac

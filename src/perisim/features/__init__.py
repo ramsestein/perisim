@@ -1,1 +1,1 @@
-"""Construcción de inputs (§4.1) con corte temporal y tipos métricos (§5.2)."""
+"""Input construction (§4.1) with a temporal cutoff and metric types (§5.2)."""

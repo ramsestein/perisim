@@ -1,6 +1,6 @@
-# Espacio de modelos para SAGE consensuado (§5.3.1). Definido ANTES de ver resultados.
-# Rangos: [min, max]; "log" = muestreo log-uniforme; listas = elección uniforme.
-# Todo en CPU (§9.1): LightGBM / XGBoost en modo hist; MLP de 2 capas ocultas pequeñas.
+# Model space for consensus SAGE (§5.3.1). Defined BEFORE seeing any results.
+# Ranges: [min, max]; "log" = log-uniform sampling; lists = uniform choice.
+# Everything on CPU (§9.1): LightGBM / XGBoost in hist mode; MLP with 2 small hidden layers.
 
 families:
   logreg:
@@ -46,7 +46,7 @@ families:
       epochs: {int: [20, 60]}
       batch_size: 256
 
-# Configuración fija de los comparadores paramétricos (§6.4)
+# Fixed configuration of the parametric comparators (§6.4)
 baselines:
   lgbm:
     n_estimators: 400

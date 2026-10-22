@@ -1,5 +1,5 @@
-"""Métricas probabilísticas (§6.5): log-loss y Brier multiclase, RPS ordinal, calibración uno-contra-resto
-(intercepto y pendiente), ECE, AUROC OvR y AUPRC de la clase grave; bootstrap por paciente."""
+"""Probabilistic metrics (§6.5): multiclass log-loss and Brier, ordinal RPS, one-vs-rest calibration
+(intercept and slope), ECE, OvR AUROC and AUPRC of the severe class; patient-level bootstrap."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _logit(p):
 
 
 def calibration_line(p: np.ndarray, y: np.ndarray, iters: int = 50) -> tuple[float, float]:
-    """Regresión logística y ~ a + b·logit(p) (Newton). Devuelve (intercepto, pendiente)."""
+    """Logistic regression y ~ a + b·logit(p) (Newton). Returns (intercept, slope)."""
     x = _logit(p)
     X = np.column_stack([np.ones_like(x), x])
     beta = np.array([0.0, 1.0])
@@ -50,7 +50,7 @@ def calibration_line(p: np.ndarray, y: np.ndarray, iters: int = 50) -> tuple[flo
 
 
 def calibration_in_the_large(p: np.ndarray, y: np.ndarray, iters: int = 50) -> float:
-    """Intercepto con la pendiente fijada en 1 (offset logit(p))."""
+    """Intercept with the slope fixed at 1 (offset logit(p))."""
     off = _logit(p)
     a = 0.0
     for _ in range(iters):
@@ -110,21 +110,21 @@ def summary(p: np.ndarray, y: np.ndarray, ordinal: bool, severe_class: int | Non
     return out
 
 
-# --------------------------------------------------------------------------- bootstrap por paciente
+# --------------------------------------------------------------------------- patient-level bootstrap
 def _subject_index(subjects: np.ndarray) -> tuple[np.ndarray, int]:
     _, inv = np.unique(subjects, return_inverse=True)
     return inv, int(inv.max()) + 1
 
 
 def bootstrap_rowwise(values: dict[str, np.ndarray], subjects: np.ndarray, n_boot: int, seed: int) -> dict:
-    """IC 95 % por bootstrap de pacientes para métricas promedio por fila (log-loss, Brier, RPS) y sus
-    diferencias pareadas. `values`: {nombre: pérdida por fila}."""
+    """95 % CI by patient bootstrap for row-averaged metrics (log-loss, Brier, RPS) and their paired
+    differences. `values`: {name: per-row loss}."""
     inv, S = _subject_index(subjects)
     rng = np.random.default_rng(seed)
     sums = {k: np.bincount(inv, weights=v, minlength=S) for k, v in values.items()}
     cnt = np.bincount(inv, minlength=S).astype(float)
     boots = {k: [] for k in sums}
-    for start in range(0, n_boot, 200):  # por bloques para acotar memoria (bloque × pacientes)
+    for start in range(0, n_boot, 200):  # in blocks to bound memory (block × patients)
         W = rng.multinomial(S, np.full(S, 1.0 / S), size=min(200, n_boot - start)).astype(float)
         den = W @ cnt
         for k, s in sums.items():
@@ -138,7 +138,7 @@ def bootstrap_rowwise(values: dict[str, np.ndarray], subjects: np.ndarray, n_boo
 
 
 def bootstrap_metric(fn, p: np.ndarray, y: np.ndarray, subjects: np.ndarray, n_boot: int, seed: int) -> dict:
-    """IC 95 % por bootstrap de pacientes para una métrica no descomponible (AUROC, AUPRC, pendiente)."""
+    """95 % CI by patient bootstrap for a non-decomposable metric (AUROC, AUPRC, slope)."""
     inv, S = _subject_index(subjects)
     order = np.argsort(inv, kind="stable")
     starts = np.searchsorted(inv[order], np.arange(S))
@@ -160,7 +160,7 @@ def bootstrap_metric(fn, p: np.ndarray, y: np.ndarray, subjects: np.ndarray, n_b
 
 
 def paired_difference(a: np.ndarray, b: np.ndarray, subjects: np.ndarray, n_boot: int, seed: int) -> dict:
-    """Diferencia media (a − b) de pérdidas por fila con bootstrap pareado por paciente."""
+    """Mean difference (a − b) of per-row losses with a paired patient-level bootstrap."""
     r = bootstrap_rowwise({"d": a - b}, subjects, n_boot, seed)["d"]
     bs = r.pop("_boot")
     r["p_two_sided"] = float(min(1.0, 2 * min((bs <= 0).mean(), (bs >= 0).mean())))

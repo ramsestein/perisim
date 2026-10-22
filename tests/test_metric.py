@@ -1,4 +1,4 @@
-"""§5.1–§5.2 — El embedding reproduce exactamente d² = Σ_j w_j δ_j² y la normalización a δ² medio unitario."""
+"""§5.1–§5.2 — The embedding exactly reproduces d² = Σ_j w_j δ_j² and the normalization to unit mean δ²."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from perisim.metric.nca import DiagonalNCA, pair_sq_diffs
 
 
 def _ft(n, rng):
-    specs = [FeatureSpec("age", "continuous", "age", "demografia"),
-             FeatureSpec("asa", "ordinal", "asa", "basal", levels=[1, 2, 3, 4, 5, 6]),
-             FeatureSpec("vent", "binary", "vent", "uci"),
-             FeatureSpec("grp", "nominal", "grp", "cirugia"),
-             FeatureSpec("pcs_l1", "hier", "pcs", "cirugia"), FeatureSpec("pcs_l2", "hier", "pcs", "cirugia")]
+    specs = [FeatureSpec("age", "continuous", "age", "demographics"),
+             FeatureSpec("asa", "ordinal", "asa", "baseline", levels=[1, 2, 3, 4, 5, 6]),
+             FeatureSpec("vent", "binary", "vent", "icu"),
+             FeatureSpec("grp", "nominal", "grp", "surgery"),
+             FeatureSpec("pcs_l1", "hier", "pcs", "surgery"), FeatureSpec("pcs_l2", "hier", "pcs", "surgery")]
     age = rng.normal(60, 15, n)
     age[rng.random(n) < 0.2] = np.nan
     num = {"age": age, "asa": rng.integers(1, 5, n).astype(float), "vent": (rng.random(n) < 0.3).astype(float)}
@@ -39,12 +39,12 @@ def test_embedding_matches_weighted_formula():
     Ew = E * np.sqrt(w)[enc.dim_feature]
     d2_embed = ((Ew[pairs[:, 0]] - Ew[pairs[:, 1]]) ** 2).sum(1)
     np.testing.assert_allclose(d2_formula, d2_embed, rtol=1e-6, atol=1e-8)
-    # δ_j² medio entre pares aleatorios ≈ 1 tras la normalización
+    # mean δ_j² over random pairs ≈ 1 after normalization
     big = rng.integers(0, 500, (20000, 2))
     big = big[big[:, 0] != big[:, 1]]
     m = pair_sq_diffs(E, enc.dim_feature, enc.n_features, big).mean(0)
     np.testing.assert_allclose(m, 1.0, rtol=0.1)
-    # indicador de ausencia de la edad (20 % > 5 %) y un nivel PCS por dimensión
+    # missingness indicator for age (20 % > 5 %) and one PCS level per dimension
     assert "age__missing" in enc.feature_names
     assert {"pcs_l1", "pcs_l2"} <= set(enc.feature_names)
 
@@ -56,7 +56,7 @@ def test_nca_learns_informative_weight():
 
     x_inf = rng.normal(size=n)
     y = (x_inf > 0).astype(int)
-    specs = [FS("inf", "continuous", "inf", "uci")] + [FS(f"noise{i}", "continuous", f"noise{i}", "uci") for i in range(5)]
+    specs = [FS("inf", "continuous", "inf", "icu")] + [FS(f"noise{i}", "continuous", f"noise{i}", "icu") for i in range(5)]
     num = {"inf": x_inf, **{f"noise{i}": rng.normal(size=n) for i in range(5)}}
     ids = np.arange(n).astype(str).astype(object)
     ft = FeatureTable(ids, ids, specs, num, {})

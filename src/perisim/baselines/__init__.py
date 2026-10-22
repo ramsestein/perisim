@@ -1,1 +1,1 @@
-"""Comparadores (§6.4), todos con la misma partición y el mismo ajuste anidado."""
+"""Comparators (§6.4), all with the same partition and the same nested fitting."""

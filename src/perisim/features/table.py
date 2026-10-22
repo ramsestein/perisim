@@ -1,4 +1,4 @@
-"""Tabla de inputs en memoria (numpy) para el modelado: numéricas con NaN y categóricas como texto."""
+"""In-memory (numpy) input table for modelling: numeric columns with NaN and categorical columns as text."""
 
 from __future__ import annotations
 

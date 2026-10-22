@@ -1,7 +1,7 @@
-"""Ajuste y evaluación de PERISIM y comparadores dentro de un fold (§5, §6.1, §6.4).
+"""Fitting and evaluation of PERISIM and comparators within a fold (§5, §6.1, §6.4).
 
-Todo lo que aprende de los datos (estandarización, VDM y m, grupos, SAGE, pesos, λ, α, umbrales de T2/T3)
-se ajusta con los índices de entrenamiento que recibe la función; k no se ajusta (se evalúa en la rejilla).
+Everything learned from the data (standardization, VDM and m, groups, SAGE, weights, λ, α, T2/T3 thresholds)
+is fitted on the training indices the function receives; k is not tuned (it is evaluated over the grid).
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ class CohortData:
     cohort: str
     ft: FeatureTable
     t1: np.ndarray
-    t1_grave: np.ndarray
+    t1_severe: np.ndarray
     los: np.ndarray
     carried: dict[str, np.ndarray]
     t0: np.ndarray
@@ -69,7 +69,7 @@ def load_cohort_data(common_dir: Path, derived_dir: Path, feature_names: list[st
         cohort=str(stays["cohort"][0]) if stays.height else "",
         ft=ft,
         t1=tg["t1"].fill_null(-1).cast(pl.Int64).to_numpy(),
-        t1_grave=tg["t1_grave"].fill_null(-1).cast(pl.Int64).to_numpy(),
+        t1_severe=tg["t1_severe"].fill_null(-1).cast(pl.Int64).to_numpy(),
         los=tg["los_post_icu_days"].cast(pl.Float64).fill_null(np.nan).to_numpy(),
         carried=carried,
         t0=st["icu_out_min"].to_numpy(),
@@ -77,9 +77,9 @@ def load_cohort_data(common_dir: Path, derived_dir: Path, feature_names: list[st
     )
 
 
-# --------------------------------------------------------------------------- particiones
+# --------------------------------------------------------------------------- partitions
 def outer_folds(data: CohortData, n_splits: int, seed: int) -> np.ndarray:
-    """Fold externo por paciente (subject_id), estratificado por T1 (§6.1)."""
+    """Outer fold by patient (subject_id), stratified by T1 (§6.1)."""
     y = np.where(data.t1 >= 0, data.t1, 0)
     sgk = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=seed)
     fold = np.full(len(data), -1)
@@ -94,11 +94,11 @@ def inner_splits(y: np.ndarray, subjects: np.ndarray, n_splits: int, seed: int) 
 
 
 def labels_for(target: str, data: CohortData, train_idx: np.ndarray, tcfg: dict) -> tuple[np.ndarray, dict]:
-    """Etiquetas del target con umbrales calculados SOLO en el entrenamiento (−1 = fuera del análisis)."""
+    """Target labels with thresholds computed ONLY on the training set (−1 = excluded from the analysis)."""
     if target == "t1":
         return data.t1.copy(), {}
     if target == "t1_bin":
-        return data.t1_grave.copy(), {}
+        return data.t1_severe.copy(), {}
     if target == "t2":
         thr = t2_thresholds(data.los[train_idx], tcfg)
         return t2_categories(data.los, thr), {"t2_thresholds": thr}
@@ -111,7 +111,7 @@ def labels_for(target: str, data: CohortData, train_idx: np.ndarray, tcfg: dict)
     raise ValueError(target)
 
 
-# --------------------------------------------------------------------------- piezas
+# --------------------------------------------------------------------------- building blocks
 def _nca(cfg, enc: Encoder, C: int, seed: int, **kw) -> DiagonalNCA:
     m = cfg.experiment["metric"]
     n = m["nca"]
@@ -128,7 +128,7 @@ def _map_prior(imp: np.ndarray, names_src: list[str], names_dst: list[str]) -> n
 
 
 def select_m(cfg, ft: FeatureTable, y: np.ndarray, C: int, inner, seed: int) -> tuple[float, dict]:
-    """m del VDM por CV interna con la log-loss de kernel suave (pesos uniformes + escala ajustada)."""
+    """VDM m by inner CV with the soft-kernel log-loss (uniform weights + fitted scale)."""
     res = {}
     for m in cfg.experiment["metric"]["vdm_m_grid"]:
         ll = []
@@ -159,7 +159,7 @@ def select_lambda(cfg, ft: FeatureTable, y: np.ndarray, C: int, inner, m: float,
             nca.fit(Ea, y[a], prior=prior, lam=float(lam), epochs=epochs, subjects=ft.subjects[a])
             ll.append(nca.soft_loss(Ea, y[a], Eb, y[b], subj_ref=ft.subjects[a], subj_q=ft.subjects[b]))
         res[float(lam)] = float(np.mean(ll))
-        LOG.info("    λ=%g → log-loss soft-kNN interna %.4f", lam, res[float(lam)])
+        LOG.info("    λ=%g → inner soft-kNN log-loss %.4f", lam, res[float(lam)])
     best = min(res, key=res.get)
     return best, res
 
@@ -172,7 +172,7 @@ def swift_inputs(ft: FeatureTable) -> np.ndarray:
     return parametric.swift_score(g("icu_los_h"), pf, g("last_gcs"), g("last_pco2"), src)
 
 
-# --------------------------------------------------------------------------- ajuste completo de PERISIM
+# --------------------------------------------------------------------------- full PERISIM fit
 @dataclass
 class FittedPerisim:
     enc: Encoder
@@ -254,7 +254,7 @@ def fit_perisim(cfg, ft: FeatureTable, y: np.ndarray, C: int, *, seed: int, thre
     knn = KNNModel(E, enc.weights_dims(w), y, C, ft.subjects, ecfg["knn"]["k_grid"], ids_ref=ft.ids)
     info["alpha"] = knn.fit_alpha_and_ood(ecfg["knn"]["alpha_grid"], ecfg["knn"]["k_primary"],
                                           ecfg["knn"]["ood_percentile"])
-    # escala para la variante con kernel exp(−d²): la de la propia métrica aprendida (NCA)
+    # scale for the exp(−d²) kernel variant: that of the learned metric itself (NCA)
     info["rss_gb"] = rss_gb()
     return FittedPerisim(enc, w, knn, info, imp, loop, extra)
 
@@ -268,7 +268,7 @@ def knn_predict(model: KNNModel, E_q: np.ndarray, subj_q: np.ndarray, k_grid: li
     return probs, (D, I, valid)
 
 
-# --------------------------------------------------------------------------- un fold externo
+# --------------------------------------------------------------------------- one outer fold
 def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx: np.ndarray, *, seed: int,
              threads: int, baselines: list[str], stopping_override: dict | None = None,
              exclude_families: set[str] | None = None, early_stop: bool = True, select_hparams: bool = True
@@ -282,7 +282,7 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
     ft_tr, ft_te = data.ft.take(tr), data.ft.take(te)
     y_tr, y_te = y_all[tr], y_all[te]
     timings: dict = {}
-    LOG.info("[%s] train=%d test=%d clases=%s", target, len(tr), len(te), np.bincount(y_tr, minlength=C).tolist())
+    LOG.info("[%s] train=%d test=%d classes=%s", target, len(tr), len(te), np.bincount(y_tr, minlength=C).tolist())
 
     fp = fit_perisim(cfg, ft_tr, y_tr, C, seed=seed, threads=threads, stopping_override=stopping_override,
                      exclude_families=exclude_families, early_stop=early_stop, select_hparams=select_hparams,
@@ -297,7 +297,7 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
     preds[("perisim_kernel", kp)] = probs[("kernel", kp)]
     kth, pct, ood = fp.knn.kth_info(D, valid, kp)
 
-    # P4: variables arrastradas resumidas sobre los k vecinos (métrica aprendida vs euclídea)
+    # P4: carried variables summarized over the k neighbours (learned metric vs Euclidean)
     car_tr = {k: v[tr] for k, v in data.carried.items() if np.isfinite(v[tr]).any()}
     car_te = {k: data.carried[k][te] for k in car_tr}
     p4 = {"perisim": fp.knn.carried_summary(I, valid, kp, car_tr)}
@@ -344,7 +344,7 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
                 NBs = rfg.topk(Xm_tr[sub], kmax, train_idx=sub, subjects_q=ft_tr.subjects[sub],
                                subjects_train=ft_tr.subjects)
                 best = {}
-                for k in k_grid:   # α por k con LOO (OOB) en una submuestra del entrenamiento
+                for k in k_grid:   # α per k with LOO (OOB) on a training subsample
                     lls = {}
                     for a in ecfg["knn"]["alpha_grid"]:
                         pr = RFGAP.probs_from_topk(NBs, y_tr, C, k, float(a))
@@ -368,15 +368,15 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
                 if 0 < yb.sum() < len(yb):
                     f, inf = parametric.fit_swift(swift_inputs(ft_tr), yb)
                     pg = f(swift_inputs(ft_te))
-                    preds[("swift", 0)] = np.column_stack([1 - pg, pg])  # grave / no grave
+                    preds[("swift", 0)] = np.column_stack([1 - pg, pg])  # severe / not severe
                     bl_info[name] = inf
             timings[f"baseline_{name}"] = time.perf_counter() - tb
-        except Exception as exc:  # un comparador fallido no tumba el fold; queda registrado
-            LOG.exception("Comparador %s falló: %s", name, exc)
+        except Exception as exc:  # a failed comparator does not bring down the fold; it is logged
+            LOG.exception("Comparator %s failed: %s", name, exc)
             bl_info[name] = {"error": repr(exc)}
     timings["baselines"] = time.perf_counter() - t
 
-    # predicciones por paciente (NUNCA se exportan)
+    # per-patient predictions (NEVER exported)
     rows = []
     for (meth, k), p in preds.items():
         df = {"stay_id": ft_te.ids.astype(str), "subject_id": ft_te.subjects.astype(str), "y": y_te.astype(np.int64),
