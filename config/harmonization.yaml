@@ -1,0 +1,554 @@
+# Mapa de variables entre cohortes (§4.1, §8.4).
+# ÚNICO sitio, junto con src/perisim/data/, donde aparecen nombres originales de tablas, columnas e ítems.
+# status: VERIFICADO | VERIFICAR. Todo arranca como VERIFICAR: la etapa `discover` genera
+# <workdir>/reports/schema_<cohorte>.md con las columnas e ítems reales para corregir este fichero.
+
+version: 0.1
+
+# ---------------------------------------------------------------------------
+# 1. Tablas y columnas de origen (nombre canónico -> nombre real)
+# ---------------------------------------------------------------------------
+sources:
+  inspire:
+    status: VERIFICAR
+    marker_tables: [operations]
+    tables:
+      operations:
+        file: operations
+        columns:
+          op_id: op_id
+          subject_id: subject_id
+          hadm_id: hadm_id
+          age: age
+          sex: sex
+          weight: weight
+          height: height
+          asa: asa
+          emergency: emop
+          department: department
+          anesthesia_type: antype
+          pcs_code: icd10_pcs
+          op_start: opstart_time
+          op_end: opend_time
+          admission: admission_time
+          discharge: discharge_time
+          icu_in: icuin_time
+          icu_out: icuout_time
+          death_inhosp: inhosp_death_time
+        optional_columns:          # null = no existe; poner el nombre real si aparece en schema_inspire.md
+          donor_flag: null         # [VERIFICAR] donantes marcados desde v1.4.2
+          year: null               # [VERIFICAR] año reconstruible para la validación temporal
+          discharge_location: null
+          limitation: null
+      labs:
+        file: labs
+        columns: {subject_id: subject_id, time: chart_time, item: item_name, value: value}
+      ward_vitals:
+        file: ward_vitals
+        columns: {subject_id: subject_id, time: chart_time, item: item_name, value: value}
+      medications:
+        file: medications
+        columns: {subject_id: subject_id, time: chart_time, drug: drug_name}
+        atc_columns: [atc_code, atc_code2, atc_code3]   # [VERIFICAR] significado de cada columna
+      diagnosis:
+        file: diagnosis
+        columns: {subject_id: subject_id, time: chart_time, code: icd10_cm}
+    values:
+      sex_male: ["M", "m", "1", "Male", "male"]
+      emergency_true: ["1", "1.0", "Y", "y", "True", "true", "E"]
+      donor_true: ["1", "1.0", "Y", "y", "True", "true"]
+    devices:                       # en ward_vitals [VERIFICAR nombres y si son registros "activo"]
+      mode: runs                   # runs = un registro por momento activo; fin por ausencia ≥ support_gap_hours
+      items:
+        vent: [vent, mv, ventilator]
+        rrt: [crrt, rrt, hd, cvvh]
+        ecmo: [ecmo]
+        iabp: [iabp]
+    transfusion_drug_regex: "(?i)(\\bRBC\\b|red blood|packed red|prbc|적혈구)"   # [VERIFICAR]
+    dx_code_length: 3
+
+  mimic:
+    status: VERIFICAR
+    marker_tables: [hosp/admissions, icu/icustays]
+    tables:
+      admissions:
+        file: hosp/admissions
+        columns: {subject_id: subject_id, hadm_id: hadm_id, admittime: admittime, dischtime: dischtime,
+                  deathtime: deathtime, admission_type: admission_type, admission_location: admission_location,
+                  discharge_location: discharge_location, hospital_expire_flag: hospital_expire_flag}
+      patients:
+        file: hosp/patients
+        columns: {subject_id: subject_id, gender: gender, anchor_age: anchor_age, anchor_year: anchor_year}
+      icustays:
+        file: icu/icustays
+        columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, intime: intime, outtime: outtime,
+                  first_careunit: first_careunit}
+      services:
+        file: hosp/services
+        columns: {subject_id: subject_id, hadm_id: hadm_id, transfertime: transfertime, curr_service: curr_service}
+      procedures_icd:
+        file: hosp/procedures_icd
+        columns: {subject_id: subject_id, hadm_id: hadm_id, seq_num: seq_num, chartdate: chartdate,
+                  icd_code: icd_code, icd_version: icd_version}
+      labevents:
+        file: hosp/labevents
+        columns: {subject_id: subject_id, hadm_id: hadm_id, itemid: itemid, charttime: charttime, valuenum: valuenum}
+      chartevents:
+        file: icu/chartevents
+        columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, itemid: itemid,
+                  charttime: charttime, valuenum: valuenum}
+      inputevents:
+        file: icu/inputevents
+        columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, itemid: itemid,
+                  starttime: starttime, endtime: endtime}
+      procedureevents:
+        file: icu/procedureevents
+        columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, itemid: itemid,
+                  starttime: starttime, endtime: endtime}
+      emar:
+        file: hosp/emar
+        columns: {subject_id: subject_id, hadm_id: hadm_id, charttime: charttime, medication: medication,
+                  event_txt: event_txt}
+      d_items:
+        file: icu/d_items
+        columns: {itemid: itemid, label: label}
+      d_labitems:
+        file: hosp/d_labitems
+        columns: {itemid: itemid, label: label}
+    emar_administered_events: ["Administered", "Partial Administered", "Started", "Restarted", "Applied", "Confirmed"]
+    support_items:                 # [VERIFICAR] contra d_items
+      vent: {table: procedureevents, items: [225792]}
+      vaso: {table: inputevents, items: [221906, 221289, 221749, 222315, 221662]}
+      rrt:  {table: procedureevents, items: [225802, 225803, 225805, 225809, 225955, 225441]}
+    transfusion_items: {table: inputevents, items: [225168]}   # PRBC, solo dentro de UCI [VERIFICAR]
+    transfusion_drug_regex: "(?i)(red blood cell|packed red|\\bprbc\\b)"
+    gcs_component_items: [220739, 223900, 223901]
+
+  eicu:
+    status: VERIFICAR
+    marker_tables: [patient, apachePatientResult]
+    tables:
+      patient:
+        file: patient
+        columns: {unit_id: patientunitstayid, hosp_id: patienthealthsystemstayid, subject_id: uniquepid,
+                  gender: gender, age: age, admission_height: admissionheight, admission_weight: admissionweight,
+                  hospital_admit_offset: hospitaladmitoffset, hospital_admit_source: hospitaladmitsource,
+                  hospital_discharge_offset: hospitaldischargeoffset, hospital_discharge_status: hospitaldischargestatus,
+                  hospital_discharge_location: hospitaldischargelocation, hospital_discharge_year: hospitaldischargeyear,
+                  unit_admit_source: unitadmitsource, unit_visit_number: unitvisitnumber,
+                  unit_discharge_offset: unitdischargeoffset, unit_discharge_status: unitdischargestatus,
+                  unit_discharge_location: unitdischargelocation}
+      admissiondx:
+        file: admissionDx
+        columns: {unit_id: patientunitstayid, path: admitdxpath}
+      apachepatientresult:
+        file: apachePatientResult
+        columns: {unit_id: patientunitstayid, apache_version: apacheversion, predicted_hospital_los: predictedhospitallos}
+      apachepredvar:
+        file: apachePredVar
+        columns: {unit_id: patientunitstayid, elective_surgery: electivesurgery}
+      lab:
+        file: lab
+        columns: {unit_id: patientunitstayid, offset: labresultoffset, item: labname, value: labresult}
+      vitalperiodic:
+        file: vitalPeriodic
+        columns: {unit_id: patientunitstayid, offset: observationoffset, heartrate: heartrate,
+                  respiration: respiration, sao2: sao2, temperature: temperature, systemicmean: systemicmean}
+      vitalaperiodic:
+        file: vitalAperiodic
+        columns: {unit_id: patientunitstayid, offset: observationoffset, noninvasivemean: noninvasivemean}
+      respiratorycharting:
+        file: respiratoryCharting
+        columns: {unit_id: patientunitstayid, offset: respchartoffset, label: respchartvaluelabel, value: respchartvalue}
+      nursecharting:
+        file: nurseCharting
+        columns: {unit_id: patientunitstayid, offset: nursingchartoffset, name: nursingchartcelltypevalname,
+                  value: nursingchartvalue}
+      infusiondrug:
+        file: infusionDrug
+        columns: {unit_id: patientunitstayid, offset: infusionoffset, drug: drugname}
+      respiratorycare:
+        file: respiratoryCare
+        columns: {unit_id: patientunitstayid, vent_start: ventstartoffset, vent_end: ventendoffset}
+      treatment:
+        file: treatment
+        columns: {unit_id: patientunitstayid, offset: treatmentoffset, text: treatmentstring}
+      medication:
+        file: medication
+        columns: {unit_id: patientunitstayid, start: drugstartoffset, stop: drugstopoffset, drug: drugname,
+                  cancelled: drugordercancelled}
+      diagnosis:
+        file: diagnosis
+        columns: {unit_id: patientunitstayid, offset: diagnosisoffset, icd: icd9code}
+    values:
+      sex_male: ["Male"]
+      expired: ["Expired"]
+      age_top_coded: {"> 89": 90}
+      apache_version: ["IVa", "IV"]
+      cancelled_true: ["Yes"]
+    support_patterns:              # [VERIFICAR]
+      vaso_infusion_regex: "(?i)(norepinephrine|levophed|epinephrine|adrenalin|phenylephrine|neo-?synephrine|vasopressin|dopamine)"
+      treatment:
+        vent: "(?i)mechanical ventilation"
+        rrt: "(?i)(dialysis|crrt|cvvh|ultrafiltration)"
+        vaso: "(?i)vasopressors"
+    vitals_columns:                # columna de vitalperiodic/vitalaperiodic -> variable armonizada
+      heartrate: vital_hr
+      respiration: vital_rr
+      sao2: vital_spo2
+      temperature: vital_temp
+      systemicmean: vital_map
+      noninvasivemean: vital_map
+    fio2_labels: ["FiO2", "FIO2 (%)", "FiO2 (%)"]
+    gcs_names: ["GCS Total"]
+    dx_code_regex: "[A-Z][0-9][0-9A-Z]"   # códigos CIE-10 dentro de icd9code ("xxx.x, Ixx.x")
+
+# ---------------------------------------------------------------------------
+# 2. Variables medidas (labs y constantes) — origen, unidades, transformación y estado
+# ---------------------------------------------------------------------------
+# bounds: valores fuera del rango fisiológico -> nulo. transform: ver data/common.py::TRANSFORMS
+variables:
+  lab_creatinine:
+    units: mg/dL
+    bounds: [0.1, 25]
+    sources:
+      inspire: {table: labs, items: [creatinine], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50912], status: VERIFICAR}
+      eicu:    {table: lab, items: [creatinine], status: VERIFICAR}
+  lab_hb:
+    units: g/dL
+    bounds: [2, 25]
+    sources:
+      inspire: {table: labs, items: [hb, hemoglobin], status: VERIFICAR}
+      mimic:   {table: labevents, items: [51222], status: VERIFICAR}
+      eicu:    {table: lab, items: [Hgb], status: VERIFICAR}
+  lab_wbc:
+    units: 10^3/uL
+    bounds: [0.05, 300]
+    sources:
+      inspire: {table: labs, items: [wbc], status: VERIFICAR}
+      mimic:   {table: labevents, items: [51301, 51300], status: VERIFICAR}
+      eicu:    {table: lab, items: ["WBC x 1000"], status: VERIFICAR}
+  lab_plt:
+    units: 10^3/uL
+    bounds: [1, 2000]
+    sources:
+      inspire: {table: labs, items: [platelet, plt], status: VERIFICAR}
+      mimic:   {table: labevents, items: [51265], status: VERIFICAR}
+      eicu:    {table: lab, items: ["platelets x 1000"], status: VERIFICAR}
+  lab_lactate:
+    units: mmol/L
+    bounds: [0.1, 30]
+    sources:
+      inspire: {table: labs, items: [lactate], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50813], status: VERIFICAR}
+      eicu:    {table: lab, items: [lactate], status: VERIFICAR}
+  lab_bilirubin:
+    units: mg/dL
+    bounds: [0.05, 60]
+    sources:
+      inspire: {table: labs, items: [total_bilirubin, tbil], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50885], status: VERIFICAR}
+      eicu:    {table: lab, items: ["total bilirubin"], status: VERIFICAR}
+  lab_albumin:
+    units: g/dL
+    bounds: [0.5, 7]
+    sources:
+      inspire: {table: labs, items: [albumin], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50862], status: VERIFICAR}
+      eicu:    {table: lab, items: [albumin], status: VERIFICAR}
+  lab_ph:
+    units: pH
+    bounds: [6.5, 8.0]
+    sources:
+      inspire: {table: labs, items: [ph], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50820], status: VERIFICAR}
+      eicu:    {table: lab, items: [pH], status: VERIFICAR}
+  lab_pco2:
+    units: mmHg
+    bounds: [5, 200]
+    sources:
+      inspire: {table: labs, items: [pco2], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50818], status: VERIFICAR}
+      eicu:    {table: lab, items: [paCO2], status: VERIFICAR}
+  lab_po2:
+    units: mmHg
+    bounds: [10, 700]
+    sources:
+      inspire: {table: labs, items: [po2], status: VERIFICAR}
+      mimic:   {table: labevents, items: [50821], status: VERIFICAR}
+      eicu:    {table: lab, items: [paO2], status: VERIFICAR}
+  vital_hr:
+    units: lpm
+    bounds: [10, 300]
+    sources:
+      inspire: {table: ward_vitals, items: [hr], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [220045], status: VERIFICAR}
+      eicu:    {table: vitalperiodic, items: [heartrate], status: VERIFICAR}
+  vital_map:
+    units: mmHg
+    bounds: [10, 250]
+    sources:
+      inspire: {table: ward_vitals, items: [mbp, nibp_mbp, art_mbp], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [220052, 220181], status: VERIFICAR}
+      eicu:    {table: vitalperiodic, items: [systemicmean, noninvasivemean], status: VERIFICAR}
+  vital_rr:
+    units: rpm
+    bounds: [2, 80]
+    sources:
+      inspire: {table: ward_vitals, items: [rr], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [220210], status: VERIFICAR}
+      eicu:    {table: vitalperiodic, items: [respiration], status: VERIFICAR}
+  vital_spo2:
+    units: "%"
+    bounds: [30, 100]
+    sources:
+      inspire: {table: ward_vitals, items: [spo2], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [220277], status: VERIFICAR}
+      eicu:    {table: vitalperiodic, items: [sao2], status: VERIFICAR}
+  vital_temp:
+    units: °C
+    bounds: [25, 45]
+    sources:
+      inspire: {table: ward_vitals, items: [bt], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [223762], status: VERIFICAR}
+      eicu:    {table: vitalperiodic, items: [temperature], status: VERIFICAR}
+  vital_temp_f:                    # se convierte a vital_temp
+    units: °F
+    rename_to: vital_temp
+    transform: f_to_c
+    bounds: [77, 113]
+    sources:
+      mimic:   {table: chartevents, items: [223761], status: VERIFICAR}
+  vital_fio2:
+    units: "%"
+    bounds: [21, 100]
+    transform: fraction_to_percent
+    sources:
+      inspire: {table: ward_vitals, items: [fio2], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [223835], status: VERIFICAR}
+      eicu:    {table: respiratorycharting, items: ["FiO2", "FIO2 (%)", "FiO2 (%)"], status: VERIFICAR}
+  vital_gcs:
+    units: puntos
+    bounds: [3, 15]
+    sources:
+      inspire: {table: ward_vitals, items: [gcs], status: VERIFICAR}
+      mimic:   {table: chartevents, items: [220739, 223900, 223901], aggregate: sum_same_time, status: VERIFICAR}
+      eicu:    {table: nursecharting, items: ["GCS Total"], status: VERIFICAR}
+  anthro_weight:
+    units: kg
+    bounds: [25, 350]
+    sources:
+      mimic:   {table: chartevents, items: [226512], status: VERIFICAR}
+  anthro_height:
+    units: cm
+    bounds: [120, 230]
+    sources:
+      mimic:   {table: chartevents, items: [226730], status: VERIFICAR}
+
+# Analítica preoperatoria más reciente (antes del inicio de la cirugía índice): se reutilizan las labs anteriores.
+preop_labs: [lab_creatinine, lab_hb, lab_wbc, lab_plt, lab_albumin, lab_bilirubin]
+
+# ---------------------------------------------------------------------------
+# 3. Medicación: INSPIRE trae ATC; MIMIC-IV y eICU se mapean por nombre (regex) [VERIFICAR]
+# ---------------------------------------------------------------------------
+medications:
+  atc_feature_level_chars: 4       # ATC nivel 3 = 4 caracteres (p. ej. J01C)
+  antibiotic_prefix: J01
+  vasopressor_atc: [C01CA03, C01CA24, C01CA04, C01CA06, H01BA01]
+  name_to_atc:                     # se evalúa sobre nombres únicos; un nombre puede tener varios ATC
+    - {pattern: "(?i)cefazolin", atc: J01DB04}
+    - {pattern: "(?i)cephalexin|cefalexin", atc: J01DB01}
+    - {pattern: "(?i)cefuroxime", atc: J01DC02}
+    - {pattern: "(?i)cefoxitin", atc: J01DC01}
+    - {pattern: "(?i)ceftriaxone", atc: J01DD04}
+    - {pattern: "(?i)ceftazidime", atc: J01DD02}
+    - {pattern: "(?i)cefpodoxime", atc: J01DD13}
+    - {pattern: "(?i)cefepime", atc: J01DE01}
+    - {pattern: "(?i)ceftaroline", atc: J01DI02}
+    - {pattern: "(?i)meropenem", atc: J01DH02}
+    - {pattern: "(?i)ertapenem", atc: J01DH03}
+    - {pattern: "(?i)imipenem", atc: J01DH51}
+    - {pattern: "(?i)aztreonam", atc: J01DF01}
+    - {pattern: "(?i)piperacillin", atc: J01CR05}
+    - {pattern: "(?i)ampicillin.*sulbactam|unasyn", atc: J01CR01}
+    - {pattern: "(?i)amoxicillin.*clav|augmentin", atc: J01CR02}
+    - {pattern: "(?i)^(?!.*sulbactam).*ampicillin", atc: J01CA01}
+    - {pattern: "(?i)^(?!.*clav).*amoxicillin", atc: J01CA04}
+    - {pattern: "(?i)nafcillin", atc: J01CF06}
+    - {pattern: "(?i)oxacillin", atc: J01CF04}
+    - {pattern: "(?i)penicillin", atc: J01CE01}
+    - {pattern: "(?i)^(?!.*(oral|po\\b|enema)).*vancomycin", atc: J01XA01}
+    - {pattern: "(?i)vancomycin.*(oral|po\\b)", atc: A07AA09}
+    - {pattern: "(?i)daptomycin", atc: J01XX09}
+    - {pattern: "(?i)linezolid", atc: J01XX08}
+    - {pattern: "(?i)^(?!.*(oral|po\\b|vaginal|gel|cream)).*metronidazole", atc: J01XD01}
+    - {pattern: "(?i)metronidazole.*(oral|po\\b)", atc: P01AB01}
+    - {pattern: "(?i)levofloxacin", atc: J01MA12}
+    - {pattern: "(?i)ciprofloxacin", atc: J01MA02}
+    - {pattern: "(?i)moxifloxacin", atc: J01MA14}
+    - {pattern: "(?i)gentamicin", atc: J01GB03}
+    - {pattern: "(?i)tobramycin", atc: J01GB01}
+    - {pattern: "(?i)amikacin", atc: J01GB06}
+    - {pattern: "(?i)azithromycin", atc: J01FA10}
+    - {pattern: "(?i)erythromycin", atc: J01FA01}
+    - {pattern: "(?i)clindamycin", atc: J01FF01}
+    - {pattern: "(?i)doxycycline", atc: J01AA02}
+    - {pattern: "(?i)minocycline", atc: J01AA08}
+    - {pattern: "(?i)tigecycline", atc: J01AA12}
+    - {pattern: "(?i)sulfamethoxazole|trimethoprim|bactrim", atc: J01EE01}
+    - {pattern: "(?i)nitrofurantoin", atc: J01XE01}
+    - {pattern: "(?i)colistin|polymyxin", atc: J01XB01}
+    - {pattern: "(?i)norepinephrine|levophed", atc: C01CA03}
+    - {pattern: "(?i)^(?!.*nor).*epinephrine|adrenalin", atc: C01CA24}
+    - {pattern: "(?i)phenylephrine|neo-?synephrine", atc: C01CA06}
+    - {pattern: "(?i)vasopressin", atc: H01BA01}
+    - {pattern: "(?i)dopamine", atc: C01CA04}
+    - {pattern: "(?i)dobutamine", atc: C01CA07}
+    - {pattern: "(?i)milrinone", atc: C01CE02}
+    - {pattern: "(?i)amiodarone", atc: C01BD01}
+    - {pattern: "(?i)digoxin", atc: C01AA05}
+    - {pattern: "(?i)heparin", atc: B01AB01}
+    - {pattern: "(?i)enoxaparin", atc: B01AB05}
+    - {pattern: "(?i)warfarin", atc: B01AA03}
+    - {pattern: "(?i)apixaban", atc: B01AF02}
+    - {pattern: "(?i)rivaroxaban", atc: B01AF01}
+    - {pattern: "(?i)aspirin|acetylsalicylic", atc: B01AC06}
+    - {pattern: "(?i)clopidogrel", atc: B01AC04}
+    - {pattern: "(?i)furosemide|lasix", atc: C03CA01}
+    - {pattern: "(?i)bumetanide", atc: C03CA02}
+    - {pattern: "(?i)metoprolol", atc: C07AB02}
+    - {pattern: "(?i)esmolol", atc: C07AB09}
+    - {pattern: "(?i)carvedilol", atc: C07AG02}
+    - {pattern: "(?i)labetalol", atc: C07AG01}
+    - {pattern: "(?i)nicardipine", atc: C08CA04}
+    - {pattern: "(?i)amlodipine", atc: C08CA01}
+    - {pattern: "(?i)diltiazem", atc: C08DB01}
+    - {pattern: "(?i)lisinopril", atc: C09AA03}
+    - {pattern: "(?i)captopril", atc: C09AA01}
+    - {pattern: "(?i)atorvastatin", atc: C10AA05}
+    - {pattern: "(?i)simvastatin", atc: C10AA01}
+    - {pattern: "(?i)pantoprazole", atc: A02BC02}
+    - {pattern: "(?i)omeprazole", atc: A02BC01}
+    - {pattern: "(?i)famotidine", atc: A02BA03}
+    - {pattern: "(?i)ondansetron", atc: A04AA01}
+    - {pattern: "(?i)metoclopramide", atc: A03FA01}
+    - {pattern: "(?i)insulin", atc: A10AB01}
+    - {pattern: "(?i)morphine", atc: N02AA01}
+    - {pattern: "(?i)hydromorphone", atc: N02AA03}
+    - {pattern: "(?i)oxycodone", atc: N02AA05}
+    - {pattern: "(?i)fentanyl", atc: N02AB03}
+    - {pattern: "(?i)acetaminophen|paracetamol", atc: N02BE01}
+    - {pattern: "(?i)propofol", atc: N01AX10}
+    - {pattern: "(?i)dexmedetomidine|precedex", atc: N05CM18}
+    - {pattern: "(?i)midazolam", atc: N05CD08}
+    - {pattern: "(?i)lorazepam", atc: N05BA06}
+    - {pattern: "(?i)haloperidol", atc: N05AD01}
+    - {pattern: "(?i)quetiapine", atc: N05AH04}
+    - {pattern: "(?i)hydrocortisone", atc: H02AB09}
+    - {pattern: "(?i)dexamethasone", atc: H02AB02}
+    - {pattern: "(?i)methylprednisolone", atc: H02AB04}
+    - {pattern: "(?i)prednisone", atc: H02AB07}
+    - {pattern: "(?i)potassium chloride", atc: B05XA01}
+    - {pattern: "(?i)magnesium sulfate", atc: B05XA05}
+    - {pattern: "(?i)levetiracetam|keppra", atc: N03AX14}
+
+# ---------------------------------------------------------------------------
+# 4. Grupo quirúrgico armonizado (nominal, VDM)
+# ---------------------------------------------------------------------------
+surgical_groups:
+  inspire_department:              # [VERIFICAR] códigos de servicio de SNUH
+    CS: cardiac
+    TS: thoracic
+    CTS: cardiac
+    GS: general_gi
+    NS: neuro
+    OS: ortho
+    UR: uro_gyn
+    OG: uro_gyn
+    OB: uro_gyn
+    GY: uro_gyn
+    OL: ent_head_neck
+    ENT: ent_head_neck
+    PS: plastic_other
+    EY: plastic_other
+    DT: ent_head_neck
+    VS: vascular
+    TR: general_gi
+  mimic_service:
+    CSURG: cardiac
+    TSURG: thoracic
+    VSURG: vascular
+    NSURG: neuro
+    SURG: general_gi
+    TRAUM: general_gi
+    ORTHO: ortho
+    GU: uro_gyn
+    GYN: uro_gyn
+    OBS: uro_gyn
+    ENT: ent_head_neck
+    DENT: ent_head_neck
+    PSURG: plastic_other
+  eicu_admitdx_regex:              # se evalúa en orden sobre admitdxpath [VERIFICAR]
+    - {pattern: "(?i)CABG|valve|aortic root|cardiac|heart transplant|ventricular assist", group: cardiac}
+    - {pattern: "(?i)\\|Respiratory\\||thoracotomy|lobectomy|pneumonectomy|esophag", group: thoracic}
+    - {pattern: "(?i)aneurysm|endarterectomy|bypass graft|vascular|embolectomy|amputation", group: vascular}
+    - {pattern: "(?i)\\|Neurologic\\||craniotomy|spinal|laminectomy", group: neuro}
+    - {pattern: "(?i)\\|Gastrointestinal\\||bowel|colectomy|whipple|liver|pancrea|gastrectomy|cholecyst", group: general_gi}
+    - {pattern: "(?i)\\|Musculoskeletal|fracture|hip|knee|orthopedic", group: ortho}
+    - {pattern: "(?i)\\|Genitourinary\\||nephrectomy|cystectomy|hysterectomy|prostat|renal transplant", group: uro_gyn}
+    - {pattern: "(?i)head and neck|neck dissection|laryn|thyroid", group: ent_head_neck}
+    - {pattern: "(?i)\\|Operative\\|", group: plastic_other}
+
+# ---------------------------------------------------------------------------
+# 5. Categorías armonizadas de origen y destino
+# ---------------------------------------------------------------------------
+admit_source:
+  mimic_admission_location:
+    "EMERGENCY ROOM": ed
+    "PHYSICIAN REFERRAL": direct
+    "TRANSFER FROM HOSPITAL": other_hospital
+    "TRANSFER FROM SKILLED NURSING FACILITY": facility
+    "CLINIC REFERRAL": direct
+    "PROCEDURE SITE": direct
+    "WALK-IN/SELF REFERRAL": direct
+    "PACU": direct
+    "INTERNAL TRANSFER TO OR FROM PSYCH": other
+    "INFORMATION NOT AVAILABLE": null
+  eicu_hospital_admit_source:
+    "Emergency Department": ed
+    "Direct Admit": direct
+    "Floor": direct
+    "Operating Room": direct
+    "Recovery Room": direct
+    "PACU": direct
+    "Other Hospital": other_hospital
+    "Step-Down Unit (SDU)": direct
+    "Acute Care/Floor": direct
+    "Chest Pain Center": ed
+
+discharge_location:
+  mimic:
+    HOME: home
+    "HOME HEALTH CARE": home
+    "SKILLED NURSING FACILITY": facility
+    REHAB: facility
+    "CHRONIC/LONG TERM ACUTE CARE": facility
+    "ACUTE HOSPITAL": other_hospital
+    HOSPICE: hospice
+    DIED: death
+    "AGAINST ADVICE": home
+    "PSYCH FACILITY": facility
+    "ASSISTED LIVING": facility
+    "HEALTHCARE FACILITY": facility
+    "OTHER FACILITY": facility
+  eicu:
+    Home: home
+    "Skilled Nursing Facility": facility
+    "Nursing Home": facility
+    Rehabilitation: facility
+    "Other External": other_hospital
+    "Other Hospital": other_hospital
+    Death: death
+    Other: other
+  inspire: {}

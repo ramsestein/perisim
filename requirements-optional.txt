@@ -1,0 +1,3 @@
+# Opcionales: si fallan, el pipeline sigue (SAGE propio en src/perisim/importance/sage.py;
+# sage-importance solo se usa para contrastar el estimador en los tests).
+sage-importance>=0.0.5

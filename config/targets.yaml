@@ -1,0 +1,55 @@
+# Definiciones operativas de T1, T2, T3 y variables arrastradas (§4.2, §4.3). Propuesta v0.
+
+window:
+  followup_days: 30              # (t0, t0 + 30 d] y antes del alta hospitalaria
+
+t1:
+  classes: [ninguna, leve, grave]
+  grave_components: [icu_readmission, death, reoperation, vent_start, vaso_start, rrt_start, aki_3]
+  leve_components: [aki_12, antibiotic_course, transfusion]
+  # Componentes que solo existen como análisis de sensibilidad (se añaden a "leve" si se piden)
+  sensitivity_components: [hypoxemia_ward]
+  include_sensitivity_components: []
+  exclude_components: []
+  # Observabilidad por cohorte (§2.2). Lo no observable no cuenta; eICU se reduce a grave / no grave.
+  observable:
+    inspire: [icu_readmission, death, reoperation, vent_start, vaso_start, rrt_start, aki_3, aki_12,
+              antibiotic_course, transfusion, hypoxemia_ward]
+    mimic:   [icu_readmission, death, reoperation, vent_start, vaso_start, rrt_start, aki_3, aki_12,
+              antibiotic_course, transfusion]
+    eicu:    [icu_readmission, death]
+  reduced_cohorts: [eicu]
+
+kdigo:                           # KDIGO 2012, basal = última creatinina antes del corte
+  ratio_stage1: 1.5
+  ratio_stage2: 2.0
+  ratio_stage3: 3.0
+  abs_increase_48h: 0.3
+  abs_stage3_mgdl: 4.0
+  baseline_lookback_days: 7
+
+antibiotic_course:               # [VERIFICAR viabilidad en INSPIRE y MIMIC-IV]
+  start_after_t0_hours: 24
+  washout_hours: 48
+  min_consecutive_days: 2
+
+hypoxemia_ward:
+  spo2_threshold: 90
+  min_consecutive: 2
+
+t2:
+  categories: tertiles           # tertiles (D5, por cohorte y en el fold de entrenamiento) | absolute
+  labels: [corta, media, larga]
+  absolute_cut_days: [3, 7]      # ≤3 / 4–7 / >7 días
+  truncate_days: 30
+
+t3:
+  labels: [alta_precoz_sin_complicacion, esperada_sin_complicacion, prolongada_o_leve, grave_o_muerte]
+  early_quantile: 0.3333         # alta precoz = estancia ≤ primer tercil (fold de entrenamiento)
+  prolonged_quantile: 0.6667     # prolongada = estancia > segundo tercil
+
+carried:                         # §4.3 — nunca son inputs
+  binary: [icu_readmission, vent_start, vaso_start, rrt_start, reoperation, death, aki_any, aki_3,
+           antibiotic_course, transfusion]
+  continuous: [los_post_icu_days]
+  nominal: [discharge_location]

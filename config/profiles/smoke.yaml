@@ -1,0 +1,50 @@
+# Perfil de prueba rápida con datos sintéticos (`python -m perisim smoke`).
+# Solo cambia tamaños y rejillas; la lógica del pipeline es la misma que en KHDP.
+experiment:
+  resources:
+    max_parallel_jobs: 2
+    threads_per_job: 2
+  cohorts:
+    allow_missing_cohorts: false
+  cv:
+    outer_folds: 3
+    inner_folds: 2
+  importance:
+    n_explain: 150
+    augment_copies: 1
+    stopping: {W: 2, P: 2, n_min: 3, n_max: 6, min_delta: auto, tol_delta: 0.01, max_attempts_factor: 3}
+    n_reference_pairs: 2000
+    nca_epochs_per_iter: 1
+    candidate_refresh_every: 2
+    sage: {batch_size: 128, max_passes: 1, convergence_threshold: 0.05}
+  metric:
+    vdm_m_grid: [1, 20]
+    lambda_grid: [0, 1]
+    n_candidates: 60
+    nca: {epochs: 3, batch_size: 128, lr: 0.05, refresh_every: 2, eps0: 1.0e-4, label_smoothing: 1.0e-3}
+  knn:
+    k_grid: [5, 10, 20]
+    k_primary: 10
+    alpha_grid: [0, 1]
+  pilot:
+    n_models: 6
+  gates:
+    audit_acknowledged: true
+  evaluation:
+    n_bootstrap: 50
+  sensitivity:
+    enabled: true
+    variants:
+      - name: margin_4h
+        overrides: {experiment: {time: {cutoff_margin_hours: 4}}}
+model_space:
+  families:
+    random_forest: {params: {n_estimators: {int: [20, 40]}}}
+    lightgbm: {params: {n_estimators: {int: [20, 60]}}}
+    xgboost: {params: {n_estimators: {int: [20, 60]}}}
+    mlp: {params: {epochs: {int: [2, 4]}}}
+  baselines:
+    lgbm: {n_estimators: 50}
+    rf: {n_estimators: 30}
+    rf_gap: {n_estimators: 20}
+    relieff: {n_samples: 300, n_neighbors: 5}

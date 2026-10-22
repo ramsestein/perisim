@@ -1,0 +1,51 @@
+# ------------------------------------------------------------------
+# PERISIM — este repositorio es PÚBLICO. Nada de secretos ni de datos.
+# ------------------------------------------------------------------
+
+# Secretos y configuración local
+.env
+.env.*
+*.key
+*.pem
+.claude/
+KHDP_settings.md
+
+# Datos de pacientes y extractos (nunca al repo, §9)
+data/
+work/
+workdir/
+*.parquet
+*.csv
+*.csv.gz
+*.feather
+*.arrow
+*.npy
+*.npz
+*.pkl
+*.joblib
+
+# Salidas generadas (viven en el workdir de updown, no aquí)
+reports/*
+!reports/.gitkeep
+export/
+predictions/
+logs/
+*.log
+mlruns/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+wheelhouse/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

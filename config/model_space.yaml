@@ -1,0 +1,70 @@
+# Espacio de modelos para SAGE consensuado (§5.3.1). Definido ANTES de ver resultados.
+# Rangos: [min, max]; "log" = muestreo log-uniforme; listas = elección uniforme.
+# Todo en CPU (§9.1): LightGBM / XGBoost en modo hist; MLP de 2 capas ocultas pequeñas.
+
+families:
+  logreg:
+    weight: 1
+    params:
+      C: {log: [1.0e-3, 10.0]}
+      max_iter: 1000
+  random_forest:
+    weight: 1
+    params:
+      n_estimators: {int: [100, 400]}
+      max_depth: {choice: [6, 10, 16, null]}
+      min_samples_leaf: {int: [5, 50]}
+      max_features: {choice: [sqrt, 0.3, 0.5]}
+  lightgbm:
+    weight: 1
+    params:
+      n_estimators: {int: [100, 800]}
+      learning_rate: {log: [0.01, 0.2]}
+      num_leaves: {int: [8, 128]}
+      min_child_samples: {int: [10, 200]}
+      subsample: {uniform: [0.5, 1.0]}
+      colsample_bytree: {uniform: [0.5, 1.0]}
+      reg_lambda: {log: [1.0e-3, 10.0]}
+  xgboost:
+    weight: 1
+    params:
+      n_estimators: {int: [100, 800]}
+      learning_rate: {log: [0.01, 0.2]}
+      max_depth: {int: [2, 8]}
+      min_child_weight: {log: [1.0, 20.0]}
+      subsample: {uniform: [0.5, 1.0]}
+      colsample_bytree: {uniform: [0.5, 1.0]}
+      reg_lambda: {log: [1.0e-3, 10.0]}
+  mlp:
+    weight: 1
+    params:
+      hidden1: {choice: [32, 64]}
+      hidden2: {choice: [16, 32]}
+      dropout: {uniform: [0.0, 0.3]}
+      lr: {log: [1.0e-4, 3.0e-3]}
+      weight_decay: {log: [1.0e-6, 1.0e-3]}
+      epochs: {int: [20, 60]}
+      batch_size: 256
+
+# Configuración fija de los comparadores paramétricos (§6.4)
+baselines:
+  lgbm:
+    n_estimators: 400
+    learning_rate: 0.05
+    num_leaves: 31
+    min_child_samples: 50
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+  logreg_C_grid: [0.001, 0.01, 0.1, 1.0, 10.0]
+  rf:
+    n_estimators: 300
+    min_samples_leaf: 10
+    max_features: sqrt
+  rf_gap:
+    n_estimators: 200
+    min_samples_leaf: 5
+    max_features: sqrt
+  relieff:
+    n_samples: 5000
+    n_neighbors: 10
