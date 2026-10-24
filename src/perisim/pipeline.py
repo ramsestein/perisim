@@ -39,7 +39,7 @@ from perisim.workspace import Workspace
 
 COHORTS = ("inspire", "mimic", "eicu")
 MAIN_STAGES = ["env", "discover", "extract", "targets", "features", "leakage", "audit", "harmonize", "pilot", "cv",
-               "temporal", "report", "sensitivity", "external", "export"]
+               "temporal", "report", "sensitivity", "external", "transfer", "export"]
 VARIANT_PREP_STAGES = ["targets", "features", "leakage"]
 GB_PER_EXTRACTION = 24.0   # memory budget of one cohort extraction (MIMIC-IV chartevents/labevents dominate)
 
@@ -93,6 +93,10 @@ STAGE_DEFS: dict[str, StageDef] = {
                                        "experiment.evaluation",
                                        "experiment.time", "targets"),
                          ("experiment.py", "external.py", "evaluation", "knn", "targets"), ("cv", "harmonize")),
+    "transfer": StageDef(_MODEL_CFG + ("experiment.transfer", "experiment.cohorts", "experiment.experiment_name",
+                                       "experiment.targets_to_model", "experiment.evaluation", "experiment.time",
+                                       "targets"),
+                         ("experiment.py", "external.py", "transfer.py", "evaluation", "knn", "targets"), ("external",)),
     "export": StageDef((), ("evaluation",), ()),
 }
 # Stages computed once for the main analysis and shared by the sensitivity variants
@@ -807,6 +811,20 @@ class Pipeline:
             return
         run_external(self)
         self.mark("external")
+
+    def stage_transfer(self) -> None:
+        """§6.2b model-transfer validations: after the external validation (so, on the frozen pipeline)."""
+        from perisim.transfer import run_transfer
+
+        if self.variant != "main":
+            return
+        if not self.done("external"):
+            LOG.warning("transfer: WAITING for the external validation (it needs the freeze, §6.3)")
+            return
+        if self.done("transfer") and not self.force:
+            return
+        run_transfer(self)
+        self.mark("transfer")
 
     def stage_export(self) -> None:
         from perisim.evaluation.export import build_export

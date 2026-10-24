@@ -28,6 +28,15 @@ resources:            # §9.1: 16 vCPU, 128 GB, 100 GB, no GPU
 cohorts:
   development: inspire
   external: [mimic, eicu]
+
+transfer:                       # §6.2b model-transfer validations (lead, 2026-10-24), after the external validation
+  enabled: true
+  holdout_fraction: 0.2         # patient level, one split per external cohort: 80 % local cases, 20 % held out
+  local_model: true             # PERISIM fitted on the local 80 % (one full fit per external cohort)
+  multisource:                  # "retrained adding eICU": development INSPIRE ∪ eICU, evaluated on MIMIC-IV only
+    development: [inspire, eicu]
+    test: [mimic]
+    targets: [t2]               # eICU has no full T1, so T1 / T3 cannot be trained with it
   # If a cohort is not mounted, modelling stops (the input intersection would be undefined).
   allow_missing_cohorts: false
 

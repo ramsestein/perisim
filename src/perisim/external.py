@@ -26,6 +26,7 @@ import concurrent.futures as cf
 import copy
 import logging
 import multiprocessing as mp
+import pickle
 import traceback
 
 import numpy as np
@@ -189,6 +190,8 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
     ck = ws.predictions("external", target) / "ckpt"
     fp = fit_perisim(cfg, ft_dev, y[tr], C, seed=cfg.seed, threads=threads, stopping_override=st,
                      exclude_families=set(d7.get("exclude_families", [])), early_stop=True, checkpoint_dir=ck)
+    with open(ws.predictions("external", target) / "final_model.pkl", "wb") as fh:   # reused by the transfer stage
+        pickle.dump({"enc": fp.enc, "w": fp.w, "alpha": fp.knn.alpha, "train_ids": ft_dev.ids}, fh)
     E_dev = fp.enc.transform(ft_dev)
     N_dev = fp.enc.transform_neutral(ft_dev)          # unsupervised axes for the Euclidean comparator
     ones = np.ones(fp.enc.n_features)

@@ -376,6 +376,25 @@ so the NCA itself splits the weight within a group (an uninformative missingness
 - The difference between A and B is a central result (Q3).
 - **[v0.4, C4] T2/T3 categories in the external cohorts:** the target cohort's tertiles are **cross-fitted** — two patient-level halves, each labelled with the cut-points of the other half (mode B case bases carry the same labels, and the smoothing prior leaves out the query's patient). Absolute categories (≤3 / 4–7 / >7 days) are a **co-primary** external analysis, with the INSPIRE case base relabelled the same way (same learned metric).
 
+### 6.2b Model-transfer validations [lead, 2026-10-24]
+
+After the external validation, on the frozen pipeline. In each external cohort the patients are split once, at
+patient level, into **local cases (80 %)** and **held-out queries (20 %)**; every variant predicts the same held-out
+stays with the same labels (the target cohort's T2/T3 cut-points estimated on the local cases only):
+
+- **A_transport:** the INSPIRE model with the INSPIRE case base (mode A on the held-out patients).
+- **T_local:** INSPIRE weights and shapes, local cases as case base (transfer of the metric).
+- **T_pooled:** INSPIRE weights and shapes, INSPIRE ∪ local cases as case base (local cases added to the system).
+- **L_perisim:** PERISIM fitted on the local cases alone (a kNN learned in that dataset); **L_euclidean**
+  (unsupervised Euclidean kNN) and **L_prevalence** on the local cases.
+- **Multi-source development ("retrained adding eICU"), MIMIC-IV only, T2 only:** PERISIM refitted on
+  INSPIRE ∪ eICU (each with its own cut-points) — **S_transport**, **S_local**, **S_pooled** as above.
+
+Paired contrasts at the primary k (Δ log-loss, patient bootstrap): T_local − L_perisim, T_pooled − T_local,
+T_local − A_transport, S_local − T_local, S_pooled − T_pooled, S_transport − A_transport, among others. Absolute
+categories as a co-primary analysis; eICU T1 reduced as in §6.2. The kNN smoothing α of each case base is fitted on
+that case base. Report: `reports/transfer.html`.
+
 ### 6.3 Freezing
 
 Before touching MIMIC-IV and eICU:

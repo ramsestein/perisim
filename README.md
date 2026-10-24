@@ -86,7 +86,7 @@ it resumes from the last completed stage (or fold).
 
 ```
 env → discover → extract → targets → features → leakage → audit ⛔ → harmonize ⛔ → pilot → cv → temporal
-    → report → sensitivity → external ⛔ → export
+    → report → sensitivity → external ⛔ → transfer → export
 ```
 
 | Stage | Output (in the workdir) | Gate |
@@ -102,6 +102,7 @@ env → discover → extract → targets → features → leakage → audit ⛔ 
 | `report` | `reports/results_main.html` (TRIPOD+AI, pooled and per-fold metrics, shapes, density); §5.6 per-patient records in `predictions/`; comparison with the earlier experiments | — |
 | `sensitivity` | outcome-definition variants by relabelling (minutes), input variants refitted | — |
 | `external` | modes A and B in MIMIC-IV and eICU (§6.2); T2/T3 with cross-fitted tertiles and absolute categories | **waits** for `freeze` (§6.3) |
+| `transfer` | §6.2b model-transfer validations on held-out patients of MIMIC-IV / eICU (INSPIRE metric + local cases, pooled cases, local PERISIM, INSPIRE ∪ eICU → MIMIC-IV): `reports/transfer.html` | runs after `external` |
 | `export` | `export/`: aggregates only, with a manifest and an identifier scan | — |
 
 The three cohorts are extracted in parallel, the sensitivity variants share a single job queue, and the final
@@ -161,6 +162,7 @@ src/perisim/
   evaluation/      metrics, patient-level bootstrap, audit, reports and export
   experiment.py    nested fitting and evaluation of PERISIM and the comparators within one fold
   external.py      external validation, modes A / B (final models fitted in parallel)
+  transfer.py      model-transfer validations on held-out patients of the external cohorts (§6.2b)
   sensitivity.py   outcome-definition variants by relabelling the main metric's case base
   compare.py       similarity of two experiments' metrics (neighbour overlap, weight ranks, shapes)
   resources.py     real container limits (cgroup CPU quota, affinity, memory) → jobs × threads plan

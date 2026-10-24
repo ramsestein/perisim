@@ -102,6 +102,11 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
 35. **INSPIRE transfusion.** *Decided 2026-10-24 (lead):* no red-cell product among the most frequent drug names; the
     completeness audit decides — if `transfusion_rbc` has no events, the component is reviewed there (T1).
 
+36. **INSPIRE transfusion — completeness audit (first real run, T2 experiment).** The audit stops with "inspire:
+    component transfusion with prevalence < 0.5 %". To decide: (a) check whether blood products appear under other
+    drug names; if not, (b) drop `transfusion` from T1 in every cohort (harmonized definition) or (c) mark it not
+    observable in INSPIRE only. Pending (lead).
+
 ## Open decisions from SPECS §10 (v0 values in config)
 
 D1 (INSPIRE readmission), D2 (2 h; 4 h in sensitivity), D3 (≥ 4 h), D4 (AKI 1–2, antibiotic, transfusion),

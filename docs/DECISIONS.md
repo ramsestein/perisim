@@ -37,6 +37,19 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The repository is cloned in the workspace root (`<workspace>/perisim`) and everything is run from the root:
   `bash perisim/run_pod.sh`; the hints in messages and reports follow how the script was called.
 
+## 2026-10-24 — Model-transfer validations (lead), SPECS §6.2b
+
+- New stage `transfer`, after `external` (so on the frozen pipeline). In MIMIC-IV and eICU: one patient-level split,
+  80 % local cases / 20 % held-out queries, the same for every variant. INSPIRE weights and shapes with the local
+  cases (T_local), with INSPIRE ∪ local cases (T_pooled), against PERISIM fitted on the local cases (L_perisim),
+  an unsupervised Euclidean kNN and the local prevalence, and the full transport on the same queries (A_transport).
+- Multi-source development: PERISIM refitted on INSPIRE ∪ eICU, evaluated on MIMIC-IV only, T2 only (eICU has no full
+  T1): with its own case base, the local cases, or both.
+- Implementation choices (declared): the target cohort's cut-points come from the local cases only; each development
+  cohort keeps its own cut-points; α of every case base is fitted on that case base; the local and multi-source fits
+  use the same nested procedure and stopping rule as the final INSPIRE model; the final INSPIRE model is saved by the
+  external stage (inside the pod, `predictions/`) and reused, not refitted.
+
 ## 2026-10-24 — Harmonization from the real INSPIRE and eICU schemas (first discover in the pod)
 
 - INSPIRE `medications` ships one ATC column (`atc_code`); `atc_code2` / `atc_code3` (data dictionary) are optional and
