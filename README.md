@@ -19,16 +19,29 @@ with T2), **T3** (both). Select one with `PERISIM_EXPERIMENT` (default `t2`); th
 In the pod's VSCode terminal:
 
 ```bash
-mkdir -p ~/workspace/updown/perisim/$(id -un) && cd ~/workspace/updown/perisim/$(id -un)
+cd ~/workspace
 git clone http://github.khdp-forward-server/ramsestein/perisim.git
 cd perisim
 bash run_pod.sh
 ```
 
+Pod layout (code, data and environment outside `updown`, which is shared object storage and slow for many small
+files; no hidden folders):
+
+```
+~/workspace/
+├── perisim/        this repository
+├── data/           the datasets, unzipped, one folder per cohort (any names: found by their tables)
+├── venv/           Python environment (created by run_pod.sh, or by the user beforehand)
+├── perisim_run/    logs, PID and smoke-test files of the runs
+└── updown/perisim/<user>/work/   work and results (persistent)
+```
+
 `run_pod.sh` does everything on its own:
 
-1. Finds Python ≥ 3.11 (or creates one with conda, which on KHDP already points to the mirror) and creates a
-   virtual environment in `~/.perisim/venv`, reusing the system packages.
+1. Uses the environment in `~/workspace/venv` if it exists (one created by the user, venv or conda, Python ≥ 3.11
+   with pip, is used as it is and never deleted). Otherwise it finds Python ≥ 3.11 (or creates one with conda, which
+   on KHDP already points to the mirror) and creates the virtual environment there, reusing the system packages.
 2. Installs the dependencies from the KHDP PyPI mirror and torch from the PyTorch mirror
    (CPU index and, if it does not respond, cu126).
 3. The first time each version of the code runs, it launches a **smoke test on synthetic data**: if it fails,
@@ -62,11 +75,12 @@ it resumes from the last completed stage (or fold).
 
 | What | Default | Variable |
 |---|---|---|
-| Workspace | the first of `~/workspace`, `/home/khdp-user/workspace` or the folders above the repository that contains `datasets/` or `updown/` (the pod user may not be `khdp-user`) | `PERISIM_WORKSPACE` |
-| Data (read-only) | `<workspace>/datasets` | `PERISIM_DATASETS` |
+| Workspace | the first of `~/workspace`, `/home/khdp-user/workspace` or the folders above the repository that contains `data/`, `datasets/` or `updown/` (the pod user may not be `khdp-user`) | `PERISIM_WORKSPACE` |
+| Data (read-only) | `<workspace>/data` if it exists (the user's own copy), otherwise the KHDP mount `<workspace>/datasets` | `PERISIM_DATASETS` |
 | INSPIRE / MIMIC-IV / eICU | automatic discovery under datasets | `PERISIM_INSPIRE_DIR`, `PERISIM_MIMIC_DIR`, `PERISIM_EICU_DIR` |
 | Work and results | `~/workspace/updown/perisim/<user>/work` (shared data) and `…/work/experiments/<t1\|t2\|t3>/` | `PERISIM_WORKDIR`, `PERISIM_EXPERIMENT` |
-| Environment and terminal logs | `~/.perisim` | `PERISIM_LOCAL` |
+| Python environment | `<workspace>/venv` | `PERISIM_VENV` |
+| Logs, PID and smoke-test files | `<workspace>/perisim_run` | `PERISIM_LOCAL` |
 
 ## What the pipeline does and where it stops
 

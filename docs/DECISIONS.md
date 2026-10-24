@@ -26,6 +26,15 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The first postoperative stay of each hospitalisation is the unit of analysis: if it fails a later
   criterion (e.g. < 4 h), the hospitalisation is excluded.
 
+## 2026-10-24 — Pod layout (lead)
+
+- The datasets are the lead's own PhysioNet copies, unzipped in `<workspace>/data/` (one folder per cohort) outside
+  `updown`, for speed; `run_pod.sh` uses that folder when it exists and the KHDP mount `<workspace>/datasets`
+  otherwise. Replaces the data path of 2026-10-21.
+- Python environment in `<workspace>/venv` (the lead may create it beforehand; an existing environment is used as
+  it is and never deleted) and run files in `<workspace>/perisim_run`, replacing `~/.perisim`: no hidden folders.
+  Pip and matplotlib caches are not written to `~/.cache`; pytest writes no `.pytest_cache`.
+
 ## 2026-10-22 — Scientific decisions after the full audit (lead)
 
 Decided by the lead on the options of `docs/DECISIONS_PENDING.md` (IDs from `docs/AUDIT.md`).

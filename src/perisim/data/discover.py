@@ -1,4 +1,5 @@
-"""Cohort discovery under /home/khdp-user/workspace/datasets and schema checking.
+"""Cohort discovery under the datasets root (run_pod.sh: <workspace>/data, else the KHDP mount
+<workspace>/datasets) and schema checking.
 
 Generates reports/schema_<cohort>.{md,json}: paths, expected vs. actual columns and item inventory
 (with counts < minimum n suppressed). This is metadata, not patient data: it is used to fix

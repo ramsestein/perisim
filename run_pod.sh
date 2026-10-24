@@ -21,8 +21,11 @@
 #                       the three share the extraction (e.g. `PERISIM_EXPERIMENT=t1 bash run_pod.sh`)
 #   PERISIM_WORKDIR     working folder (default: updown/perisim/<user>/work)
 #   PERISIM_WORKSPACE   KHDP workspace (default: the first of ~/workspace, /home/khdp-user/workspace or the folders
-#                       above the repository that contains datasets/ or updown/)
-#   PERISIM_DATASETS    datasets root (default: <workspace>/datasets)
+#                       above the repository that contains data/, datasets/ or updown/)
+#   PERISIM_DATASETS    datasets root (default: <workspace>/data, one folder per cohort, if it exists; otherwise the
+#                       KHDP mount <workspace>/datasets)
+#   PERISIM_VENV        Python environment (default: <workspace>/venv; one created by the user is used as it is)
+#   PERISIM_LOCAL       logs, PID and smoke-test files of the runs (default: <workspace>/perisim_run)
 #   PERISIM_INSPIRE_DIR / PERISIM_MIMIC_DIR / PERISIM_EICU_DIR  explicit paths (otherwise auto)
 #   PERISIM_JOBS / PERISIM_THREADS  force jobs × threads (default: auto from the container limits)
 #   PERISIM_ACK_AUDIT=true   continue after reviewing the completeness audit (§7)
@@ -35,23 +38,30 @@ CMD="${1:-start}"
 [ $# -gt 0 ] && shift || true
 
 # Workspace: the KHDP guide says /home/khdp-user/workspace, but the pod user may differ (e.g. coder): use the first
-# candidate that has datasets/ or updown/ (the user's home, the guide's path, or the folders above the repository).
+# candidate that has data/, datasets/ or updown/ (the user's home, the guide's path, or the folders above the repository).
 if [ -z "${PERISIM_WORKSPACE:-}" ]; then
   for _cand in "$HOME/workspace" /home/khdp-user/workspace "$(dirname "$REPO_DIR")" "$(dirname "$(dirname "$REPO_DIR")")"; do
-    if [ -d "$_cand/datasets" ] || [ -d "$_cand/updown" ]; then PERISIM_WORKSPACE="$_cand"; break; fi
+    if [ -d "$_cand/data" ] || [ -d "$_cand/datasets" ] || [ -d "$_cand/updown" ]; then PERISIM_WORKSPACE="$_cand"; break; fi
   done
   : "${PERISIM_WORKSPACE:=/home/khdp-user/workspace}"
 fi
-: "${PERISIM_DATASETS:=$PERISIM_WORKSPACE/datasets}"
+# Datasets: the user's own copy in <workspace>/data (unzipped outside updown, which is slow object storage) if it
+# exists; otherwise the KHDP mount <workspace>/datasets.
+if [ -z "${PERISIM_DATASETS:-}" ]; then
+  if [ -d "$PERISIM_WORKSPACE/data" ]; then PERISIM_DATASETS="$PERISIM_WORKSPACE/data"
+  else PERISIM_DATASETS="$PERISIM_WORKSPACE/datasets"; fi
+fi
 _user="$(id -un 2>/dev/null || echo "${USER:-khdp-user}")"
 if [ -d "$PERISIM_WORKSPACE/updown" ]; then
   : "${PERISIM_WORKDIR:=$PERISIM_WORKSPACE/updown/perisim/$_user/work}"
 else
   : "${PERISIM_WORKDIR:=$REPO_DIR/work}"
 fi
-# Environment and terminal logs on the container's local disk (updown is shared object storage).
-: "${PERISIM_LOCAL:=$HOME/.perisim}"
-: "${PERISIM_VENV:=$PERISIM_LOCAL/venv}"
+# Environment and run files in the workspace, outside updown (shared object storage, slow for the many small files
+# of an environment) and without hidden folders. Without a workspace (local development): next to the repository.
+_rundir="$PERISIM_WORKSPACE"; [ -d "$_rundir" ] || _rundir="$REPO_DIR"
+: "${PERISIM_LOCAL:=$_rundir/perisim_run}"
+: "${PERISIM_VENV:=$_rundir/venv}"
 : "${PERISIM_CONDA_ENV:=$PERISIM_LOCAL/conda-py311}"
 : "${PERISIM_PIP_INDEX:=http://pypi.khdp-forward-server/simple}"
 : "${PERISIM_TORCH_INDEXES:=http://torch-download.khdp-forward-server/whl/cpu http://torch-download.khdp-forward-server/whl/cu126}"
@@ -82,6 +92,8 @@ export PYTHONPATH="$REPO_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
 [ -e "$PERISIM_LOCAL/lib/libgomp.so.1" ] && export LD_LIBRARY_PATH="$PERISIM_LOCAL/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PYTHONUNBUFFERED=1
 export MPLBACKEND=Agg
+export MPLCONFIGDIR="${MPLCONFIGDIR:-$PERISIM_LOCAL/matplotlib}"   # matplotlib's cache, not in ~/.cache
+export CUDA_CACHE_PATH="${CUDA_CACHE_PATH:-$PERISIM_LOCAL/cuda_cache}"   # CUDA's JIT cache (torch), not in ~/.nv
 
 _version_ok() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; }
 
@@ -104,8 +116,10 @@ PY
 
 _host_of() { echo "$1" | sed -E 's#^[a-z]+://([^/:]+).*#\1#'; }
 
-setup_env() {
-  local base_py vpy req_hash
+# No environment yet: 1) venv (reuses system packages) → 2) conda environment (KHDP mirror) → 3) pip --user.
+# Sets `vpy` and `user_mode` of the caller (setup_env).
+_create_env() {
+  local base_py created=0
   base_py="$(find_python || true)"
   if [ -z "$base_py" ]; then
     command -v conda >/dev/null 2>&1 || die "No Python >= 3.11 and no conda. Install Python 3.11 or set PERISIM_PYTHON."
@@ -114,29 +128,38 @@ setup_env() {
     base_py="$PERISIM_CONDA_ENV/bin/python"
   fi
   say "Base Python: $base_py ($("$base_py" -V 2>&1))"
-
-  # Environment: 1) venv (reuses system packages) → 2) conda environment (KHDP mirror) → 3) pip --user
-  local user_mode=0
-  if [ ! -x "$PERISIM_VENV/bin/python" ]; then
-    say "Creating a virtual environment in $PERISIM_VENV (reuses system packages)"
-    "$base_py" -m venv --system-site-packages "$PERISIM_VENV" >/dev/null 2>&1 || true
-  fi
+  [ -e "$PERISIM_VENV" ] || created=1
+  say "Creating a virtual environment in $PERISIM_VENV (reuses system packages)"
+  "$base_py" -m venv --system-site-packages "$PERISIM_VENV" >/dev/null 2>&1 || true
   if [ -x "$PERISIM_VENV/bin/python" ] && "$PERISIM_VENV/bin/python" -m pip --version >/dev/null 2>&1; then
     vpy="$PERISIM_VENV/bin/python"
+    return 0
+  fi
+  if [ "$created" = 1 ]; then rm -rf "$PERISIM_VENV"; fi   # venv without pip (ensurepip missing): unusable
+  if [ -x "$PERISIM_CONDA_ENV/bin/python" ] && "$PERISIM_CONDA_ENV/bin/python" -m pip --version >/dev/null 2>&1; then
+    vpy="$PERISIM_CONDA_ENV/bin/python"
+  elif command -v conda >/dev/null 2>&1; then
+    warn "venv not available: creating a conda environment in $PERISIM_CONDA_ENV"
+    conda create -y -q -p "$PERISIM_CONDA_ENV" python=3.11 pip >/dev/null
+    vpy="$PERISIM_CONDA_ENV/bin/python"
+  elif "$base_py" -m pip --version >/dev/null 2>&1; then
+    warn "venv and conda not available: installing with pip --user"
+    vpy="$base_py"; user_mode=1
   else
-    rm -rf "$PERISIM_VENV"   # venv without pip (ensurepip missing): unusable
-    if [ -x "$PERISIM_CONDA_ENV/bin/python" ] && "$PERISIM_CONDA_ENV/bin/python" -m pip --version >/dev/null 2>&1; then
-      vpy="$PERISIM_CONDA_ENV/bin/python"
-    elif command -v conda >/dev/null 2>&1; then
-      warn "venv not available: creating a conda environment in $PERISIM_CONDA_ENV"
-      conda create -y -q -p "$PERISIM_CONDA_ENV" python=3.11 pip >/dev/null
-      vpy="$PERISIM_CONDA_ENV/bin/python"
-    elif "$base_py" -m pip --version >/dev/null 2>&1; then
-      warn "venv and conda not available: installing with pip --user"
-      vpy="$base_py"; user_mode=1
-    else
-      die "Cannot create an environment (no venv/ensurepip, conda or pip). Set PERISIM_PYTHON=<python with pip>."
-    fi
+    die "Cannot create an environment (no venv/ensurepip, conda or pip). Set PERISIM_PYTHON=<python with pip>."
+  fi
+}
+
+setup_env() {
+  local vpy req_hash user_mode=0
+  if [ -x "$PERISIM_VENV/bin/python" ]; then
+    # An existing environment (e.g. created by the user, venv or conda) is used as it is: never recreated or deleted.
+    vpy="$PERISIM_VENV/bin/python"
+    _version_ok "$vpy" || die "$PERISIM_VENV has $("$vpy" -V 2>&1); PERISIM needs Python >= 3.11. Recreate it with Python 3.11+."
+    "$vpy" -m pip --version >/dev/null 2>&1 || die "$PERISIM_VENV has no pip. Add it ($vpy -m ensurepip) or recreate the environment."
+    say "Environment: $PERISIM_VENV ($("$vpy" -V 2>&1))"
+  else
+    _create_env
   fi
 
   # Package index: KHDP internal mirror if it answers; otherwise pip's default configuration.
@@ -148,7 +171,7 @@ setup_env() {
     warn "KHDP mirror not reachable: using pip's default configuration"
   fi
 
-  local pip_base=(--disable-pip-version-check -q)
+  local pip_base=(--disable-pip-version-check --no-cache-dir -q)   # no cache in ~/.cache
   [ "$user_mode" = 1 ] && pip_base+=(--user)
   req_hash="$(cat "$REPO_DIR/requirements.txt" "$REPO_DIR/requirements-optional.txt" | sha256sum | cut -c1-16)"
   local marker="$PERISIM_LOCAL/req_$(printf '%s' "$vpy" | sha256sum | cut -c1-8)"
@@ -274,7 +297,7 @@ case "$CMD" in
     setup_env; exec "$VPY" -m perisim smoke --workdir "$PERISIM_LOCAL/smoke" "$@" ;;
   test)
     setup_env; cd "$REPO_DIR"; export PERISIM_TEST_WORKDIR="$PERISIM_WORKDIR/experiments/$PERISIM_EXPERIMENT"
-    export PERISIM_TEST_BASE="$PERISIM_WORKDIR"; exec "$VPY" -m pytest "$@" ;;
+    export PERISIM_TEST_BASE="$PERISIM_WORKDIR"; exec "$VPY" -m pytest -p no:cacheprovider "$@" ;;
   resources)
     setup_env; exec "$VPY" -m perisim resources ;;
   status)

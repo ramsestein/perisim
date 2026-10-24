@@ -455,7 +455,7 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
 
 def write_synthetic(root: Path, harmonization: dict | None = None, n_subjects: int = 700, seed: int = 7) -> Path:
     root = Path(root)
-    marker = root / f".synthetic_{n_subjects}_{seed}"
+    marker = root / f"SYNTHETIC_{n_subjects}_{seed}.txt"   # not hidden; discovery ignores .txt
     if marker.exists():
         return root
     rng = np.random.default_rng(seed)
