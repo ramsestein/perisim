@@ -1,5 +1,10 @@
 """Parametric comparators: L2 multinomial logistic regression, recalibrated multiclass LightGBM
-(temperature scaling) and SWIFT (Gajic et al., 2008) for severe / not severe."""
+(temperature scaling) and SWIFT (Gajic et al., 2008) for severe / not severe.
+
+LightGBM gets the same nested fitting as PERISIM and the logistic regression (§6.4, AUDIT E13): a small
+num_leaves × learning-rate grid scored on the inner folds, each with early stopping on its inner validation fold;
+the final model uses the mean best number of trees of the chosen combination, and the temperature is fitted on
+the inner out-of-fold predictions of that combination (declared: those folds also served for early stopping)."""
 
 from __future__ import annotations
 
@@ -39,21 +44,37 @@ def fit_logreg(X: np.ndarray, y: np.ndarray, C_grid: list[float], inner_folds: l
     return lambda Xq: _align(m.predict_proba(Xq), m.classes_, n_classes), {"C": best[1]}
 
 
-def fit_lgbm_calibrated(X: np.ndarray, y: np.ndarray, params: dict, inner_folds, n_classes: int, seed: int, threads: int):
-    """LightGBM + temperature fitted on inner out-of-fold predictions."""
+def fit_lgbm_calibrated(X: np.ndarray, y: np.ndarray, params: dict, inner_folds, n_classes: int, seed: int, threads: int,
+                        grid: dict | None = None):
+    """LightGBM tuned on the inner folds (grid × early stopping) + temperature on inner out-of-fold predictions."""
     import lightgbm as lgb
 
-    oof_logit, oof_y = [], []
-    for tr, va in inner_folds:
-        m = lgb.LGBMClassifier(**params, n_jobs=threads, random_state=seed, verbose=-1)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            m.fit(X[tr], y[tr])
-        p = _align(m.predict_proba(X[va]), m.classes_, n_classes)
-        oof_logit.append(np.log(np.clip(p, 1e-12, 1)))
-        oof_y.append(y[va])
-    L = np.vstack(oof_logit)
-    yy = np.concatenate(oof_y)
+    grid = grid or {}
+    combos = [(nl, lr) for nl in grid.get("num_leaves", [params.get("num_leaves", 31)])
+              for lr in grid.get("learning_rate", [params.get("learning_rate", 0.05)])]
+    max_trees = int(grid.get("max_estimators", params.get("n_estimators", 400)))
+    rounds = int(grid.get("early_stopping_rounds", 50))
+    base = {k: v for k, v in params.items() if k not in ("num_leaves", "learning_rate", "n_estimators")}
+    best = None
+    for nl, lr in combos:
+        oof_logit, oof_y, iters, ll = [], [], [], []
+        for tr, va in inner_folds:
+            va = va[np.isin(y[va], np.unique(y[tr]))]          # labels unseen in the inner train part cannot be scored
+            m = lgb.LGBMClassifier(**base, num_leaves=int(nl), learning_rate=float(lr), n_estimators=max_trees,
+                                   n_jobs=threads, random_state=seed, verbose=-1)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                m.fit(X[tr], y[tr], eval_set=[(X[va], y[va])], callbacks=[lgb.early_stopping(rounds, verbose=False)])
+            it = int(m.best_iteration_ or max_trees)
+            p = _align(m.predict_proba(X[va], num_iteration=it), m.classes_, n_classes)
+            iters.append(it)
+            ll.append(row_logloss(p, y[va]).mean())
+            oof_logit.append(np.log(np.clip(p, 1e-12, 1)))
+            oof_y.append(y[va])
+        score = float(np.mean(ll))
+        if best is None or score < best[0]:
+            best = (score, nl, lr, int(round(np.mean(iters))), np.vstack(oof_logit), np.concatenate(oof_y))
+    _, nl, lr, n_trees, L, yy = best
 
     def nll(T):
         z = L / T
@@ -62,7 +83,8 @@ def fit_lgbm_calibrated(X: np.ndarray, y: np.ndarray, params: dict, inner_folds,
         return row_logloss(p, yy).mean()
 
     T = float(minimize_scalar(nll, bounds=(0.05, 20), method="bounded").x)
-    m = lgb.LGBMClassifier(**params, n_jobs=threads, random_state=seed, verbose=-1)
+    m = lgb.LGBMClassifier(**base, num_leaves=int(nl), learning_rate=float(lr), n_estimators=max(n_trees, 1),
+                           n_jobs=threads, random_state=seed, verbose=-1)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         m.fit(X, y)
@@ -72,7 +94,8 @@ def fit_lgbm_calibrated(X: np.ndarray, y: np.ndarray, params: dict, inner_folds,
         z = z - z.max(1, keepdims=True)
         return np.exp(z) / np.exp(z).sum(1, keepdims=True)
 
-    return predict, {"temperature": T}
+    return predict, {"temperature": T, "num_leaves": int(nl), "learning_rate": float(lr), "n_estimators": int(n_trees),
+                     "inner_logloss": float(best[0])}
 
 
 def swift_score(icu_los_h, pf_ratio, gcs, paco2, admit_source) -> np.ndarray:

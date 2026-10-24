@@ -35,9 +35,13 @@ STAYS_SCHEMA: dict[str, pl.DataType] = {
     "pcs_code": pl.Utf8,
     "admit_source": pl.Utf8,
     "year": pl.Float64,
+    "year_group": pl.Utf8,             # MIMIC-IV anchor_year_group (eMAR coverage by period, D6)
     "postop": pl.Boolean,
+    "postop_evidence": pl.Utf8,        # or_transfer | procedure | service_only | none (MIMIC-IV, AUDIT D1/D8)
     "organ_donor": pl.Boolean,
-    "limitation_known": pl.Boolean,
+    "limitation_known": pl.Boolean,    # flag from a source without timestamps (INSPIRE optional column)
+    "limitation_min": pl.Float64,      # first timestamped limitation-of-treatment record (MIMIC-IV, eICU; D12)
+    "return_within_min": pl.Float64,   # minutes from ICU exit to the next OR / PACU / IR / ICU entry (C5)
     "died_in_icu": pl.Boolean,
     "icu_to_ward": pl.Boolean,
     "discharge_location": pl.Utf8,
@@ -153,6 +157,7 @@ def variables_for(harmonization: dict, cohort: str, table: str) -> list[dict]:
                 "transform": spec.get("transform"),
                 "bounds": spec.get("bounds"),
                 "aggregate": src.get("aggregate"),
+                "arterial_only": bool(src.get("arterial_only", False)),
             })
     return out
 

@@ -1,9 +1,12 @@
-"""Consensus importance loop with stopping based on the stability of the learned distance (§5.3.2).
+"""Consensus importance loop with stopping based on the stability of the distance (§5.3.2, amended 2026-10-22).
 
 In each iteration: a family + hyperparameters are sampled, the surrogate is trained with feature dropout on
 the inner train set, it is accepted if log-loss_val ≤ (1+ε)·best, SAGE is computed on the explanation
-subsample of the inner val set, results are aggregated (inverse variance), the weights w^(n) are recomputed
-starting from w^(n−1), and Δ_n = median |d^(n) − d^(n−1)| / d^(n−1) is measured over a fixed set of pairs.
+subsample of the inner val set, results are aggregated (random effects), and Δ_n = median |d^(n) − d^(n−1)| /
+d^(n−1) is measured over a fixed set of pairs on the metric IMPLIED BY THE PRIOR, w^(n) = c · (p^(n) + ε₀), with
+p^(n) the per-variable split of the aggregated group importance (AUDIT B3, decided by the lead): no NCA runs inside
+the loop, so Δ measures the consensus, not optimiser noise. The global scale c cancels in Δ. The NCA conversion of
+§5.4 is applied once, after stopping.
 Early-stopping-style stopping on the moving median of Δ (window W, patience P, min_delta), with n_min / n_max.
 """
 
@@ -18,7 +21,7 @@ from scipy.stats import spearmanr
 from perisim.importance.sage import aggregate, normalize, sage_permutation
 from perisim.importance.surrogate import Surrogate, log_loss, sample_params
 from perisim.metric.encoding import distribute_group_importance
-from perisim.metric.nca import DiagonalNCA, pair_sq_diffs
+from perisim.metric.nca import pair_sq_diffs
 
 LOG = logging.getLogger("perisim.importance")
 
@@ -35,7 +38,7 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
     min_delta = None if min_delta in (None, "auto") else float(min_delta)
     eps = float(icfg["epsilon"])
     rng = np.random.default_rng(seed)
-    mcfg = cfg.experiment["metric"]["nca"]
+    eps0 = float(cfg.experiment["metric"]["nca"]["eps0"])
 
     # fixed (seeded) reference pairs from the training fold
     nR = int(min(icfg["n_reference_pairs"], E.shape[0] * (E.shape[0] - 1) // 2))
@@ -48,10 +51,7 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
     exp_idx = rng.choice(inner_val, size=n_exp, replace=False)
     sage_cfg = icfg["sage"]
 
-    nca = DiagonalNCA(enc.dim_feature, enc.n_features, n_classes, n_candidates=cfg.experiment["metric"]["n_candidates"],
-                      batch_size=mcfg["batch_size"], lr=mcfg["lr"], refresh_every=10 ** 9, eps0=mcfg["eps0"],
-                      label_smoothing=mcfg["label_smoothing"], seed=seed)
-    w_prev = nca.weights.copy()
+    w_prev = np.full(enc.n_features, 1.0 / max(enc.n_features, 1))       # uniform metric before the first model
     d_prev = np.sqrt(np.maximum(Dsq @ w_prev, 1e-12))
 
     rows: list[dict] = []
@@ -88,13 +88,9 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
         agg = aggregate(np.array(imps), np.array(ses), float(icfg.get("variance_floor", 1e-8)))
         imp_feat = distribute_group_importance(agg, group_of_feature, group_names, enc, ft.take(inner_train),
                                                y[inner_train], n_classes)
-        # w^(n) from w^(n−1) (§5.4 conversion with the loop λ)
+        # w^(n) = c · (p^(n) + ε₀): the metric implied by the prior (B3); c cancels in the relative change Δ
         t1 = time.perf_counter()
-        if len(imps) == 1 or (len(imps) - 1) % int(icfg["candidate_refresh_every"]) == 0:
-            nca.refresh_candidates(E, subjects, w_prev)
-        nca.fit(E, y, prior=imp_feat, lam=float(icfg["lambda_loop"]), epochs=int(icfg["nca_epochs_per_iter"]),
-                init_logw=np.log(w_prev) if len(imps) > 1 else None, subjects=subjects)
-        w_cur = nca.weights.copy()
+        w_cur = (imp_feat + eps0) / float(np.sum(imp_feat + eps0))
         d_cur = np.sqrt(np.maximum(Dsq @ w_cur, 1e-12))
         delta = float(np.median(np.abs(d_cur - d_prev) / d_prev))
         deltas.append(delta)
@@ -106,7 +102,7 @@ def run_importance_loop(*, X_model: np.ndarray, col_group: np.ndarray, n_groups:
             spear.append(float("nan") if const else float(spearmanr(prev_agg, agg).correlation))
         else:
             spear.append(float("nan"))
-        row.update(nca_seconds=time.perf_counter() - t1, delta=delta, delta_smooth=sm)
+        row.update(delta_seconds=time.perf_counter() - t1, delta=delta, delta_smooth=sm)
         rows.append(row)
         w_prev, d_prev = w_cur, d_cur
         n_acc = len(imps)

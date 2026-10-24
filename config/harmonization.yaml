@@ -66,6 +66,9 @@ sources:
         iabp: [iabp]
     transfusion_drug_regex: "(?i)(\\bRBC\\b|red blood|packed red|prbc|적혈구)"   # [VERIFY]
     dx_code_length: 3
+    # D5: chronic dialysis before the index surgery = ESRD / dialysis-dependence codes (full ICD-10, normalised)
+    # or any RRT device record, both timestamped before the surgery start [VERIFY codes]
+    chronic_rrt_dx_regex: '^(N18[56]|Z992|Z49)'
 
   mimic:
     status: VERIFY
@@ -79,6 +82,7 @@ sources:
       patients:
         file: hosp/patients
         columns: {subject_id: subject_id, gender: gender, anchor_age: anchor_age, anchor_year: anchor_year}
+        optional_columns: {anchor_year_group: anchor_year_group}
       icustays:
         file: icu/icustays
         columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, intime: intime, outtime: outtime,
@@ -97,6 +101,7 @@ sources:
       labevents:
         file: hosp/labevents
         columns: {subject_id: subject_id, hadm_id: hadm_id, itemid: itemid, charttime: charttime, valuenum: valuenum}
+        optional_columns: {specimen_id: specimen_id, value: value}   # blood-gas specimen type (AUDIT D13)
       chartevents:
         file: icu/chartevents
         columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, itemid: itemid,
@@ -109,6 +114,9 @@ sources:
         file: icu/procedureevents
         columns: {subject_id: subject_id, hadm_id: hadm_id, stay_id: stay_id, itemid: itemid,
                   starttime: starttime, endtime: endtime}
+      code_status:                 # same file as chartevents, text value of the Code Status item (D12)
+        file: icu/chartevents
+        columns: {hadm_id: hadm_id, itemid: itemid, charttime: charttime, value: value}
       emar:
         file: hosp/emar
         columns: {subject_id: subject_id, hadm_id: hadm_id, charttime: charttime, medication: medication,
@@ -127,6 +135,14 @@ sources:
     transfusion_items: {table: inputevents, items: [225168]}   # PRBC, inside the ICU only [VERIFY]
     transfusion_drug_regex: "(?i)(red blood cell|packed red|\\bprbc\\b)"
     gcs_component_items: [220739, 223900, 223901]
+    # D13: blood gases (variables with arterial_only) are kept only for specimens whose type is arterial
+    blood_gas_specimen: {item: 52033, arterial_regex: '(?i)^\s*ART'}
+    # D12: limitation of life-sustaining treatment = a Code Status record other than full code [VERIFY values]
+    limitation: {items: [223758], value_regex: '(?i)(dnr|dnar|dni|do not (attempt )?resus|do not intub|comfort|\bcmo\b|cpr not indicated)'}
+    # D5: dialysis procedures dated before the ICU admission day (ICD-9 39.95, ICD-10-PCS 5A1D…) [VERIFY]
+    chronic_rrt_procedure_regex: '^(3995|5A1D)'
+    # D6: hospitalizations without any eMAR record are unobservable for medication (inputs and mild components)
+    medication_coverage: tracked
 
   eicu:
     status: VERIFY
@@ -185,6 +201,9 @@ sources:
       diagnosis:
         file: diagnosis
         columns: {unit_id: patientunitstayid, offset: diagnosisoffset, icd: icd9code}
+      careplangeneral:             # D12: care limitation records with their offset
+        file: carePlanGeneral
+        columns: {unit_id: patientunitstayid, offset: cplitemoffset, group: cplgroup, value: cplitemvalue}
     values:
       sex_male: ["Male"]
       expired: ["Expired"]
@@ -207,6 +226,10 @@ sources:
     fio2_labels: ["FiO2", "FIO2 (%)", "FiO2 (%)"]
     gcs_names: ["GCS Total"]
     dx_code_regex: "[A-Z][0-9][0-9A-Z]"   # ICD-10 codes inside icd9code ("xxx.x, Ixx.x")
+    # D12: any "Care Limitation" item other than full therapy [VERIFY values]
+    limitation: {group_regex: '(?i)care limitation', exclude_value_regex: '(?i)full therapy'}
+    # D6 (same rule as MIMIC-IV): stays without any medication record are unobservable for medication inputs
+    medication_coverage: tracked
 
 # ---------------------------------------------------------------------------
 # 2. Measured variables (labs and vital signs) — source, units, transformation and status
@@ -267,21 +290,21 @@ variables:
     bounds: [6.5, 8.0]
     sources:
       inspire: {table: labs, items: [ph], status: VERIFY}
-      mimic:   {table: labevents, items: [50820], status: VERIFY}
+      mimic:   {table: labevents, items: [50820], arterial_only: true, status: VERIFY}
       eicu:    {table: lab, items: [pH], status: VERIFY}
   lab_pco2:
     units: mmHg
     bounds: [5, 200]
     sources:
       inspire: {table: labs, items: [pco2], status: VERIFY}
-      mimic:   {table: labevents, items: [50818], status: VERIFY}
+      mimic:   {table: labevents, items: [50818], arterial_only: true, status: VERIFY}
       eicu:    {table: lab, items: [paCO2], status: VERIFY}
   lab_po2:
     units: mmHg
     bounds: [10, 700]
     sources:
       inspire: {table: labs, items: [po2], status: VERIFY}
-      mimic:   {table: labevents, items: [50821], status: VERIFY}
+      mimic:   {table: labevents, items: [50821], arterial_only: true, status: VERIFY}
       eicu:    {table: lab, items: [paO2], status: VERIFY}
   vital_hr:
     units: bpm

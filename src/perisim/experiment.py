@@ -2,6 +2,8 @@
 
 Everything learned from the data (standardization, VDM and m, groups, SAGE, weights, λ, α, T2/T3 thresholds)
 is fitted on the training indices the function receives; k is not tuned (it is evaluated over the grid).
+λ is selected with a SAGE prior recomputed inside each inner training fold, so the prior that scores an inner
+validation fold never saw its labels (AUDIT C3, decided 2026-10-22).
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from perisim.baselines import parametric, weights as bw
 from perisim.baselines.rfgap import RFGAP
 from perisim.features.table import FeatureTable
 from perisim.importance.loop import run_importance_loop
-from perisim.knn.predict import KNNModel
+from perisim.knn.predict import KNNModel, patient_pieces
 from perisim.metric.encoding import Encoder, build_groups
 from perisim.metric.nca import DiagonalNCA
 from perisim.targets.build import t2_categories, t2_thresholds, t3_labels, t3_thresholds
@@ -162,24 +164,55 @@ def select_m(cfg, ft: FeatureTable, y: np.ndarray, C: int, inner, seed: int) -> 
     return best, res
 
 
-def select_lambda(cfg, ft: FeatureTable, y: np.ndarray, C: int, inner, m: float, imp: np.ndarray,
-                  names: list[str], seed: int, epochs: int) -> tuple[float, dict]:
-    res = {}
-    encs = []
-    for a, b in inner:
-        enc = Encoder.from_config(cfg, m).fit(ft.take(a), y[a], C)
-        encs.append((enc, enc.transform(ft.take(a)), enc.transform(ft.take(b))))
-    for lam in cfg.experiment["metric"]["lambda_grid"]:
-        ll = []
-        for (a, b), (enc, Ea, Eb) in zip(inner, encs):
+def importance_prior(cfg, ft: FeatureTable, y: np.ndarray, C: int, m: float, *, seed: int, threads: int,
+                     stopping_override: dict | None = None, exclude_families: set[str] | None = None,
+                     early_stop: bool = True) -> tuple:
+    """Encoder, embedding, SAGE groups and consensus-importance loop (§5.2–§5.3) fitted on `ft` only."""
+    ecfg = cfg.experiment
+    enc = Encoder.from_config(cfg, m).fit(ft, y, C)
+    E = enc.transform(ft)
+    Xm, owner = enc.transform_model(ft)
+    gof, gnames = build_groups(enc, E, ecfg["features"]["corr_cluster_threshold"],
+                               int(ecfg["features"]["block_group_threshold"]), seed=seed)
+    a0, b0 = inner_splits(y, ft.subjects, int(ecfg["cv"]["inner_folds"]), seed)[0]
+    loop = run_importance_loop(X_model=Xm, col_group=gof[owner], n_groups=len(gnames), group_names=gnames, y=y,
+                               n_classes=C, inner_train=a0, inner_val=b0, E=E, enc=enc, ft=ft, group_of_feature=gof,
+                               subjects=ft.subjects, cfg=cfg, seed=seed, threads=threads,
+                               stopping_override=stopping_override, exclude_families=exclude_families,
+                               early_stop=early_stop)
+    return enc, E, gof, gnames, loop
+
+
+def select_lambda(cfg, ft: FeatureTable, y: np.ndarray, C: int, inner, m: float, *, seed: int, epochs: int,
+                  threads: int, outer_prior: tuple | None = None, **loop_kw) -> tuple[float, dict, dict]:
+    """λ by inner CV with the soft-kNN log-loss. With `metric.lambda_prior: inner_fold_sage` (C3) the SAGE prior
+    of each inner fold is recomputed on its training part; `outer` reuses the fold prior (v0, declared bias)."""
+    res: dict[float, list[float]] = {}
+    loops: list[dict] = []
+    per_inner = str(cfg.experiment["metric"].get("lambda_prior", "inner_fold_sage")) == "inner_fold_sage"
+    for i, (a, b) in enumerate(inner):
+        if per_inner:
+            enc, Ea, gof, _, lp = importance_prior(cfg, ft.take(a), y[a], C, m, seed=seed + 7919 * (i + 1),
+                                                   threads=threads, **loop_kw)
+            prior = lp["feature_importance"]
+            loops.append({"n_accepted": lp["n_accepted"], "stop_reason": lp["stop_reason"], "seconds": lp["seconds"]})
+        else:
+            imp, names, groups_by_name = outer_prior
+            enc = Encoder.from_config(cfg, m).fit(ft.take(a), y[a], C)
+            Ea = enc.transform(ft.take(a))
             prior = _map_prior(imp, names, enc.feature_names)
+            gof = np.unique([groups_by_name.get(n, n) for n in enc.feature_names], return_inverse=True)[1]
+        Eb = enc.transform(ft.take(b))
+        for lam in cfg.experiment["metric"]["lambda_grid"]:
             nca = _nca(cfg, enc, C, seed)
-            nca.fit(Ea, y[a], prior=prior, lam=float(lam), epochs=epochs, subjects=ft.subjects[a])
-            ll.append(nca.soft_loss(Ea, y[a], Eb, y[b], subj_ref=ft.subjects[a], subj_q=ft.subjects[b]))
-        res[float(lam)] = float(np.mean(ll))
-        LOG.info("    λ=%g → inner soft-kNN log-loss %.4f", lam, res[float(lam)])
-    best = min(res, key=res.get)
-    return best, res
+            nca.fit(Ea, y[a], prior=prior, groups=gof, lam=float(lam), epochs=epochs, subjects=ft.subjects[a])
+            res.setdefault(float(lam), []).append(
+                nca.soft_loss(Ea, y[a], Eb, y[b], subj_ref=ft.subjects[a], subj_q=ft.subjects[b]))
+    mean = {lam: float(np.mean(v)) for lam, v in res.items()}
+    for lam, v in mean.items():
+        LOG.info("    λ=%g → inner soft-kNN log-loss %.4f", lam, v)
+    best = min(mean, key=mean.get)
+    return best, mean, {"prior": "inner_fold_sage" if per_inner else "outer", "inner_loops": loops}
 
 
 def swift_inputs(ft: FeatureTable) -> np.ndarray:
@@ -200,6 +233,8 @@ class FittedPerisim:
     imp_feature: np.ndarray
     loop: dict
     extra_weights: dict
+    group_of_feature: np.ndarray | None = None
+    group_names: list[str] | None = None
 
 
 def fit_perisim(cfg, ft: FeatureTable, y: np.ndarray, C: int, *, seed: int, threads: int,
@@ -222,36 +257,28 @@ def fit_perisim(cfg, ft: FeatureTable, y: np.ndarray, C: int, *, seed: int, thre
     info["m"] = m
     timings["select_m"] = time.perf_counter() - t
 
-    enc = Encoder.from_config(cfg, m).fit(ft, y, C)
-    E = enc.transform(ft)
-    Xm, owner = enc.transform_model(ft)
-    gof, gnames = build_groups(enc, E, ecfg["features"]["corr_cluster_threshold"],
-                               int(ecfg["features"]["block_group_threshold"]), seed=seed)
-    col_group = gof[owner]
-    info.update(n_features=enc.n_features, n_dims=enc.n_dims, n_groups=len(gnames))
-
     t = time.perf_counter()
-    a0, b0 = inner[0]
-    loop = run_importance_loop(X_model=Xm, col_group=col_group, n_groups=len(gnames), group_names=gnames, y=y,
-                               n_classes=C, inner_train=a0, inner_val=b0, E=E, enc=enc, ft=ft, group_of_feature=gof,
-                               subjects=ft.subjects, cfg=cfg, seed=seed, threads=threads,
-                               stopping_override=stopping_override, exclude_families=exclude_families,
-                               early_stop=early_stop)
+    loop_kw = {"stopping_override": stopping_override, "exclude_families": exclude_families, "early_stop": early_stop}
+    enc, E, gof, gnames, loop = importance_prior(cfg, ft, y, C, m, seed=seed, threads=threads, **loop_kw)
+    info.update(n_features=enc.n_features, n_dims=enc.n_dims, n_groups=len(gnames))
     timings["importance_loop"] = time.perf_counter() - t
     imp = loop["feature_importance"]
 
     epochs = int(ecfg["metric"]["nca"]["epochs"])
     t = time.perf_counter()
     if select_hparams and len(ecfg["metric"]["lambda_grid"]) > 1:
-        lam, info["lambda_grid_loss"] = select_lambda(cfg, ft, y, C, inner, m, imp, enc.feature_names, seed, epochs)
+        by_name = {n: gnames[g] for n, g in zip(enc.feature_names, gof)}
+        lam, info["lambda_grid_loss"], info["lambda_selection"] = select_lambda(
+            cfg, ft, y, C, inner, m, seed=seed, epochs=epochs, threads=threads,
+            outer_prior=(imp, enc.feature_names, by_name), **loop_kw)
     else:
-        lam = float(ecfg["importance"]["lambda_loop"])
+        lam = float(ecfg["metric"].get("lambda_default", ecfg["metric"]["lambda_grid"][0]))
     info["lambda"] = lam
     timings["select_lambda"] = time.perf_counter() - t
 
     t = time.perf_counter()
     nca = _nca(cfg, enc, C, seed)
-    nca.fit(E, y, prior=imp, lam=lam, epochs=epochs, subjects=ft.subjects)
+    nca.fit(E, y, prior=imp, groups=gof, lam=lam, epochs=epochs, subjects=ft.subjects)
     w = nca.weights
     info["nca_history"] = nca.history
     info["nca_params"] = getattr(nca, "params_", {})
@@ -277,7 +304,7 @@ def fit_perisim(cfg, ft: FeatureTable, y: np.ndarray, C: int, *, seed: int, thre
                                           ecfg["knn"]["ood_percentile"])
     # scale for the exp(−d²) kernel variant: that of the learned metric itself (NCA)
     info["rss_gb"] = rss_gb()
-    return FittedPerisim(enc, w, knn, info, imp, loop, extra)
+    return FittedPerisim(enc, w, knn, info, imp, loop, extra, gof, gnames)
 
 
 def knn_predict(model: KNNModel, E_q: np.ndarray, subj_q: np.ndarray, k_grid: list[int], kernel_k: int | None = None
@@ -380,7 +407,8 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
                 preds[(name, 0)] = f(Xm_te)
                 bl_info[name] = inf
             elif name == "lgbm":
-                f, inf = parametric.fit_lgbm_calibrated(Xm_tr, y_tr, ms["lgbm"], inner, C, seed, threads)
+                f, inf = parametric.fit_lgbm_calibrated(Xm_tr, y_tr, ms["lgbm"], inner, C, seed, threads,
+                                                        grid=ms.get("lgbm_grid"))
                 preds[(name, 0)] = f(Xm_te)
                 bl_info[name] = inf
             elif name == "swift" and target in ("t1", "t1_bin"):
@@ -413,6 +441,11 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
             p4_rows.append(pl.DataFrame({"stay_id": ft_te.ids.astype(str), "method": meth, "variable": var,
                                          "pred": pred.astype(float), "obs": car_te[var].astype(float)}))
     p4_df = pl.concat(p4_rows) if p4_rows else pl.DataFrame()
+    # §5.6 per-patient output (E14): this target's probabilities; neighbours for the clinical-output target only
+    nbrs = target == ecfg.get("patient_output_target", "t1")
+    patient = patient_pieces(ft_te.ids, data.t0[te], target, probs[kp], kp,
+                             **({"kth_pct": pct, "ood": ood, "I": I, "D": D, "valid": valid, "ref_ids": ft_tr.ids,
+                                 "carried": p4["perisim"]} if nbrs else {}))
 
     loop = fp.loop
     result = {
@@ -427,4 +460,7 @@ def run_fold(cfg, data: CohortData, target: str, train_idx: np.ndarray, test_idx
     }
     result["importance_loop"]["group_importance"] = dict(zip(loop["group_names"], np.round(loop["group_importance"], 8)
                                                             .tolist()))
-    return result, {"pred": pred_df, "ood": ood_df, "p4": p4_df}
+    # SAGE group of each metric variable, so that dispersion can be reported per variable across folds (E11)
+    result["importance_loop"]["group_of_feature"] = {n: fp.group_names[g] for n, g in
+                                                     zip(fp.enc.feature_names, fp.group_of_feature)}
+    return result, {"pred": pred_df, "ood": ood_df, "p4": p4_df, "patient": patient}

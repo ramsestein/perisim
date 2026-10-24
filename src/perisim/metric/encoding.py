@@ -3,9 +3,12 @@
 Each metric variable j is represented as a block of columns φ_j such that ‖φ_j(a) − φ_j(b)‖² = δ_j(a,b)²:
 - continuous: standardized value (median for imputation; + missingness indicator if > 5 %);
 - ordinal: range scaled to [0, 1];
-- binary: 0/1;
-- nominal: smoothed VDM, φ = p_c = (n_c·P̂(y|c) + m·P(y)) / (n_c + m) ⇒ δ = ‖p_c − p_c'‖₂ exactly;
-- hierarchical: one ICD-10-PCS level per variable, one-hot/√2 ⇒ δ ∈ {0, 1} (rare codes → zero vector).
+- binary: 0/1; an unobserved value (null) takes the training prevalence (+ missingness indicator if > 5 %);
+- nominal: smoothed VDM, φ = p_c = (n_c·P̂(y|c) + m·P(y)) / (n_c + m) ⇒ δ = ‖p_c − p_c'‖₂ exactly. Categories
+  seen in training but rare (or beyond the cap) are pooled into one "other" category; categories NEVER seen in
+  training take P(y) (§5.2, AUDIT B7);
+- hierarchical: one ICD-10-PCS level per variable, one-hot/√2 ⇒ δ ∈ {0, 1}, with explicit "other" (rare or
+  unseen code) and "missing" dimensions, so a kept code vs a rare one is a full mismatch (AUDIT B6).
 Normalization (§5.1): each block is divided by s_j with s_j² = E_pairs[δ_j²] = 2·Σ Var(φ_j), so that the
 mean squared dissimilarity between random training pairs is 1 and w_j keeps its meaning.
 
@@ -96,15 +99,19 @@ class Encoder:
                 if miss.mean() > self.missing_threshold and miss.mean() < 1:
                     self.blocks.append(_Block(f"{s.name}__missing", s.name, "missing", s.group, s.block))
             elif s.type == "binary":
-                x = np.nan_to_num(ft.num[s.name], nan=0.0)
-                cnt = float((x > 0.5).sum())
-                if cnt == 0 or cnt == n:
+                x = ft.num[s.name]
+                miss = ~np.isfinite(x)
+                obs = int((~miss).sum())
+                cnt = float((x[~miss] > 0.5).sum())
+                if obs == 0 or cnt == 0 or cnt == obs:
                     continue
-                if s.block == "diagnoses" and cnt / n < self.dx_min_prevalence:
+                if s.block == "diagnoses" and cnt / obs < self.dx_min_prevalence:
                     continue
                 if s.block == "medication" and cnt < self.med_min_count:
                     continue
-                self.blocks.append(_Block(s.name, s.name, "binary", s.group, s.block, {"prevalence": cnt / n}))
+                self.blocks.append(_Block(s.name, s.name, "binary", s.group, s.block, {"prevalence": cnt / obs}))
+                if miss.mean() > self.missing_threshold:
+                    self.blocks.append(_Block(f"{s.name}__missing", s.name, "missing", s.group, s.block))
             elif s.type == "nominal":
                 v = _norm_cat(ft.cat[s.name])
                 cats, counts = np.unique(v, return_counts=True)
@@ -114,6 +121,7 @@ class Encoder:
                     continue
                 vv = np.where(np.isin(v, keep), v, OTHER)
                 table = {}
+                seen = sorted(set(cats.tolist()))
                 for c in np.unique(vv):
                     sel = vv == c
                     nc = sel.sum()
@@ -125,7 +133,7 @@ class Encoder:
                     table[c] = (p, int(nc))
                 unseen = prior if y_aux is None else np.concatenate([prior, aux_prior])
                 self.blocks.append(_Block(s.name, s.name, "nominal", s.group, s.block,
-                                          {"keep": keep, "table": table, "unseen": unseen,
+                                          {"keep": keep, "table": table, "unseen": unseen, "seen": seen,
                                            "onehot": sorted(set(keep) | {OTHER})},
                                           dims=len(unseen)))
             elif s.type == "hier":
@@ -138,7 +146,9 @@ class Encoder:
                 keep = [c for c, k in zip(cats[order], counts[order]) if k >= self.hier_min_count][: self.hier_max_levels]
                 if not keep:
                     continue
-                self.blocks.append(_Block(s.name, s.name, "hier", s.group, s.block, {"codes": keep}, dims=len(keep)))
+                # explicit "other" (rare / unseen code) and "missing" dimensions (AUDIT B6)
+                self.blocks.append(_Block(s.name, s.name, "hier", s.group, s.block, {"codes": keep},
+                                          dims=len(keep) + 2))
         # scale s_j: mean square of δ_j between random pairs = 1
         raw = self._raw_blocks(ft)
         kept = []
@@ -175,7 +185,8 @@ class Encoder:
         if b.kind == "missing":
             return (~np.isfinite(ft.num[b.source])).astype(float)[:, None]
         if b.kind == "binary":
-            return (np.nan_to_num(ft.num[b.source], nan=0.0) > 0.5).astype(float)[:, None]
+            x = ft.num[b.source]
+            return np.where(np.isfinite(x), (x > 0.5).astype(float), p["prevalence"])[:, None]
         if b.kind == "nominal":
             v = _norm_cat(ft.cat[b.source])
             vv = np.where(np.isin(v, p["keep"]), v, OTHER)
@@ -183,13 +194,18 @@ class Encoder:
                 cats = p["onehot"]
                 return (vv[:, None] == np.array(cats, dtype=object)[None, :]).astype(float)
             out = np.empty((n, b.dims))
-            for i, c in enumerate(vv):
-                out[i] = p["table"][c][0] if c in p["table"] else p["unseen"]
+            seen = set(p.get("seen", p["keep"]))
+            for i, (raw, c) in enumerate(zip(v, vv)):
+                # kept or pooled-rare categories use their table row; never-seen categories take P(y) (B7)
+                out[i] = p["table"][c][0] if (raw in seen and c in p["table"]) else p["unseen"]
             return out
         if b.kind == "hier":
-            v = ft.cat[b.source]
+            v = np.asarray(ft.cat[b.source], dtype=object)
             codes = np.array(p["codes"], dtype=object)
-            return (np.asarray(v, dtype=object)[:, None] == codes[None, :]).astype(float) / np.sqrt(2.0)
+            hit = (v[:, None] == codes[None, :]).astype(float)
+            missing = np.array([x is None or x != x or x == "" for x in v], dtype=bool)
+            other = ~missing & (hit.sum(1) == 0)
+            return np.column_stack([hit, other.astype(float), missing.astype(float)]) / np.sqrt(2.0)
         raise ValueError(b.kind)
 
     def _raw_blocks(self, ft: FeatureTable) -> list[np.ndarray]:

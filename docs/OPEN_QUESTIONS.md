@@ -11,9 +11,10 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
    The `item_name` inventory in the schema report will show what to rename.
 2. **INSPIRE — devices in `ward_vitals`.** Ventilation/RRT/ECMO/IABP are assumed to appear as "active" records
    (`vent`, `crrt`…). If they are only start markers, change `sources.inspire.devices.mode`.
-3. **INSPIRE — ICU readmission (D1).** Implemented as a new ICU admission linked to another surgery in the same
-   hospitalisation. Non-surgical readmissions are not observable this way; the audit quantifies this.
-   If that is not enough: severe T1 in INSPIRE without readmission and a declared sensitivity analysis.
+3. **INSPIRE — ICU readmission (D1).** *Decided 2026-10-22 (AUDIT D10):* a new ICU admission linked to another
+   surgery OR a new ventilation / RRT / ECMO / IABP run after t0 in `ward_vitals` (`targets.yaml:
+   icu_readmission_proxy`). **To check in the first audit:** the proxy prevalence and the split by source
+   (`completeness_inspire.html`) against MIMIC-IV / eICU readmission rates, before acknowledging the audit.
 4. **INSPIRE — optional columns.** Donors (v1.4.2+), year (temporal validation), discharge destination and
    limitation of life-sustaining treatment: `optional_columns` is set to `null` until the actual schema has been seen.
 5. **INSPIRE — ATC medication.** `atc_code`, `atc_code2`, `atc_code3` are used as alternative codes for the same
@@ -22,9 +23,12 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
    on the ward.
 7. **MIMIC-IV — diagnoses.** `diagnoses_icd` has no timestamp (billing at discharge): it is excluded as an
    input by the anti-leakage rule. Consequence: diagnoses are not part of the `core` set (intersection).
-8. **MIMIC-IV — postoperative ICU rule (D10).** Surgical service active at ICU admission **or** an ICD-10-PCS
-   section 0 procedure with an open/percutaneous endoscopic approach (or ICD-9 01–86) on that day or the day
-   before. Review with the audit.
+8. **MIMIC-IV — postoperative ICU rule (D10).** *Decided 2026-10-22 (AUDIT D1/D8):* OR/PACU transfer in
+   `hosp.transfers` within 24 h before the ICU admission; procedure codes only for hospitalisations without any
+   OR/PACU transfer. **To verify:** (a) the OR-related `careunit` values (`cohorts.yaml: or_careunits`, "PACU"
+   assumed) in `schema_mimic.md`; (b) the fallback uses a declared approximation of the HCUP "major therapeutic"
+   class until the HCUP Procedure Classes files are added (`cohorts.yaml: hcup_pclass_files`); (c) the
+   "service_only" count in the audit (sensitivity cohort).
 9. **MIMIC-IV — medication.** No ATC: name → ATC mapping by regex (`harmonization.medications.name_to_atc`).
    Transfusion is observable only inside the ICU (inputevents) unless eMAR records it.
 10. **eICU — sources.** Ventilation (`respiratoryCare`, `treatment`), vasopressors (`infusionDrug`), GCS
@@ -34,26 +38,45 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
 
 ## Method
 
-12. **NCA prior and bandwidth.** `L(w) = LogLoss + λ Σ (log w_j − log c − log(imp_j + ε₀))²` with a free
-    global scale `c`: the prior regularises the *profile* of the importances and leaves the bandwidth free
-    (otherwise the prior would also fix the kernel scale). Confirm this reading of §5.4.
-13. **λ inside the stopping loop.** The §5.3.2 criterion recomputes w with the §5.4 conversion; a fixed λ is used
-    (`importance.lambda_loop = 1`) because the final λ is chosen afterwards by inner CV.
-14. **λ selection with the outer fold's SAGE.** SAGE is computed once per outer fold (with inner split 0)
-    and reused to choose λ in the 3 inner folds. Recomputing SAGE per inner fold would triple the cost.
+12. **NCA prior and bandwidth.** *Resolved 2026-10-22 (B2/B4, SPECS v0.4 §5.4):* `log w = log c + log(p + ε₀) + u`
+    with c free and the penalty on the SAGE group totals (mean over groups).
+13. **λ inside the stopping loop.** *Resolved 2026-10-22 (B3, SPECS v0.4 §5.3.2):* Δ is measured on the
+    prior-implied metric; no NCA (and no λ) inside the loop.
+14. **λ selection with the outer fold's SAGE.** *Resolved 2026-10-22 (C3):* SAGE is recomputed in each inner fold
+    (`metric.lambda_prior: inner_fold_sage`); the pilot extrapolates the extra cost.
 15. **kNN α.** Chosen per k with patient-level LOO on the training set of the outer fold (the same for all kNN
-    comparators), not in the inner folds.
+    comparators), not in the inner folds. *Kept and declared 2026-10-22 (C6).*
 16. **Metric for the clinical output (§5.6).** One metric per target. The per-patient output uses the neighbours
     from the `patient_output_target` metric (T1 by default). Should it be T3 (the integrated objective)?
 17. **Distribution of importance within a group.** Large blocks (dx/ATC > 50): ∝ prevalence × mutual
     information (univariate SAGE with the Bayes-optimal model). Everything else (value + indicator, PCS levels,
-    clusters with |ρ| > 0.8): equal shares.
+    clusters with |ρ| > 0.8): equal shares. *Since 2026-10-22 (B4) this split is only the starting point and the
+    stopping-rule metric: the NCA prior acts on group totals and the NCA splits within groups.*
 18. **D7 rule from the pilot.** `min_delta = 0.05 × Δ̃` from the pilot at iteration n_min (rule declared in
     `experiment.yaml` before execution). `tol_Δ = 0.01`.
 19. **SWIFT.** The source of ICU admission is approximated by the source of hospital admission; missing
     values score 0. Logistic recalibration in the training fold.
 20. **T3.** "Early discharge" = stay ≤ first tertile and "prolonged" = stay > second tertile, computed in the
     training fold over the patients without complication.
+
+## Introduced by the decisions of 2026-10-22 [VERIFY on the first run]
+
+21. **MIMIC-IV — Code Status values (D12).** Limitation = a Code Status (itemid 223758) value matching
+    `harmonization.yaml: sources.mimic.limitation.value_regex` (DNR / DNI / comfort…); the first such record ≤ the
+    cutoff excludes the stay. Check the value inventory.
+22. **eICU — care limitation (D12).** `carePlanGeneral` rows of the "Care Limitation" group other than "Full
+    Therapy". Check the `cplgroup` / `cplitemvalue` inventory.
+23. **MIMIC-IV — blood-gas specimen type (D13).** pH / pCO₂ / pO₂ are kept only for specimens whose itemid 52033
+    value starts with "ART". Check the values (and that `labevents` has `specimen_id` and `value`).
+24. **Chronic dialysis markers (D5).** INSPIRE: ICD-10 `N18.5/N18.6/Z99.2/Z49.x` and RRT device records before the
+    surgery; MIMIC-IV: dialysis procedures (ICD-9 39.95, ICD-10-PCS 5A1D…) dated before the ICU admission day and
+    RRT in an earlier ICU stay of the hospitalisation. MIMIC-IV has no timestamped ESRD diagnosis, so detection is
+    less sensitive there (declared).
+25. **eICU — medication coverage (D6 rule).** The decision concerned MIMIC-IV eMAR; the same coverage rule is
+    applied to eICU medication orders (inputs only, since eICU T1 is reduced). Set
+    `sources.eicu.medication_coverage: null` to revert.
+26. **Sensitivity variants and the cohort.** The limitation exclusion uses the main cutoff (t0 − 2 h) for every
+    variant, because the index cohort is extracted once (the 4 h variant keeps the same stays).
 
 ## Open decisions from SPECS §10 (v0 values in config)
 

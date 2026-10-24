@@ -2,11 +2,15 @@
 
 Particularities (§2.2) [VERIFY against the mounted version]:
 - There are no ward vital signs (chartevents is ICU only): mild events on the ward are observed via labs and eMAR.
-- procedures_icd only has a date: reoperation has day precision.
+- Surgery is identified by timestamped operating-room evidence: an OR/PACU transfer in hosp.transfers (AUDIT D1/D8).
+  procedures_icd (date only) is a fallback for hospitalizations without any OR/PACU transfer, so reoperation has
+  minute precision when the hospitalization has OR/PACU transfers and day precision otherwise.
 - diagnoses_icd has no timestamp (billing codes at discharge): NOT used as input (leakage, §4.4).
 - icustays merges contiguous ICU and step-down careunits: ICU episodes are rebuilt from hosp.transfers with
   true ICU careunits only (AUDIT D3), so t0 is the exit from the last true ICU careunit and a step-down
   transfer is neither an index stay nor a readmission.
+- eMAR does not cover every hospitalization: the first eMAR record of each hospitalization is emitted as a
+  `src:medication` row, so that medication is unobservable (not "absent") where eMAR does not exist (D6).
 """
 
 from __future__ import annotations
@@ -15,6 +19,7 @@ import re
 
 import polars as pl
 
+from perisim.config import REPO_ROOT
 from perisim.data.base import BaseExtractor
 from perisim.data.common import (
     INPUTS_SCHEMA, OUTCOMES_SCHEMA, STAYS_SCHEMA, apply_bounds, as_float, as_id, as_str, conform, date_minutes,
@@ -22,32 +27,79 @@ from perisim.data.common import (
 )
 from perisim.data.inspire import _common_flags
 
+MEDICATION_MARKER = "src:medication"
+CHRONIC_RRT_MARKER = "marker:chronic_rrt"
+
 
 class MimicExtractor(BaseExtractor):
     cohort = "mimic"
     prefix = "MIMIC"
+    _prc: pl.DataFrame | None = None
 
     # ------------------------------------------------------------------ surgical rules
+    def _procedures(self) -> pl.DataFrame:
+        if self._prc is None:
+            prc = self.table("procedures_icd")
+            self._prc = prc.with_columns(
+                as_id("hadm_id").alias("hadm_raw"),
+                as_id("subject_id").alias("subject_raw"),
+                date_minutes(prc, "chartdate").alias("day_min"),
+                as_str("icd_code").str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "").alias("code"),
+                as_str("icd_version").alias("ver"),
+                as_float("seq_num").alias("seq"),
+            )
+        return self._prc
+
+    def _hcup_major(self) -> dict[str, set[str]] | None:
+        """HCUP Procedure Classes (class 4 = major therapeutic) if the files are configured; None otherwise."""
+        files = self.ccfg.get("hcup_pclass_files") or {}
+        out = {}
+        for ver, key in (("9", "icd9"), ("10", "icd10")):
+            f = files.get(key)
+            if not f:
+                return None
+            df = pl.read_csv(REPO_ROOT / f, infer_schema_length=0)
+            code, cls = df.columns[0], df.columns[1]
+            out[ver] = set(df.filter(pl.col(cls).str.strip_chars() == "4")[code].str.replace_all(r"[^0-9A-Za-z]", "")
+                           .str.to_uppercase().to_list())
+        return out
+
     def _or_procedures(self) -> pl.DataFrame:
-        """Surgical procedures (ICD-10-PCS / ICD-9) with their day, per hospitalization."""
-        prc = self.table("procedures_icd")
-        prc = prc.with_columns(
-            as_id("hadm_id").alias("hadm_raw"),
-            date_minutes(prc, "chartdate").alias("day_min"),
-            as_str("icd_code").str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "").alias("code"),
-            as_str("icd_version").alias("ver"),
-            as_float("seq_num").alias("seq"),
-        )
-        c = self.ccfg
+        """"Major therapeutic" procedures (ICD-10-PCS / ICD-9) with their day, per hospitalization: HCUP procedure
+        classes when provided, otherwise a declared approximation (operative approaches / chapters minus bedside
+        and diagnostic procedures, AUDIT D1)."""
+        prc = self._procedures()
         code = pl.col("code")
-        icd10 = ((pl.col("ver") == "10") & (code.str.slice(0, 1) == "0")
-                 & code.str.slice(4, 1).is_in(c["or_icd10_approaches"])
-                 & ~code.str.slice(2, 1).is_in(c["or_icd10_exclude_root_operations"]))
-        lo, hi = c["or_icd9_range"]
-        chap = code.str.slice(0, 2).cast(pl.Int32, strict=False)
-        excl = pl.any_horizontal([code.str.starts_with(p) for p in c["or_icd9_exclude_prefixes"]])
-        icd9 = (pl.col("ver") == "9") & chap.is_between(lo, hi) & ~excl
-        return prc.filter(icd10 | icd9).select("hadm_raw", "day_min", "code", "ver", "seq")
+        hcup = self._hcup_major()
+        if hcup is not None:
+            keep = ((pl.col("ver") == "9") & code.is_in(sorted(hcup["9"]))) | \
+                   ((pl.col("ver") == "10") & code.is_in(sorted(hcup["10"])))
+        else:
+            c = self.ccfg
+            icd10 = ((pl.col("ver") == "10") & (code.str.slice(0, 1) == "0")
+                     & code.str.slice(4, 1).is_in(c["or_icd10_approaches"])
+                     & ~code.str.slice(2, 1).is_in(c["or_icd10_exclude_root_operations"]))
+            lo, hi = c["or_icd9_range"]
+            chap = code.str.slice(0, 2).cast(pl.Int32, strict=False)
+            excl = pl.any_horizontal([code.str.starts_with(p) for p in c["or_icd9_exclude_prefixes"]])
+            keep = (icd10 | ((pl.col("ver") == "9") & chap.is_between(lo, hi) & ~excl))
+        return prc.filter(keep).select("hadm_raw", "day_min", "code", "ver", "seq")
+
+    def _transfers(self, hadm: list[str] | None = None) -> pl.DataFrame:
+        filters = {"hadm_id": hadm} if hadm is not None else None
+        tr = self.table("transfers", filters=filters)
+        return (tr.with_columns(as_id("transfer_id").alias("tid"), as_id("hadm_id").alias("hadm_raw"),
+                                as_id("subject_id").alias("subject_raw"), dt_minutes(tr, "intime").alias("t_in"),
+                                dt_minutes(tr, "outtime").alias("t_out"), as_str("careunit").alias("unit"))
+                .filter(pl.col("hadm_raw").is_not_null() & pl.col("t_in").is_not_null()))
+
+    def _or_transfers(self, hadm: list[str] | None = None) -> pl.DataFrame:
+        """Operating-room evidence: transfers into an OR/PACU careunit (hadm_raw, t_in, t_out)."""
+        if not self.has_table("transfers"):
+            return pl.DataFrame(schema={"hadm_raw": pl.Utf8, "t_in": pl.Float64, "t_out": pl.Float64})
+        units = self.ccfg.get("or_careunits") or []
+        return (self._transfers(hadm).filter(pl.col("unit").is_in(units))
+                .select("hadm_raw", "t_in", pl.coalesce("t_out", "t_in").alias("t_out")))
 
     # ------------------------------------------------------------------ ICU episodes (AUDIT D3)
     def _icu_episodes(self, hadm: list[str] | None = None) -> pl.DataFrame:
@@ -60,14 +112,9 @@ class MimicExtractor(BaseExtractor):
             return icu.select(as_id("stay_id").alias("unit_raw"), as_id("hadm_id").alias("hadm_raw"),
                               as_id("subject_id").alias("subject_raw"), dt_minutes(icu, "intime").alias("icu_in_min"),
                               dt_minutes(icu, "outtime").alias("icu_out_min"))
-        tr = self.table("transfers", filters=filters)
         units = self.ccfg["icu_careunits"]
         gap = float(self.ccfg.get("icu_episode_merge_gap_min", 60))
-        tr = (tr.with_columns(as_id("transfer_id").alias("tid"), as_id("hadm_id").alias("hadm_raw"),
-                              as_id("subject_id").alias("subject_raw"), dt_minutes(tr, "intime").alias("t_in"),
-                              dt_minutes(tr, "outtime").alias("t_out"))
-              .filter(as_str("careunit").is_in(units) & pl.col("hadm_raw").is_not_null()
-                      & pl.col("t_in").is_not_null() & pl.col("t_out").is_not_null())
+        tr = (self._transfers(hadm).filter(pl.col("unit").is_in(units) & pl.col("t_out").is_not_null())
               .sort(["hadm_raw", "t_in"]))
         tr = tr.with_columns(pl.col("t_out").cum_max().shift(1).over("hadm_raw").alias("_prev"))
         tr = tr.with_columns((pl.col("_prev").is_null() | (pl.col("t_in") > pl.col("_prev") + gap))
@@ -76,6 +123,28 @@ class MimicExtractor(BaseExtractor):
                 .agg(pl.col("tid").first().alias("unit_raw"), pl.col("subject_raw").first(),
                      pl.col("t_in").min().alias("icu_in_min"), pl.col("t_out").max().alias("icu_out_min"))
                 .drop("_ep"))
+
+    def _return_after_exit(self, eps: pl.DataFrame) -> pl.DataFrame:
+        """C5: minutes from each ICU exit to the next OR/PACU (or other return careunit) or ICU entry."""
+        if not self.has_table("transfers"):
+            return eps.select("unit_raw", pl.lit(None, pl.Float64).alias("return_within_min"))
+        units = set(self.ccfg.get("return_careunits") or []) | set(self.ccfg["icu_careunits"])
+        tr = self._transfers().filter(pl.col("unit").is_in(sorted(units))).select("hadm_raw", "t_in")
+        return (eps.select("unit_raw", "hadm_raw", "icu_out_min").join(tr, on="hadm_raw", how="inner")
+                .filter(pl.col("t_in") >= pl.col("icu_out_min"))
+                .group_by("unit_raw").agg((pl.col("t_in") - pl.col("icu_out_min")).min().alias("return_within_min")))
+
+    def _limitation(self) -> pl.DataFrame:
+        """D12: first timestamped limitation-of-treatment record (Code Status) per hospitalization."""
+        lim = self.src.get("limitation") or {}
+        if not lim or not self.has_table("code_status"):
+            return pl.DataFrame(schema={"hadm_raw": pl.Utf8, "limitation_min": pl.Float64})
+        cs = self.table("code_status", filters={"itemid": [str(i) for i in lim["items"]]})
+        rx = re.compile(lim["value_regex"])
+        vals = [v for v in cs["value"].drop_nulls().unique().to_list() if rx.search(str(v))]
+        return (cs.filter(pl.col("value").is_in(vals))
+                .with_columns(as_id("hadm_id").alias("hadm_raw"), dt_minutes(cs, "charttime").alias("t"))
+                .group_by("hadm_raw").agg(pl.col("t").min().alias("limitation_min")))
 
     # ------------------------------------------------------------------ candidate stays
     def extract_stays(self) -> pl.DataFrame:
@@ -87,13 +156,16 @@ class MimicExtractor(BaseExtractor):
                                dt_minutes(adm, "deathtime").alias("death_raw"),
                                as_str("hospital_expire_flag").alias("expire"),
                                as_str("admittime").str.slice(0, 4).cast(pl.Int32, strict=False).alias("admit_year"))
-        pat = self.table("patients")
+        pat = self.table("patients", extra=self.optional_column_names("patients"))
         pat = pat.with_columns(as_id("subject_id").alias("subject_raw"), as_float("anchor_age").alias("anchor_age"),
-                               as_float("anchor_year").alias("anchor_year"))
+                               as_float("anchor_year").alias("anchor_year"),
+                               (as_str("anchor_year_group") if "anchor_year_group" in pat.columns
+                                else pl.lit(None, pl.Utf8)).alias("year_group"))
         df = (icu.join(adm.drop("subject_id"), on="hadm_raw", how="inner")
-              .join(pat.select("subject_raw", "gender", "anchor_age", "anchor_year"), on="subject_raw", how="left"))
+              .join(pat.select("subject_raw", "gender", "anchor_age", "anchor_year", "year_group"), on="subject_raw",
+                    how="left"))
 
-        # Rule D10: surgical service active at ICU admission, or a surgical procedure on that day or the day before
+        # Service in effect at the ICU admission (descriptive "service_only" count and the v0 rule)
         srv = self.table("services")
         srv = srv.with_columns(as_id("hadm_id").alias("hadm_raw"), dt_minutes(srv, "transfertime").alias("t_srv"),
                                as_str("curr_service").str.to_uppercase().alias("service"))
@@ -103,7 +175,18 @@ class MimicExtractor(BaseExtractor):
                     .filter(pl.col("t_srv") <= pl.col("icu_in_min") + lb)
                     .sort("t_srv").group_by("unit_raw").agg(pl.col("service").last()))
         df = df.join(last_srv, on="unit_raw", how="left")
-        surgical = self.ccfg["surgical_services"]
+
+        # AUDIT D1/D8: OR/PACU transfer ending within or_window_hours before the ICU admission
+        win = float(self.ccfg.get("or_window_hours", 24)) * 60
+        tol = float(self.ccfg.get("or_tolerance_min", 60))
+        ort = self._or_transfers()
+        or_ev = (df.select("unit_raw", "hadm_raw", "icu_in_min").join(ort, on="hadm_raw", how="inner")
+                 .filter((pl.col("t_out") >= pl.col("icu_in_min") - win) & (pl.col("t_out") <= pl.col("icu_in_min") + tol)
+                         & (pl.col("t_in") <= pl.col("icu_in_min") + tol))
+                 .group_by("unit_raw").agg(pl.len().alias("n_or_transfer")))
+        df = df.join(or_ev, on="unit_raw", how="left")
+        hadm_or = ort["hadm_raw"].unique().to_list()
+
         days_before = int(self.ccfg.get("procedure_days_before", 1))
         orp = self._or_procedures()
         day = lambda c: (pl.col(c) / 1440).floor() * 1440  # noqa: E731
@@ -119,10 +202,21 @@ class MimicExtractor(BaseExtractor):
                 .agg(pl.col("code").filter((pl.col("ver") == "10") & pl.col("pcs_ok")).first().alias("pcs_code"),
                      pl.len().alias("n_or")))
         df = df.join(proc, on="unit_raw", how="left")
-        rule = self.ccfg.get("postop_rule", "service_or_procedure")
+        surgical = self.ccfg["surgical_services"]
         by_srv = pl.col("service").is_in(surgical).fill_null(False)
-        by_prc = pl.col("n_or").fill_null(0) > 0
-        postop = {"service": by_srv, "procedure": by_prc, "service_and_procedure": by_srv & by_prc}.get(rule, by_srv | by_prc)
+        by_or = pl.col("n_or_transfer").fill_null(0) > 0
+        # the code fallback applies only to hospitalizations WITHOUT any OR/PACU transfer
+        by_prc = (pl.col("n_or").fill_null(0) > 0) & ~pl.col("hadm_raw").is_in(hadm_or)
+        evidence = (pl.when(by_or).then(pl.lit("or_transfer")).when(by_prc).then(pl.lit("procedure"))
+                    .when(by_srv).then(pl.lit("service_only")).otherwise(pl.lit("none")))
+        rule = self.ccfg.get("postop_rule", "or_evidence")
+        if rule == "service_or_procedure":            # v0 rule, kept only for sensitivity analyses
+            postop = by_srv | (pl.col("n_or").fill_null(0) > 0)
+        else:
+            postop = by_or | by_prc
+        df = df.join(self._return_after_exit(df), on="unit_raw", how="left") \
+            .join(self._limitation(), on="hadm_raw", how="left")
+        lim_ok = pl.col("limitation_min") >= pl.col("hosp_admit_min").fill_null(-float("inf"))
 
         death = pl.when(pl.col("death_raw").is_not_null()).then(pl.col("death_raw")) \
             .when(pl.col("expire") == "1").then(pl.col("hosp_disch_min")).otherwise(None)
@@ -143,6 +237,8 @@ class MimicExtractor(BaseExtractor):
             harmonized_category(pl.col("discharge_location"), hmap["discharge_location"]["mimic"], "other")
             .alias("discharge_location"),
             postop.alias("postop"),
+            evidence.alias("postop_evidence"),
+            pl.when(lim_ok).then(pl.col("limitation_min")).otherwise(None).alias("limitation_min"),
         )
         out = _common_flags(out, self.ccfg)
         return conform(out, STAYS_SCHEMA)
@@ -158,11 +254,23 @@ class MimicExtractor(BaseExtractor):
         hi = pl.min_horizontal(pl.col("hosp_disch_min").fill_null(float("inf")), pl.col("icu_out_min") + self.followup_min)
         inputs, outcomes = [], []
 
-        # Labs (per subject: includes prior outpatient labs, with their date)
+        # Labs (per subject: includes prior outpatient labs, with their date). Blood gases: arterial only (D13).
         lab_specs = variables_for(self.h, "mimic", "labevents")
-        items = sorted({i for s in lab_specs for i in s["items"]})
-        lab = self.table("labevents", filters={"subject_id": subj, "itemid": items})
+        bgs = self.src.get("blood_gas_specimen") or {}
+        items = sorted({i for s in lab_specs for i in s["items"]} | ({str(bgs["item"])} if bgs else set()))
+        lab = self.table("labevents", filters={"subject_id": subj, "itemid": items},
+                         extra=self.optional_column_names("labevents"))
         lab = lab.with_columns(as_id("subject_id").alias("subject_raw"), dt_minutes(lab, "charttime").alias("time_min"))
+        art_only = [s for s in lab_specs if s.get("arterial_only")]
+        if art_only and bgs and {"specimen_id", "value"} <= set(lab.columns):
+            rx = re.compile(bgs["arterial_regex"])
+            typ = lab.filter(as_str("itemid") == str(bgs["item"]))
+            art_vals = [v for v in typ["value"].drop_nulls().unique().to_list() if rx.search(str(v))]
+            art_ids = typ.filter(pl.col("value").is_in(art_vals))["specimen_id"].unique().to_list()
+            art_items = sorted({i for s in art_only for i in s["items"]})
+            lab = lab.filter(~as_str("itemid").is_in(art_items) | pl.col("specimen_id").is_in(art_ids))
+        elif art_only:
+            self.log.warning("MIMIC labevents without specimen_id/value: blood gases NOT restricted to arterial (D13)")
         m = map_measurements(lab, lab_specs, "itemid", "valuenum")
         inputs.append(windowed_join(m.select("subject_raw", "variable", "value", "time_min"), w, "subject_raw",
                                     admit - lookback, hi))
@@ -210,10 +318,15 @@ class MimicExtractor(BaseExtractor):
 
         # Administered medication (eMAR) → ATC by name (inputs and antibiotic course only; no support_vaso)
         if self.has_table("emar"):
-            em = self.table("emar", filters={"hadm_id": hadm})
-            em = em.filter(as_str("event_txt").is_in(self.src["emar_administered_events"]))
-            em = em.with_columns(as_id("hadm_id").alias("hadm_raw"), dt_minutes(em, "charttime").alias("time_min"),
-                                 as_str("medication").alias("drug"))
+            em_all = self.table("emar", filters={"hadm_id": hadm})
+            em_all = em_all.with_columns(as_id("hadm_id").alias("hadm_raw"), dt_minutes(em_all, "charttime").alias("time_min"))
+            # D6: coverage marker = the first eMAR record of the hospitalization (any event)
+            first = em_all.drop_nulls("time_min").group_by("hadm_raw").agg(pl.col("time_min").min())
+            inputs.append(windowed_join(first.select("hadm_raw", pl.lit(MEDICATION_MARKER).alias("variable"),
+                                                     pl.lit(1.0).alias("value"), "time_min"),
+                                        w, "hadm_raw", admit - 30 * 1440, hi))
+            em = em_all.filter(as_str("event_txt").is_in(self.src["emar_administered_events"]))
+            em = em.with_columns(as_str("medication").alias("drug"))
             inputs.append(_drug_rows(em, self.h, w, "hadm_raw", pl.col("icu_in_min") - 1440, hi))
             rx = re.compile(self.src["transfusion_drug_regex"])
             tn = [n for n in em["drug"].drop_nulls().unique().to_list() if rx.search(n)]
@@ -221,15 +334,31 @@ class MimicExtractor(BaseExtractor):
             outcomes.append(t.select("stay_id", pl.lit("transfusion_rbc").alias("component"), "time_min",
                                      pl.lit("minute").alias("precision")))
         else:
-            self.log.warning("MIMIC without eMAR: antibiotics and active medication are not observed")
+            self.log.warning("MIMIC without eMAR: medication is unobservable for every hospitalization (D6)")
 
-        # Outcomes: ICU episodes of the hospitalization (true ICU careunits) and surgeries (day precision)
+        # D5: dialysis procedures of the subject dated before the ICU admission day (chronic / prior RRT)
+        rrt_rx = self.src.get("chronic_rrt_procedure_regex")
+        if rrt_rx:
+            prc = self._procedures().filter(pl.col("subject_raw").is_in(subj) & pl.col("code").str.contains(rrt_rx))
+            mk = prc.select("subject_raw", pl.lit(CHRONIC_RRT_MARKER).alias("variable"), pl.lit(1.0).alias("value"),
+                            pl.col("day_min").alias("time_min"))
+            icu_day = (pl.col("icu_in_min") / 1440).floor() * 1440
+            inputs.append(windowed_join(mk, w, "subject_raw", admit - lookback, icu_day - 1440))
+
+        # Outcomes: ICU episodes of the hospitalization (true ICU careunits) and surgeries
         eps = self._icu_episodes(hadm)
         idx = w.select("stay_id", "hadm_raw")
         outcomes.append(eps.select("hadm_raw", pl.col("icu_in_min").alias("time_min")).join(idx, on="hadm_raw")
                         .select("stay_id", pl.lit("icu_admission").alias("component"), "time_min",
                                 pl.lit("minute").alias("precision")))
-        orp = self._or_procedures().filter(pl.col("hadm_raw").is_in(hadm))
+        # AUDIT D1: reoperation = a later OR/PACU transfer (minute precision); procedure codes (day precision) only
+        # for hospitalizations without any OR/PACU transfer
+        ort = self._or_transfers(hadm)
+        outcomes.append(ort.select("hadm_raw", pl.col("t_in").alias("time_min")).unique().join(idx, on="hadm_raw")
+                        .select("stay_id", pl.lit("surgery").alias("component"), "time_min",
+                                pl.lit("minute").alias("precision")))
+        no_or = [h for h in hadm if h not in set(ort["hadm_raw"].to_list())]
+        orp = self._or_procedures().filter(pl.col("hadm_raw").is_in(no_or))
         outcomes.append(orp.select("hadm_raw", pl.col("day_min").alias("time_min")).unique().join(idx, on="hadm_raw")
                         .select("stay_id", pl.lit("surgery").alias("component"), "time_min",
                                 pl.lit("day").alias("precision")))

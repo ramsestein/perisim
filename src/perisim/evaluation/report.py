@@ -8,7 +8,7 @@ import numpy as np
 import polars as pl
 
 from perisim.evaluation import metrics as M
-from perisim.evaluation.html import box, fig_img, page, table
+from perisim.evaluation.html import box, esc, fig_img, page, table
 from perisim.experiment import ORDINAL, SEVERE
 from perisim.utils import read_json
 
@@ -160,7 +160,8 @@ def aggregate_cv(art_dir: Path, pred_dir: Path, targets: list[str], cfg, tag: st
             continue
         ids = [int(f["fold"]) for f in fj]
         rd = pred_dir / tag / t
-        pred = pl.concat([pl.read_parquet(rd / f"fold{i}_pred.parquet") for i in ids], how="diagonal_relaxed")
+        fold_preds = {i: pl.read_parquet(rd / f"fold{i}_pred.parquet") for i in ids}
+        pred = pl.concat(list(fold_preds.values()), how="diagonal_relaxed")
         p4 = [pl.read_parquet(rd / f"fold{i}_p4.parquet") for i in ids if (rd / f"fold{i}_p4.parquet").exists()]
         p4 = pl.concat([x for x in p4 if x.height], how="diagonal_relaxed") if any(x.height for x in p4) else pl.DataFrame()
         ood = pl.concat([pl.read_parquet(rd / f"fold{i}_ood.parquet") for i in ids])
@@ -186,8 +187,28 @@ def aggregate_cv(art_dir: Path, pred_dir: Path, targets: list[str], cfg, tag: st
                       for f in fj for i in [int(f["fold"])]],
             "importance": imp_disp,
             "weights_mean": _mean_dict([f["perisim"]["weights"] for f in fj]),
+            "per_fold": _per_fold_metrics(fold_preds, {int(f["fold"]): f.get("thresholds") for f in fj}, t, kp),
         }
     return res
+
+
+def _per_fold_metrics(fold_preds: dict[int, pl.DataFrame], thresholds: dict, target: str, kp: int) -> list[dict]:
+    """E10: metrics of each outer fold (primary k and parametric models) next to the pooled ones, with the
+    fold-specific T2/T3 cut-points: pooled calibration mixes folds whose category boundaries differ."""
+    sev = SEVERE[target]
+    rows = []
+    for f, pred in sorted(fold_preds.items()):
+        for (meth, k), g in pred.filter((pl.col("k") == kp) | (pl.col("k") == 0)).group_by(["method", "k"],
+                                                                                          maintain_order=True):
+            if meth == "swift":
+                continue
+            P, y = _probs(g), g["y"].to_numpy()
+            s = M.summary(P, y, ORDINAL[target], sev)
+            cal = s.get("calibration", {}).get(str(sev), {}) if sev is not None else {}
+            rows.append({"fold": f, "method": f"{meth}@{k}" if k else meth, "n": s["n"], "logloss": s["logloss"],
+                         "brier": s["brier"], "rps": s.get("rps"), "auroc_severe": s.get("auroc_severe"),
+                         "cal_slope_severe": cal.get("slope"), "thresholds": thresholds.get(f)})
+    return rows
 
 
 def _mean_dict(ds: list[dict]) -> dict:
@@ -196,23 +217,48 @@ def _mean_dict(ds: list[dict]) -> dict:
 
 
 def _importance_dispersion(fj: list[dict]) -> dict:
-    """Group importance with its dispersion across accepted models (all folds)."""
+    """Consensus SAGE importance PER VARIABLE with its dispersion across accepted models of all folds (E11).
+
+    SAGE groups (correlation clusters) differ between folds, so pooling by group name would mix different sets
+    of variables. Each model's group importance is mapped to the variables of that fold's group with the fold's
+    final within-group split, which gives one comparable value per variable and model."""
     rows: dict[str, list[float]] = {}
     agg: dict[str, list[float]] = {}
     for f in fj:
         loop = f["importance_loop"]
         names = loop["group_names"]
+        gof = loop.get("group_of_feature") or {}
+        imp = f["perisim"].get("feature_importance") or {}
         mm = np.array(loop["model_matrix"]) if loop["model_matrix"] else np.zeros((0, len(names)))
-        for j, g in enumerate(names):
-            rows.setdefault(g, []).extend(mm[:, j].tolist() if mm.size else [])
-            agg.setdefault(g, []).append(loop["group_importance"][g])
+        gi = {g: j for j, g in enumerate(names)}
+        tot: dict[str, float] = {}
+        for v, g in gof.items():
+            tot[g] = tot.get(g, 0.0) + float(imp.get(v, 0.0))
+        size = {g: sum(1 for x in gof.values() if x == g) for g in set(gof.values())}
+        for v, g in gof.items():
+            share = float(imp.get(v, 0.0)) / tot[g] if tot.get(g, 0) > 0 else 1.0 / size[g]
+            rows.setdefault(v, []).extend((mm[:, gi[g]] * share).tolist() if mm.size and g in gi else [])
+            agg.setdefault(v, []).append(float(imp.get(v, 0.0)))
     out = {}
-    for g, vals in rows.items():
+    for name, vals in rows.items():
         v = np.array(vals) if vals else np.array([np.nan])
-        out[g] = {"aggregated_mean": float(np.mean(agg[g])), "models_mean": float(np.nanmean(v)),
-                  "models_sd": float(np.nanstd(v)), "models_p10": float(np.nanpercentile(v, 10)),
-                  "models_p90": float(np.nanpercentile(v, 90)), "n_models": int(np.isfinite(v).sum())}
+        out[name] = {"aggregated_mean": float(np.mean(agg[name])), "models_mean": float(np.nanmean(v)),
+                     "models_sd": float(np.nanstd(v)), "models_p10": float(np.nanpercentile(v, 10)),
+                     "models_p90": float(np.nanpercentile(v, 90)), "n_models": int(np.isfinite(v).sum()),
+                     "n_folds": len(agg[name])}
     return dict(sorted(out.items(), key=lambda kv: -kv[1]["aggregated_mean"]))
+
+
+# §5.6 output structure shown in the report: placeholder values only, never data (E14)
+PATIENT_OUTPUT_SCHEMA = {
+    "patient_id": "<stay identifier>", "t0": "<minutes, cohort clock>",
+    "p_T1": {"none": 0.0, "mild": 0.0, "severe": 0.0}, "p_T2": {"short": 0.0, "medium": 0.0, "long": 0.0},
+    "p_T3": {"early_no_complication": 0.0, "expected_no_complication": 0.0, "prolonged_or_mild": 0.0,
+             "severe_or_death": 0.0},
+    "k": 0, "ood": False, "kth_distance_percentile": 0.0,
+    "neighbors": [{"case_id": "<reference stay identifier>", "distance": 0.0}],
+    "carried_summary": {"icu_readmission": 0.0, "vent_start": 0.0, "death": 0.0, "median_los": 0.0},
+}
 
 
 # --------------------------------------------------------------------------- HTML
@@ -273,9 +319,14 @@ def render_results(res: dict, cfg, title: str) -> str:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    import json
+
     kp = int(cfg.experiment["knn"]["k_primary"])
     sec = [box("Nested patient-level cross-validation (INSPIRE). Aggregated out-of-fold predictions; 95 % CIs by "
-               "patient bootstrap. Aggregates only (§9).")]
+               "patient bootstrap. Aggregates only (§9)."),
+           box("Declared deviation (C6): the smoothing α and the out-of-support threshold are chosen by patient-level "
+               "leave-one-out on the training fold (not on inner folds); with large categories the optimism is "
+               "negligible. Pooled metrics mix folds with their own T2/T3 cut-points: see the per-fold table.", "note")]
     for t, r in res["targets"].items():
         ev = r["evaluation"]
         sec.append(f"<h2>{t.upper()}</h2>")
@@ -326,11 +377,20 @@ def render_results(res: dict, cfg, title: str) -> str:
                          [[f["fold"], f["n_train"], f["n_test"], f["m"], f["lambda"], f["n_accepted"], f["n_attempts"],
                            f["stop_reason"], f["plateau"], f["plateau_above_tol"], f["ood_rate_test"], f["seconds"]]
                           for f in r["folds"]], nd=4))
+        if r.get("per_fold"):
+            sec.append("<h3>Per-fold metrics (primary k and parametric models) and cut-points (E10)</h3>")
+            sec.append(table(["Fold", "Method", "n", "Log-loss", "Brier", "RPS", "AUROC severe", "Cal. slope severe",
+                              "T2/T3 cut-points (days)"],
+                             [[x["fold"], x["method"], x["n"], x["logloss"], x["brier"], x["rps"], x["auroc_severe"],
+                               x["cal_slope_severe"],
+                               "; ".join(f"{k}: " + " / ".join(f"{v:.2f}" for v in vals)
+                                         for k, vals in (x["thresholds"] or {}).items())]
+                              for x in r["per_fold"]], nd=4))
         imp = list(r["importance"].items())[:30]
-        sec.append("<h3>Consensus SAGE importance (groups) and dispersion across models</h3>")
-        sec.append(table(["Group", "aggregated", "model mean", "SD", "p10", "p90", "n models"],
+        sec.append("<h3>Consensus SAGE importance per variable and dispersion across models (E11)</h3>")
+        sec.append(table(["Variable", "aggregated", "model mean", "SD", "p10", "p90", "n models", "n folds"],
                          [[g, v["aggregated_mean"], v["models_mean"], v["models_sd"], v["models_p10"], v["models_p90"],
-                           v["n_models"]] for g, v in imp], nd=4))
+                           v["n_models"], v.get("n_folds")] for g, v in imp], nd=4))
         if r["p4"]:
             rows = []
             for var, d in r["p4"].items():
@@ -338,4 +398,8 @@ def render_results(res: dict, cfg, title: str) -> str:
                     rows.append([var, meth, v.get("logloss"), v.get("brier"), v.get("mae_days"), v.get("prevalence"), v["n"]])
             sec.append("<h3>Q4: future variables carried by the neighborhood (primary k)</h3>")
             sec.append(table(["Variable", "Method", "Log-loss", "Brier", "MAE days", "Prevalence", "n"], rows))
+    sec.append("<h2>Per-patient output (§5.6)</h2>")
+    sec.append(box("Written inside the pod for every test-fold query under predictions/&lt;variant&gt;/cv/patient_output/ "
+                   "(never exported). Structure, with placeholder values only:", "note"))
+    sec.append("<pre>" + esc(json.dumps(PATIENT_OUTPUT_SCHEMA, indent=2)) + "</pre>")
     return page(title, sec, "PERISIM · TRIPOD+AI · aggregates only")

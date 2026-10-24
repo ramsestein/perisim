@@ -1,11 +1,15 @@
-"""Diagonal NCA regularized towards the SAGE prior (§5.4), in PyTorch on CPU.
+"""Diagonal NCA regularized towards the SAGE prior (§5.4, amended 2026-10-22), in PyTorch on CPU.
 
-L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log c − log(imp_j + ε₀))²
+log w_j = log c + log(p_j + ε₀) + u_j
+L(w) = LogLoss_LOO_softkNN(w) + λ · (1/G) Σ_g (log Σ_{j∈g} (p_j + ε₀) e^{u_j} − log Σ_{j∈g} (p_j + ε₀))²
 
+- p_j is the prior split of the SAGE group importance imp_g over its variables; the penalty acts on the group
+  TOTALS (Σ_{j∈g} w_j / c against imp_g), so the NCA itself splits the weight within a group (AUDIT B4).
+- c is a free, unpenalized global scale (the bandwidth): the prior regularizes the importance PROFILE only, and
+  the reparameterization lets c move freely at any λ (AUDIT B2). The penalty is a mean over groups, so λ has the
+  same meaning whatever the number of variables.
 - Softmax kernel over −d² between each anchor and its candidates (excluding the case itself and its patient).
 - The metric is learned WITHOUT k: the bandwidth is absorbed into the scale of w.
-- c is a free (unpenalized) global scale: the prior regularizes the importance PROFILE, not the bandwidth
-  (interpretation recorded in DECISIONS.md / OPEN_QUESTIONS.md).
 - Minibatches of anchors with candidates precomputed by exact search (FAISS) with the current weights,
   recomputed every `refresh_every` epochs. The number of candidates is computational, not a prediction k.
 - Modes: "nca" (free w), "power" (w = a·imp^γ, comparator §5.4), "scale" (w = a·w_base, scale only).
@@ -76,6 +80,8 @@ class DiagonalNCA:
 
     def _logw(self, params: dict, mode: str, log_prior: torch.Tensor | None, log_base: torch.Tensor | None):
         if mode == "nca":
+            if "u" in params:
+                return params["logc"] + log_prior + params["u"]
             return params["logw"]
         if mode == "power":
             return params["loga"] + params["gamma"] * log_prior
@@ -86,7 +92,9 @@ class DiagonalNCA:
     # ------------------------------------------------------------------ fitting
     def fit(self, E: np.ndarray, y: np.ndarray, *, prior: np.ndarray | None = None, lam: float = 0.0,
             epochs: int = 30, init_logw: np.ndarray | None = None, subjects: np.ndarray | None = None,
-            mode: str = "nca", base_w: np.ndarray | None = None) -> "DiagonalNCA":
+            mode: str = "nca", base_w: np.ndarray | None = None, groups: np.ndarray | None = None) -> "DiagonalNCA":
+        """`prior` = per-variable prior split p_j; `groups` = SAGE group of each variable (None: one group per
+        variable). With a prior, mode "nca" uses the (c, u) parameterization above; without one, free log w."""
         n = E.shape[0]
         Et = torch.from_numpy(np.ascontiguousarray(E, dtype=np.float32))
         E2 = Et * Et
@@ -103,10 +111,18 @@ class DiagonalNCA:
             start = np.log(p / p.sum() * INIT_TOTAL_WEIGHT)
         else:
             start = self.logw
-        if mode == "nca":
+        gidx = G = None
+        if mode == "nca" and log_prior is not None:
+            g = np.arange(self.F) if groups is None else np.unique(np.asarray(groups), return_inverse=True)[1]
+            gidx, G = torch.as_tensor(g, dtype=torch.long), int(g.max()) + 1 if len(g) else 0
+            pe = torch.exp(log_prior)
+            log_tot = torch.log(torch.zeros(G).index_add_(0, gidx, pe))
+            logc0 = float(np.log(INIT_TOTAL_WEIGHT / float(pe.sum())))
+            u0 = np.zeros(self.F) if init_logw is None else np.asarray(init_logw) - logc0 - log_prior.numpy()
+            params = {"logc": torch.tensor(logc0, requires_grad=True),
+                      "u": torch.tensor(u0, dtype=torch.float32, requires_grad=True)}
+        elif mode == "nca":
             params = {"logw": torch.tensor(start, dtype=torch.float32, requires_grad=True)}
-            if log_prior is not None and lam > 0:
-                params["logc"] = torch.tensor(float(np.mean(start - log_prior.numpy())), requires_grad=True)
         elif mode == "power":
             params = {"loga": torch.tensor(float(np.log(INIT_TOTAL_WEIGHT)), requires_grad=True),
                       "gamma": torch.tensor(1.0, requires_grad=True)}
@@ -127,15 +143,18 @@ class DiagonalNCA:
                 a = torch.as_tensor(order[s:s + self.batch_size])
                 logw_t = self._logw(params, mode, log_prior, log_base)
                 loss = self._batch_loss(Et, E2, yt, prior_y, a, cand_t[a], valid_t[a], logw_t)
-                if mode == "nca" and log_prior is not None and lam > 0:
-                    loss = loss + lam * torch.sum((params["logw"] - params["logc"] - log_prior) ** 2)
+                if gidx is not None and lam > 0:
+                    tot_g = torch.zeros(G).index_add_(0, gidx, torch.exp(log_prior + params["u"]))
+                    loss = loss + lam * torch.mean((torch.log(tot_g) - log_tot) ** 2)
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
                 with torch.no_grad():  # numerical stability
-                    for k in ("logw", "loga"):
+                    for k in ("logw", "loga", "logc"):
                         if k in params:
                             params[k].clamp_(-20.0, 12.0)
+                    if "u" in params:
+                        params["u"].clamp_(-25.0, 25.0)
                 tot += float(loss.detach()) * len(a)
             self.history.append(tot / n)
         with torch.no_grad():

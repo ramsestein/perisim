@@ -7,7 +7,10 @@ common:
   icu_death_tolerance_min: 60    # death ≤ ICU discharge + tolerance ⇒ death in the ICU
   discharge_tolerance_min: 60    # hospital discharge ≤ ICU discharge + tolerance ⇒ direct discharge from the ICU (excluded)
   exclude_organ_donors: true
-  exclude_known_limitation: true # only if the cohort records it [VERIFY availability]
+  exclude_known_limitation: true # timestamped records ≤ cutoff (MIMIC-IV Code Status, eICU carePlanGeneral) — D12
+  # t0 must be a discharge to the ward (AUDIT C5): stays followed within N h by an OR / PACU / IR / ICU entry are
+  # excluded (MIMIC-IV: hosp.transfers; INSPIRE: next operation start; eICU: next unit stay of the hospitalization)
+  return_exclusion_hours: 6
 
 inspire:
   role: development
@@ -17,10 +20,23 @@ inspire:
 
 mimic:
   role: external_full
-  postop_rule: service_or_procedure     # D10 [VERIFY rule]
-  service_lookback_min: 60              # service in effect at intime + 60 min
+  # Surgery = timestamped operating-room evidence (AUDIT D1/D8, decided 2026-10-22): an OR/PACU transfer in
+  # hosp.transfers ending within `or_window_hours` before the ICU admission. Hospitalizations WITHOUT any OR/PACU
+  # transfer fall back to a "major therapeutic" procedure code on the ICU admission day or the day before (HCUP
+  # procedure classes if `hcup_pclass_files` are provided, otherwise the approximation below). A surgical service
+  # alone no longer qualifies (it is only counted as "service_only" in the flow).
+  postop_rule: or_evidence              # or_evidence | service_or_procedure (v0, sensitivity only)
+  or_careunits: ["PACU"]                # [VERIFY values in schema_mimic.md]
+  or_window_hours: 24
+  or_tolerance_min: 60                  # OR/PACU exit may be recorded up to this long after the ICU admission
+  service_lookback_min: 60              # service in effect at intime + 60 min (descriptive / v0 rule)
   surgical_services: [CSURG, NSURG, ORTHO, PSURG, SURG, TSURG, VSURG, GU, GYN, ENT, TRAUM, DENT]
-  procedure_days_before: 1              # procedure on the ICU admission date or the day before
+  procedure_days_before: 1              # fallback: procedure on the ICU admission date or the day before
+  # Optional HCUP Procedure Classes (class 4 = major therapeutic), CSV paths relative to the repository root with
+  # columns code,class. Not shipped: until provided, the fallback uses the approximation below (declared).
+  hcup_pclass_files: {icd9: null, icd10: null}
+  # C5: careunits that count as a return to the OR / IR after the ICU exit (ICU careunits always count)
+  return_careunits: ["PACU"]
   # True ICU careunits of hosp.transfers (step-down / intermediate units are NOT ICU) — AUDIT D3 [VERIFY values]
   icu_careunits:
     - "Medical Intensive Care Unit (MICU)"
@@ -37,7 +53,13 @@ mimic:
   or_icd10_exclude_root_operations: ["2"]
   # ICD-9-CM: chapters 01–86, excluding frequent non-surgical prefixes [VERIFY]
   or_icd9_range: [1, 86]
-  or_icd9_exclude_prefixes: ["389", "3995", "3891", "3893", "3324", "4513", "4516"]
+  # Bedside / diagnostic procedures excluded from the approximation (AUDIT D1): vascular and dialysis catheters,
+  # haemodialysis, bronchoscopy, laryngoscopy, EGD/colonoscopy, PEG, chest tube, thoracentesis, paracentesis,
+  # lumbar puncture / spinal catheters, urinary catheter, diagnostic cardiac catheterization, temporary
+  # tracheostomy, percutaneous biopsies [VERIFY]
+  or_icd9_exclude_prefixes: ["389", "3995", "3891", "3893", "3895", "3321", "3322", "3323", "3324", "3142", "4513",
+                             "4516", "4523", "4525", "4413", "4311", "3404", "3491", "5491", "0331", "0390", "0391",
+                             "0392", "5794", "3721", "3722", "3723", "311", "4131", "5011", "5523"]
   emergency_admission_types: ["EW EMER.", "URGENT", "DIRECT EMER.", "EMERGENCY"]
 
 eicu:

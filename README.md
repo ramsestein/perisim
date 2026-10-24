@@ -2,7 +2,8 @@
 
 kNN with a learned distance metric (SAGE aggregated across many models + regularised diagonal NCA)
 for postoperative patients at ICU discharge. Development in INSPIRE, external validation in MIMIC-IV and eICU.
-The full specification is in [SPECS.md](SPECS.md).
+The full specification is in [SPECS.md](SPECS.md) (v0.4: the lead's decisions of 2026-10-22 are marked
+**[v0.4]** and recorded in [docs/DECISIONS.md](docs/DECISIONS.md)).
 
 > **Public repository.** Code and configuration only: never data, outputs or secrets. Before every
 > `git push`: `python scripts/check_public_safety.py --all` (the `.githooks/pre-commit` hook runs it too).
@@ -68,13 +69,13 @@ env → discover → extract → targets → features → leakage → audit ⛔ 
 | `extract` | `common/<cohort>/`: `stays`, `inputs_long`, `outcomes` and flow diagram (§8.3) | — |
 | `targets`, `features` | `derived/…`: T1/T2/T3, carried variables and inputs with the t0 − 2 h cutoff | — |
 | `leakage` | row-by-row test that no input exceeds the cutoff, plus pytest | **stops** if there is leakage (§4.4) |
-| `audit` | `reports/completeness_<cohort>.html` (§7) | **stops** if any T1 component has prevalence < 0.5% or missingness > 30% |
+| `audit` | `reports/completeness_<cohort>.html` (§7), incl. INSPIRE readmission sources, chronic RRT, medication coverage by period and MIMIC-IV surgical evidence | **stops** if any T1 component has prevalence < 0.5% or missingness > 30% |
 | `harmonize` | `core` / `extended` / `full` input sets | **stops** if any cohort is not mounted |
 | `pilot` | `reports/pilot.html`: times, memory and estimated cost; fixes D7 with a declared rule | — |
-| `cv` | nested 5 × 3 patient-level CV, PERISIM + 10 comparators, k ∈ {10…200} | — |
-| `report` | `reports/results_main.html` (TRIPOD+AI) | — |
+| `cv` | nested 5 × 3 patient-level CV, PERISIM + 10 comparators, k ∈ {10…200} (λ chosen with SAGE recomputed per inner fold) | — |
+| `report` | `reports/results_main.html` (TRIPOD+AI, pooled and per-fold metrics); §5.6 per-patient records in `predictions/` | — |
 | `sensitivity` | variants in `experiment.yaml: sensitivity` | — |
-| `external` | modes A and B in MIMIC-IV and eICU (§6.2) | **waits** for `freeze` (§6.3) |
+| `external` | modes A and B in MIMIC-IV and eICU (§6.2); T2/T3 with cross-fitted tertiles and absolute categories | **waits** for `freeze` (§6.3) |
 | `export` | `export/`: aggregates only, with a manifest and an identifier scan | — |
 
 The three cohorts are extracted in parallel, the sensitivity variants share a single job queue, and the final

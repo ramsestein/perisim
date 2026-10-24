@@ -3,6 +3,11 @@
 Only inputs_long rows with timestamp ≤ cutoff (t0 − margin) are used. Intervals (supports, medication
 orders) are clipped at the cutoff. For each row of the matrix the maximum timestamp actually used is stored
 (`feature_provenance`), which the test compares with the cutoff.
+
+Binary event families (diagnoses, medication, supports) are explicit 0 where the source is observed and null
+where it is not: in cohorts with medication coverage markers (D6) a stay without any medication record up to the
+cutoff has every med_* input null (unobservable), never 0. Feature availability is therefore the share of stays
+where the source is observed, not the prevalence (AUDIT C10).
 """
 
 from __future__ import annotations
@@ -17,6 +22,8 @@ from perisim.timeline import merge_runs
 
 SLOPE_VITALS = ("hr", "map", "rr", "spo2", "temp")
 SUPPORTS = ("vent", "vaso", "rrt")
+MEDICATION_MARKER = "src:medication"
+BINARY_EVENT_PREFIXES = ("med_", "dx_", "used_")
 
 
 @dataclass
@@ -146,6 +153,17 @@ def build_features(stays: pl.DataFrame, inputs: pl.DataFrame, cfg, cohort: str
     keep = ["stay_id"] + [sp.name for sp in specs]
     X = X.select(keep)
     # columns that are entirely empty in this cohort are kept (availability is measured later)
+    tracked = (cfg.harmonization["sources"].get(cohort, {}) or {}).get("medication_coverage") == "tracked"
+    med_obs = L.filter(pl.col("variable") == MEDICATION_MARKER)["stay_id"].unique().to_list() if tracked else None
+    fill = []
+    for c in X.columns:
+        if c.startswith(BINARY_EVENT_PREFIXES):
+            e = pl.col(c).fill_null(0.0)
+            if med_obs is not None and c.startswith("med_"):
+                e = pl.when(pl.col("stay_id").is_in(med_obs)).then(e).otherwise(None)
+            fill.append(e.alias(c))
+    if fill:
+        X = X.with_columns(fill)
 
     # --- temporal provenance per stay
     static_t = s.select("stay_id", pl.max_horizontal(

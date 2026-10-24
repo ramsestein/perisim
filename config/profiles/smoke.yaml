@@ -14,8 +14,6 @@ experiment:
     augment_copies: 1
     stopping: {W: 2, P: 2, n_min: 3, n_max: 6, min_delta: auto, tol_delta: 0.01, max_attempts_factor: 3}
     n_reference_pairs: 2000
-    nca_epochs_per_iter: 1
-    candidate_refresh_every: 2
     sage: {batch_size: 128, max_passes: 1, convergence_threshold: 0.05}
   metric:
     vdm_m_grid: [1, 20]
@@ -45,6 +43,7 @@ model_space:
     mlp: {params: {epochs: {int: [2, 4]}}}
   baselines:
     lgbm: {n_estimators: 50}
+    lgbm_grid: {num_leaves: [7, 15], learning_rate: [0.1], max_estimators: 80, early_stopping_rounds: 10}
     rf: {n_estimators: 30}
     rf_gap: {n_estimators: 20}
     relieff: {n_samples: 300, n_neighbors: 5}

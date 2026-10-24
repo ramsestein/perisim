@@ -45,9 +45,13 @@ def _latent(n: int, rng: np.random.Generator) -> dict:
     comp_l = rng.choice(["aki12", "antibiotic", "transfusion"], size=n)
     los = np.clip(np.exp(rng.normal(np.log(5) + 0.35 * z, 0.5, n)), 0.6, 45)
     status = np.where(rng.random(n) < 0.02, "icu_death", np.where(rng.random(n) < 0.02, "home_from_icu", "ward"))
+    chronic = rng.random(n) < 0.04                              # chronic dialysis (D5)
+    creat = np.exp(rng.normal(0, 0.35, n)) * (1 + 0.25 * (z > 0))
+    creat[chronic] *= 5.5
     return dict(age=age, sex=sex, asa=asa, emerg=emerg, vent=vent, vaso=vaso, z=z, icu_h=icu_h, severe=severe, mild=mild,
-                comp_g=comp_g, comp_l=comp_l, los=los, status=status,
-                creat=np.exp(rng.normal(0, 0.35, n)) * (1 + 0.25 * (z > 0)),
+                comp_g=comp_g, comp_l=comp_l, los=los, status=status, chronic=chronic,
+                early_return=rng.random(n) < 0.02,                  # back to the OR within 6 h of the ICU exit (C5)
+                creat=creat,
                 lact=np.clip(1.0 + 0.7 * np.maximum(z, 0) + rng.normal(0, 0.4, n), 0.3, 15),
                 hb=np.clip(rng.normal(11 - 0.5 * np.maximum(z, 0), 1.4, n), 6, 17),
                 group=rng.choice(["GS", "OS", "NS", "TS", "CS", "UR"], size=n),
@@ -101,6 +105,21 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
                         opstart_time=op_s, opend_time=op_e, admission_time=adm, discharge_time=disch,
                         icuin_time=icu_in if has_icu else None, icuout_time=icu_out if has_icu else None,
                         inhosp_death_time=death))
+        if L["early_return"][i] and has_icu:      # C5: another operation starts 2 h after the ICU exit
+            op_id += 1
+            ops.append(dict(op_id=op_id, subject_id=sid, hadm_id=hid, age=round(L["age"][i] / 5) * 5,
+                            sex="M" if L["sex"][i] else "F", weight=None, height=None, asa=int(L["asa"][i]), emop=1,
+                            department=L["group"][i], antype="General", icd10_pcs="0W9G0", opstart_time=icu_out + 120,
+                            opend_time=icu_out + 180, admission_time=adm, discharge_time=disch,
+                            icuin_time=None, icuout_time=None, inhosp_death_time=death))
+        if L["chronic"][i]:                         # D5: haemodialysis before the surgery and on the ward, ESRD code
+            for t in (op_s - 2 * 1440, op_s - 1440):
+                for h in range(0, 240, 60):
+                    wv.append((sid, float(t + h), "hd", 1.0))
+            for t in np.arange(icu_out + 1440, disch, 2 * 1440):
+                for h in range(0, 240, 60):
+                    wv.append((sid, float(t + h), "hd", 1.0))
+            dx.append((sid, adm + 15, "N18.6"))
         if g and c in ("reop", "readmission"):
             r_s = icu_out + rng.uniform(1, 0.6 * (disch - icu_out) / 1440 + 1) * 1440
             r_s = min(r_s, disch - 300)
@@ -181,13 +200,22 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
     adm_r, pat, icu, srv, prc, lab, ch, inp, pev, emar = [], [], [], [], [], [], [], [], [], []
     stay = 30000000
     trf, tid = [], 40000000
-    ICU_UNIT, STEP_UNIT, WARD = "Surgical Intensive Care Unit (SICU)", "Neuro Stepdown", "Med/Surg"
+    spec = [70000000]
+    ICU_UNIT, STEP_UNIT, WARD, PACU = "Surgical Intensive Care Unit (SICU)", "Neuro Stepdown", "Med/Surg", "PACU"
+
+    def _lab(sid, hid, it, t, v):
+        spec[0] += 1
+        lab.append((sid, hid, spec[0], it, t, v, f"{v:.2f}"))
+        if it in (50820, 50818, 50821):            # blood gas: specimen type row (AUDIT D13)
+            lab.append((sid, hid, spec[0], 52033, t, None, "ART." if rng.random() < 0.85 else "VEN."))
     srv_map = {"GS": "SURG", "OS": "ORTHO", "NS": "NSURG", "TS": "TSURG", "CS": "CSURG", "UR": "GU"}
     for i in range(n):
         sid, hid = 10000000 + i, 20000000 + i
         base = dt.datetime(2150, 1, 1) + dt.timedelta(days=int(rng.integers(0, 15000)))
         anchor_year = base.year - int(rng.integers(0, 3))
-        pat.append((sid, "M" if L["sex"][i] else "F", int(L["age"][i]), anchor_year))
+        early = rng.random() < 0.2                  # early period without eMAR (D6)
+        pat.append((sid, "M" if L["sex"][i] else "F", int(L["age"][i]), anchor_year,
+                    "2008 - 2010" if early else "2017 - 2019"))
         op_s = rng.uniform(300, 3000)
         icu_in = op_s + rng.uniform(120, 420)
         icu_out = icu_in + L["icu_h"][i] * 60
@@ -213,46 +241,70 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
         # ~10 % of stays continue in a step-down unit: MIMIC's icustays merges it, transfers does not (AUDIT D3)
         step = rng.random() < 0.10
         icu.append((sid, hid, stay, _ts(base, icu_in), _ts(base, icu_out + (600 if step else 0)), "SICU"))
+        # AUDIT D1/D8: OR evidence = PACU transfer before the ICU; cardiac surgery goes OR → ICU (code fallback);
+        # some surgical-service stays have neither (service only → not postoperative)
+        cardiac = L["group"][i] == "CS"
+        pacu = (not medical) and (not cardiac) and rng.random() < 0.92
+        service_only = (not medical) and (not cardiac) and not pacu
         tid += 1
-        trf.append((sid, hid, tid, "admit", WARD, _ts(base, 0), _ts(base, icu_in)))
+        trf.append((sid, hid, tid, "admit", WARD, _ts(base, 0), _ts(base, op_s if pacu else icu_in)))
+        if pacu:
+            tid += 1
+            trf.append((sid, hid, tid, "transfer", PACU, _ts(base, op_s + 60), _ts(base, icu_in)))
         tid += 1
         trf.append((sid, hid, tid, "transfer", ICU_UNIT, _ts(base, icu_in), _ts(base, icu_out)))
+        if L["early_return"][i] and pacu:            # C5: back to the OR (PACU) 2 h after the ICU exit
+            tid += 1
+            trf.append((sid, hid, tid, "transfer", PACU, _ts(base, icu_out + 120), _ts(base, icu_out + 240)))
         if step:
             tid += 1
             trf.append((sid, hid, tid, "transfer", STEP_UNIT, _ts(base, icu_out), _ts(base, icu_out + 600)))
         tid += 1
         trf.append((sid, hid, tid, "transfer", WARD, _ts(base, icu_out + (600 if step else 0)), _ts(base, disch)))
         srv.append((sid, hid, _ts(base, 0), "MED" if medical else srv_map[L["group"][i]]))
-        if not medical:
-            prc.append((sid, hid, 1, _ts(base, op_s)[:10], "0DTJ0ZZ", 10))
+        if not medical and not service_only:
+            prc.append((sid, hid, 1, _ts(base, op_s)[:10], "02100Z9" if cardiac else "0DTJ0ZZ", 10))
+        if L["chronic"][i]:                          # D5: dialysis coded in an earlier hospitalization
+            prc.append((sid, hid + 5000000, 1, _ts(base, -20 * 1440)[:10], "3995", 9))
         if g and c in ("reop", "readmission"):
             r = icu_out + rng.uniform(1.5, 4) * 1440
             r = min(r, disch - 600)
             prc.append((sid, hid, 2, _ts(base, r)[:10], "0DQ80ZZ", 10))
+            if pacu:                                 # reoperation seen as a later PACU transfer (minute precision)
+                tid += 1
+                trf.append((sid, hid, tid, "transfer", PACU, _ts(base, r - 30), _ts(base, r + 30)))
             if c == "readmission":
                 stay += 1
                 icu.append((sid, hid, stay, _ts(base, r + 60), _ts(base, r + 1500), "SICU"))
                 tid += 1
                 trf.append((sid, hid, tid, "transfer", ICU_UNIT, _ts(base, r + 60), _ts(base, r + 1500)))
         for name, it in LAB_ITEMS.items():
-            lab.append((sid, hid, it, _ts(base, 30), _lab_value(name, L, i, rng)))
+            _lab(sid, hid, it, _ts(base, 30), _lab_value(name, L, i, rng))
             for t in np.arange(icu_in + 120, icu_out - 60, 720):
-                lab.append((sid, hid, it, _ts(base, t), _lab_value(name, L, i, rng)))
+                _lab(sid, hid, it, _ts(base, t), _lab_value(name, L, i, rng))
         aki = (g and c == "aki3") or ((not g) and L["mild"][i] and L["comp_l"][i] == "aki12")
         ratio = 3.2 if (g and c == "aki3") else 1.7
         for d in range(1, int(min(L["los"][i], 12))):
             if rng.random() < 0.8:
                 drift = (ratio - 1) * min(d / 2, 1) if aki else rng.normal(0, 0.05)
-                lab.append((sid, hid, 50912, _ts(base, icu_out + d * 1440), float(L["creat"][i] * (1 + drift))))
+                _lab(sid, hid, 50912, _ts(base, icu_out + d * 1440), float(L["creat"][i] * (1 + drift)))
         for t in np.arange(icu_in, icu_out, 120.0):
             for k_, it in CHART_ITEMS.items():
                 b = VITALS[k_]
                 v = b + rng.normal(0, 0.05 * b) + (8 * L["z"][i] if k_ == "hr" else 0)
-                ch.append((sid, hid, idx_stay, it, _ts(base, t), float(min(v, 100) if k_ in ("spo2", "fio2") else v)))
+                v = float(min(v, 100) if k_ in ("spo2", "fio2") else v)
+                ch.append((sid, hid, idx_stay, it, _ts(base, t), v, f"{v:.1f}"))
             for it, v in ((220739, 4), (223900, 5), (223901, 6)):
-                ch.append((sid, hid, idx_stay, it, _ts(base, t), float(v)))
-        ch.append((sid, hid, idx_stay, 226512, _ts(base, icu_in + 10), float(rng.normal(80, 15))))
-        ch.append((sid, hid, idx_stay, 226730, _ts(base, icu_in + 10), float(rng.normal(170, 9))))
+                ch.append((sid, hid, idx_stay, it, _ts(base, t), float(v), str(v)))
+        w_, h_ = float(rng.normal(80, 15)), float(rng.normal(170, 9))
+        ch.append((sid, hid, idx_stay, 226512, _ts(base, icu_in + 10), w_, f"{w_:.1f}"))
+        ch.append((sid, hid, idx_stay, 226730, _ts(base, icu_in + 10), h_, f"{h_:.1f}"))
+        # D12: Code Status (text); DNR before the cutoff in ~3 %, after t0 in ~3 % (not an exclusion)
+        u = rng.random()
+        status = "DNR / DNI" if u < 0.03 else "Full code"
+        ch.append((sid, hid, idx_stay, 223758, _ts(base, icu_in + 30), None, status))
+        if 0.03 <= u < 0.06:
+            ch.append((sid, hid, idx_stay, 223758, _ts(base, icu_out + 600), None, "Comfort measures only"))
         if L["vent"][i]:
             pev.append((sid, hid, idx_stay, 225792, _ts(base, icu_in), _ts(base, icu_in + 0.5 * L["icu_h"][i] * 60)))
         if L["vaso"][i]:
@@ -263,6 +315,8 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
         if g and c == "vaso":
             s0 = icu_out + 1.5 * 1440
             inp.append((sid, hid, idx_stay, 221906, _ts(base, s0), _ts(base, s0 + 300)))
+        if early:                                    # D6: no eMAR in the early period
+            continue
         emar.append((sid, hid, _ts(base, op_s), "CeFAZolin", "Administered"))
         for t in np.arange(icu_in, icu_out, 720.0):
             emar.append((sid, hid, _ts(base, t), "Pantoprazole", "Administered"))
@@ -277,14 +331,16 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
     S = lambda rows, cols: pl.DataFrame(rows, schema=cols, orient="row")  # noqa: E731
     _w(S(adm_r, ["subject_id", "hadm_id", "admittime", "dischtime", "deathtime", "admission_type", "admission_location",
                  "discharge_location", "hospital_expire_flag"]), d / "hosp" / "admissions.csv.gz")
-    _w(S(pat, ["subject_id", "gender", "anchor_age", "anchor_year"]), d / "hosp" / "patients.csv.gz")
+    _w(S(pat, ["subject_id", "gender", "anchor_age", "anchor_year", "anchor_year_group"]), d / "hosp" / "patients.csv.gz")
     _w(S(icu, ["subject_id", "hadm_id", "stay_id", "intime", "outtime", "first_careunit"]), d / "icu" / "icustays.csv.gz")
     _w(S(srv, ["subject_id", "hadm_id", "transfertime", "curr_service"]), d / "hosp" / "services.csv.gz")
     _w(S(trf, ["subject_id", "hadm_id", "transfer_id", "eventtype", "careunit", "intime", "outtime"]),
        d / "hosp" / "transfers.csv.gz")
     _w(S(prc, ["subject_id", "hadm_id", "seq_num", "chartdate", "icd_code", "icd_version"]), d / "hosp" / "procedures_icd.csv.gz")
-    _w(S(lab, ["subject_id", "hadm_id", "itemid", "charttime", "valuenum"]), d / "hosp" / "labevents.csv.gz")
-    _w(S(ch, ["subject_id", "hadm_id", "stay_id", "itemid", "charttime", "valuenum"]), d / "icu" / "chartevents.csv.gz")
+    _w(pl.DataFrame(lab, schema=["subject_id", "hadm_id", "specimen_id", "itemid", "charttime", "valuenum", "value"],
+                    orient="row", infer_schema_length=None), d / "hosp" / "labevents.csv.gz")
+    _w(pl.DataFrame(ch, schema=["subject_id", "hadm_id", "stay_id", "itemid", "charttime", "valuenum", "value"],
+                    orient="row", infer_schema_length=None), d / "icu" / "chartevents.csv.gz")
     _w(S(inp, ["subject_id", "hadm_id", "stay_id", "itemid", "starttime", "endtime"]), d / "icu" / "inputevents.csv.gz")
     _w(S(pev, ["subject_id", "hadm_id", "stay_id", "itemid", "starttime", "endtime"]), d / "icu" / "procedureevents.csv.gz")
     _w(S(emar, ["subject_id", "hadm_id", "charttime", "medication", "event_txt"]), d / "hosp" / "emar.csv.gz")
@@ -296,15 +352,16 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
              (221289, "Epinephrine"), (221749, "Phenylephrine"), (222315, "Vasopressin"), (221662, "Dopamine"),
              (225802, "Dialysis - CRRT"), (225803, "Dialysis - CVVHD"), (225805, "Peritoneal Dialysis"),
              (225809, "Dialysis - CVVHDF"), (225955, "Dialysis - SCUF"), (225441, "Hemodialysis"),
-             (225168, "Packed Red Blood Cells")]
+             (225168, "Packed Red Blood Cells"), (223758, "Code Status")]
     _w(S(items, ["itemid", "label"]), d / "icu" / "d_items.csv.gz")
-    _w(S([(v, k) for k, v in LAB_ITEMS.items()] + [(51300, "WBC Count")], ["itemid", "label"]), d / "hosp" / "d_labitems.csv.gz")
+    _w(S([(v, k) for k, v in LAB_ITEMS.items()] + [(51300, "WBC Count"), (52033, "Specimen Type")], ["itemid", "label"]),
+       d / "hosp" / "d_labitems.csv.gz")
 
 
 # ============================================================================ eICU
 def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
     L = _latent(n, rng)
-    pat, adx, apr, apv, lab, vp, va, rc, nc, inf, rcare, trt, med, dxr = ([] for _ in range(14))
+    pat, adx, apr, apv, lab, vp, va, rc, nc, inf, rcare, trt, med, dxr, cpl = ([] for _ in range(15))
     uid = 100000
     elabs = {"creatinine": "creatinine", "hb": "Hgb", "wbc": "WBC x 1000", "platelet": "platelets x 1000",
              "lactate": "lactate", "total_bilirubin": "total bilirubin", "albumin": "albumin", "ph": "pH",
@@ -357,8 +414,15 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
         if L["vent"][i]:
             rcare.append((u0, 1.0, float(0.5 * icu_los)))
         trt.append((u0, 30.0, "gastrointestinal|medications|stress ulcer prophylaxis|pantoprazole"))
-        med.append((u0, 10.0, icu_los, "CEFAZOLIN 1 GM", "No"))
-        med.append((u0, 10.0, icu_los, "PANTOPRAZOLE 40 MG", "No"))
+        if rng.random() < 0.9:                       # ~10 % of units without medication records (D6 rule)
+            med.append((u0, 10.0, icu_los, "CEFAZOLIN 1 GM", "No"))
+            med.append((u0, 10.0, icu_los, "PANTOPRAZOLE 40 MG", "No"))
+        cpl.append((u0, 30.0, "Care Limitation", "Full Therapy"))   # D12
+        u = rng.random()
+        if u < 0.03:
+            cpl.append((u0, 60.0, "Care Limitation", "Do not resuscitate"))
+        elif u < 0.06:
+            cpl.append((u0, float(icu_los - 30), "Care Limitation", "Comfort measures only"))
         if rng.random() < 0.4:
             dxr.append((u0, 30.0, "401.9, I10"))
         if rng.random() < 0.2:
@@ -386,6 +450,7 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
     _w(S(med, ["patientunitstayid", "drugstartoffset", "drugstopoffset", "drugname", "drugordercancelled"]),
        d / "medication.csv.gz")
     _w(S(dxr, ["patientunitstayid", "diagnosisoffset", "icd9code"]), d / "diagnosis.csv.gz")
+    _w(S(cpl, ["patientunitstayid", "cplitemoffset", "cplgroup", "cplitemvalue"]), d / "carePlanGeneral.csv.gz")
 
 
 def write_synthetic(root: Path, harmonization: dict | None = None, n_subjects: int = 700, seed: int = 7) -> Path:

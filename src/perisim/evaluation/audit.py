@@ -17,7 +17,7 @@ MISS_MAX = 0.30
 
 
 def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.DataFrame, targets: pl.DataFrame,
-                 X: pl.DataFrame, specs: list, cfg) -> tuple[dict, str]:
+                 X: pl.DataFrame, specs: list, cfg, postop_evidence: dict | None = None) -> tuple[dict, str]:
     min_n = int(cfg.experiment["evaluation"]["small_cell_threshold"])
     tcfg = cfg.targets
     observable = list(tcfg["t1"]["observable"].get(cohort, []))
@@ -76,8 +76,10 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
     comp_rows = []
     # Missingness is only ASSESSABLE where an observability proxy exists (AKI: baseline + follow-up creatinine;
     # antibiotics: any medication record after t0). Structural events are reported as "not assessable", not 0 %.
-    miss_map = {"aki_3": "aki_observable", "aki_12": "aki_observable", "antibiotic_course": "med_observable",
-                "hypoxemia_ward": None, "transfusion": None}
+    tracked = bool("med_coverage_tracked" in targets.columns and targets["med_coverage_tracked"].any())
+    miss_map = {"aki_3": "aki_observable", "aki_12": "aki_observable",
+                "antibiotic_course": "med_source_observed" if tracked else "med_observable",
+                "hypoxemia_ward": None, "transfusion": "med_source_observed" if tracked else None}
     t1_def = set(tcfg["t1"]["severe_components"]) | set(tcfg["t1"]["mild_components"])
     for comp in ["icu_readmission", "death", "reoperation", "vent_start", "vaso_start", "rrt_start", "aki_3", "aki_12",
                  "antibiotic_course", "transfusion", "hypoxemia_ward"]:
@@ -112,12 +114,47 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
                      "tertiles_descriptive": np.quantile(los, [1 / 3, 2 / 3]).tolist(),
                      "truncated_pct": PV.share(int(targets.filter(pl.col("los_post_icu_days").is_not_null())
                                                    ["los_truncated"].fill_null(False).sum()), int(los.size), min_n, 2)}
-    if cohort == "inspire":
+    if cohort == "inspire" and "icu_readmission_proxy" in targets.columns:
+        e = targets["icu_readmission_icu_entry"].fill_null(0) == 1
+        pr = targets["icu_readmission_proxy"].fill_null(0) == 1
         k = int(targets["icu_readmission"].fill_null(0).sum())
         rep["icu_readmission_inspire"] = {
-            "n_detected": PV.cell(k, min_n, total=n),
-            "note": "Detected as a new ICU admission linked to another surgery within the same hospitalization. "
-                    "Non-surgical readmissions are not observable this way (D1)."}
+            "n_detected": PV.cell(k, min_n, total=n), "pct": PV.share(k, n, min_n, digits=2),
+            "by_source": PV.counts({"ICU entry after another surgery only": int((e & ~pr).sum()),
+                                    "new organ-support run only (proxy)": int((~e & pr).sum()),
+                                    "both": int((e & pr).sum())}, min_n),
+            "note": "SPECS D1 proxy (AUDIT D10): a new ICU entry after another surgery OR a new invasive-ventilation / "
+                    "RRT / ECMO / IABP run after t0 in ward_vitals. Validate this prevalence (vs MIMIC-IV / eICU "
+                    "readmission rates) before acknowledging the audit."}
+    elif cohort == "inspire":
+        k = int(targets["icu_readmission"].fill_null(0).sum())
+        rep["icu_readmission_inspire"] = {"n_detected": PV.cell(k, min_n, total=n), "note": "No proxy configured (D1)."}
+    if "chronic_rrt" in targets.columns:
+        k = int(targets["chronic_rrt"].fill_null(False).sum())
+        rep["chronic_rrt"] = {"n": PV.cell(k, min_n, total=n), "pct": PV.share(k, n, min_n, digits=2),
+                              "note": "RRT before the index surgery (D5): AKI and new RRT are not applicable."}
+    if tracked:
+        cov = targets.select("stay_id", "med_source_observed").join(
+            stays.select("stay_id", *(["year_group"] if "year_group" in stays.columns else [])), on="stay_id", how="left")
+        rows_cov = [{"period": "all", "n": PV.cell(n, min_n), "covered_pct":
+                     PV.share(int(cov["med_source_observed"].sum()), n, min_n)}]
+        if "year_group" in cov.columns and cov["year_group"].drop_nulls().len():
+            for (g,), sub in cov.filter(pl.col("year_group").is_not_null()).group_by(["year_group"]):
+                rows_cov.append({"period": str(g), "n": PV.cell(sub.height, min_n),
+                                 "covered_pct": PV.share(int(sub["med_source_observed"].sum()), sub.height, min_n)})
+        rep["medication_coverage"] = {"rows": sorted(rows_cov, key=lambda r: (r["period"] != "all", r["period"])),
+                                      "note": "Stays whose hospitalization has no medication record are unobservable "
+                                              "for medication inputs and the mild medication components (D6); their "
+                                              "T1/T3 are undefined (coverage-based exclusion)."}
+    if postop_evidence:
+        tot = sum(int(v) for v in postop_evidence.values())
+        rep["postop_evidence"] = {"counts": PV.counts({k: int(v) for k, v in sorted(postop_evidence.items())}, min_n),
+                                  "total": PV.cell(tot, min_n),
+                                  "note": "Candidate ICU episodes by surgical evidence (AUDIT D1/D8): or_transfer = "
+                                          "OR/PACU transfer within 24 h before the ICU admission; procedure = major "
+                                          "therapeutic code (hospitalizations without OR/PACU transfers); "
+                                          "service_only = surgical service without either (NOT postoperative; "
+                                          "sensitivity cohort)."}
     return rep, render(rep, min_n)
 
 
@@ -153,7 +190,22 @@ def render(rep: dict, min_n: int) -> str:
         [[r["measure"], r["stays_with_any"], r["pct_stays"], r["median_per_day"]] for r in rep["ward_frequency"]], nd=2))
     if rep.get("icu_readmission_inspire"):
         r = rep["icu_readmission_inspire"]
-        sec.append("<h2>Feasibility of ICU readmission (INSPIRE, D1)</h2>" + box(f"Detected: {r['n_detected']}. {r['note']}", "warn"))
+        sec.append("<h2>Feasibility of ICU readmission (INSPIRE, D1 / D10)</h2>" +
+                   box(f"Detected: {r['n_detected']} ({r.get('pct')} %). {r['note']}", "warn"))
+        if r.get("by_source"):
+            sec.append(table(["Source", "n"], [[k, v] for k, v in r["by_source"].items()]))
+    if rep.get("chronic_rrt"):
+        r = rep["chronic_rrt"]
+        sec.append("<h2>Chronic / prior RRT (D5)</h2>" + box(f"Stays: {r['n']} ({r['pct']} %). {r['note']}"))
+    if rep.get("medication_coverage"):
+        r = rep["medication_coverage"]
+        sec.append("<h2>Medication source coverage (D6)</h2>" + box(r["note"], "warn") +
+                   table(["Period", "Stays", "% covered"], [[x["period"], x["n"], x["covered_pct"]] for x in r["rows"]],
+                         nd=1))
+    if rep.get("postop_evidence"):
+        r = rep["postop_evidence"]
+        sec.append("<h2>Surgical evidence of the candidate ICU episodes (D1 / D8)</h2>" + box(r["note"]) +
+                   table(["Evidence", "Episodes"], [[k, v] for k, v in r["counts"].items()]))
     rows = []
     for r in rep["inputs"]:
         dist = ""

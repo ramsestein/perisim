@@ -162,11 +162,19 @@ hospital clock, KDIGO thresholds and baseline, antibiotic-course rule, atomic wr
   dependencies), F10 (corrupt JSON treated as missing; last error cleared on success), F11 (POSIX paths in the
   code hash; empty env values take the default; only booleans/numbers re-typed).
 
-**Pending a scientific decision** — see `docs/DECISIONS_PENDING.md`: D1, D5, D6, D7, D8, D10, D12, D13, D14,
-C3, C4, C5, C6, B2, B3, B4, B6, B7, E10, E11, E13, E14.
+**Scientific decisions (decided and implemented 2026-10-22, SPECS v0.4)** — see `docs/DECISIONS.md` and
+`tests/test_decisions.py`: D1/D8 (OR/PACU evidence; code fallback; service-only reported), C5 (no OR/PACU/IR/ICU
+entry within 6 h of t0), D10 (INSPIRE readmission proxy), D5 (chronic RRT: AKI / new RRT not applicable; ≥ 4.0
+rule needs a baseline < 4.0; no creatinine during RRT), D7 (rolling KDIGO), D6 (medication coverage; T1/T3
+undefined without it), D12 (timestamped limitation), D13 (arterial gases), B2/B4 (reparameterised NCA, prior on
+group totals), B3 (Δ on the prior-implied metric — amends SPECS §5.3.2), C3 (SAGE per inner fold for λ), B6/B7
+(PCS "other"/"missing" dimensions; unseen VDM → P(y)), E13 (LightGBM tuned), C4 (cross-fitted external tertiles
++ absolute co-primary; mode-B LOO prior), E14 (§5.6 output in the pod), E10/E11 (per-fold metrics and cut-points;
+SAGE dispersion per variable), C6 (LOO kept, declared). Also closed as a consequence: C10 (availability =
+observability). D14 remains deferred to the first audit.
 
 **Pending engineering (not yet done):** F1 (adaptive retry after an OOM-killed worker), F9 (cgroup path lookup via
 `/proc/self/cgroup`), F12 (smoke coverage: all variants, audit stop path), F13 (variants rebuild external cohorts),
-B5 (kernel-variant α), B8 (re-filter early models), B9, B10, C7 (storetime), C8, C9, C10, C11, C12, D15, D17,
+B5 (kernel-variant α), B8 (re-filter early models), B9, B10, C7 (storetime), C8, C9, C11, C12, D15, D17,
 D18, E6 (Q4 inference, discharge destination), E7 (characteristics table, per-target flow), E12 (temporal split by
 patient). A7 resolved by the owner (stray `r/` removed).

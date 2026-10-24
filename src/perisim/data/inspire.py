@@ -2,10 +2,13 @@
 
 Critical points [VERIFY]:
 - icuin_time / icuout_time only record the ICU within 24 h after surgery: ICU readmission is detected
-  as a new ICU entry linked to another surgery in the same hospitalization (D1). Non-surgical
-  readmissions are not observable this way; the audit quantifies this.
+  as a new ICU entry linked to another surgery in the same hospitalization OR, as the SPECS D1 proxy, a new
+  invasive-ventilation / RRT / ECMO / IABP run after t0 in ward_vitals (targets.yaml: icu_readmission_proxy,
+  AUDIT D10). The audit reports how many readmissions each source contributes.
 - Devices (ventilation, RRT, ECMO, IABP) are read from ward_vitals as "active" records;
   the end is inferred from the absence of records (features.support_gap_hours).
+- Chronic dialysis (D5): ESRD / dialysis codes and RRT device records before the index surgery are emitted as
+  `marker:chronic_rrt` rows.
 """
 
 from __future__ import annotations
@@ -19,6 +22,8 @@ from perisim.data.common import (
     INPUTS_SCHEMA, OUTCOMES_SCHEMA, STAYS_SCHEMA, apply_bounds, as_float, as_id, as_str, conform,
     harmonized_category, map_measurements, variables_for, windowed_join,
 )
+
+CHRONIC_RRT_MARKER = "marker:chronic_rrt"
 
 _TIME_COLS = ["op_start", "op_end", "admission", "discharge", "icu_in", "icu_out", "death_inhosp"]
 
@@ -82,6 +87,13 @@ class InspireExtractor(BaseExtractor):
             exprs.append(harmonized_category(pl.col("discharge_location"),
                                              self.h["discharge_location"].get("inspire", {}), "other")
                          .alias("discharge_location"))
+        # C5: minutes from the ICU exit to the start of the next operation of the hospitalization
+        nxt = (icu.select("op_id", "hadm_id", "icu_out").join(ops.select("hadm_id", pl.col("op_start").alias("_s")),
+                                                              on="hadm_id", how="inner")
+               .filter(pl.col("_s") > pl.col("icu_out"))
+               .group_by("op_id").agg((pl.col("_s") - pl.col("icu_out")).min().alias("return_within_min")))
+        icu = icu.join(nxt, on="op_id", how="left")
+        exprs.append(pl.col("return_within_min"))
         out = icu.with_columns(exprs).select([e.meta.output_name() for e in exprs])
         out = _common_flags(out, self.ccfg)
         if "discharge_location" not in opt:
@@ -118,11 +130,15 @@ class InspireExtractor(BaseExtractor):
         inputs.append(v)
         item = pl.col("item").cast(pl.Utf8).str.strip_chars().str.to_lowercase()
         active = as_float("value").is_null() | (as_float("value") != 0)
+        surg = pl.coalesce(pl.col("surgery_start_min"), pl.col("icu_in_min"))
         for kind, items in self.src["devices"]["items"].items():
             d = wv.filter(item.is_in([i.lower() for i in items]) & active)
             d = d.select("subject_raw", pl.lit(f"support_{kind}").alias("variable"), pl.lit(1.0).alias("value"),
                          "time_min")
             inputs.append(windowed_join(d, w, "subject_raw", admit, hi))
+            if kind == "rrt":   # D5: any RRT record before the index surgery (including earlier admissions)
+                mk = d.with_columns(pl.lit(CHRONIC_RRT_MARKER).alias("variable"))
+                inputs.append(windowed_join(mk, w, "subject_raw", admit - lookback, surg - 1e-6))
 
         # Medication (ATC) + vasopressors as support + transfusion as outcome
         atc_cols = self.src["tables"]["medications"].get("atc_columns") or []
@@ -150,7 +166,12 @@ class InspireExtractor(BaseExtractor):
         # ICD-10 diagnoses at 3 characters, only up to t0 (the exact cutoff is applied in features)
         dx = _prep(self.table("diagnosis", filters={"subject_id": subj}))
         n = int(self.src.get("dx_code_length", 3))
-        dx = dx.with_columns(as_str("code").str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "").str.slice(0, n).alias("c"))
+        full = as_str("code").str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "")
+        if self.src.get("chronic_rrt_dx_regex"):   # D5: ESRD / dialysis-dependence codes before the index surgery
+            mk = dx.filter(full.str.contains(self.src["chronic_rrt_dx_regex"])).select(
+                "subject_raw", pl.lit(CHRONIC_RRT_MARKER).alias("variable"), pl.lit(1.0).alias("value"), "time_min")
+            inputs.append(windowed_join(mk, w, "subject_raw", admit - lookback, surg - 1e-6))
+        dx = dx.with_columns(full.str.slice(0, n).alias("c"))
         dx = dx.filter(pl.col("c").str.len_chars() == n).select(
             "subject_raw", (pl.lit("dx:") + pl.col("c")).alias("variable"), pl.lit(1.0).alias("value"), "time_min")
         inputs.append(windowed_join(dx, w, "subject_raw", admit - 1440, pl.col("icu_out_min")))

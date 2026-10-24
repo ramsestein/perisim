@@ -31,8 +31,8 @@ import polars as pl
 
 from perisim.config import REPO_ROOT, Config, code_hash, stable_hash
 from perisim.resources import apply_library_limits, plan
-from perisim.utils import (LOG, append_note, dir_size_gb, free_disk_gb, now_iso, read_json, rss_gb, set_threads,
-                           timed, write_json, write_parquet)
+from perisim.utils import (LOG, append_note, dir_size_gb, free_disk_gb, now_iso, read_json, read_jsonl, rss_gb,
+                           set_threads, timed, write_json, write_jsonl, write_parquet)
 from perisim.workspace import Workspace
 
 COHORTS = ("inspire", "mimic", "eicu")
@@ -59,7 +59,8 @@ class StageDef:
 # run_id of their last execution (AUDIT A5).
 _EXTRACT_CFG = ("harmonization.sources.{cohort}", "harmonization.variables", "harmonization.medications",
                 "harmonization.surgical_groups", "harmonization.admit_source", "harmonization.discharge_location",
-                "cohorts.common", "cohorts.{cohort}", "experiment.features.preop_lab_lookback_days", "targets.window")
+                "cohorts.common", "cohorts.{cohort}", "experiment.features.preop_lab_lookback_days", "targets.window",
+                "experiment.time.cutoff_margin_hours")
 _MODEL_CFG = ("experiment.importance", "experiment.metric", "experiment.knn", "experiment.cv.outer_folds",
               "experiment.cv.inner_folds", "model_space", "experiment.seed", "experiment.features.feature_set")
 STAGE_DEFS: dict[str, StageDef] = {
@@ -67,10 +68,12 @@ STAGE_DEFS: dict[str, StageDef] = {
     "discover": StageDef(("harmonization.sources", "experiment.paths.datasets_root", "experiment.paths.inspire_dir",
                           "experiment.paths.mimic_dir", "experiment.paths.eicu_dir"), ("data",), ()),
     "extract": StageDef(_EXTRACT_CFG, ("data", "cohort"), ("discover",), True),
-    "targets": StageDef(("targets", "experiment.time", "experiment.features.support_gap_hours"),
+    "targets": StageDef(("targets", "experiment.time", "experiment.features.support_gap_hours",
+                         "harmonization.sources.{cohort}.medication_coverage"),
                         ("targets", "timeline.py"), ("extract",), True),
     "features": StageDef(("experiment.features", "experiment.time", "harmonization.medications",
-                          "harmonization.preop_labs"), ("features", "timeline.py", "cohort"), ("extract",), True),
+                          "harmonization.preop_labs", "harmonization.sources.{cohort}.medication_coverage"),
+                         ("features", "timeline.py", "cohort"), ("extract",), True),
     "leakage": StageDef(("experiment.time",), ("features",), ("features",)),
     "audit": StageDef(("experiment.evaluation.small_cell_threshold", "targets.t1"),
                       ("evaluation/audit.py", "evaluation/html.py", "evaluation/privacy.py"), ("targets", "features")),
@@ -80,11 +83,12 @@ STAGE_DEFS: dict[str, StageDef] = {
     "cv": StageDef(_MODEL_CFG + ("experiment.baselines", "experiment.targets_to_model", "targets.t2", "targets.t3"),
                    ("importance", "metric", "knn", "experiment.py", "baselines"), ("pilot", "harmonize", "targets")),
     "temporal": StageDef(("experiment.cv.temporal",), (), ("cv",)),
-    "report": StageDef(("experiment.evaluation", "experiment.knn"), ("evaluation",), ("cv",)),
+    "report": StageDef(("experiment.evaluation", "experiment.knn", "experiment.patient_output_target"),
+                       ("evaluation", "knn/predict.py"), ("cv",)),
     "sensitivity": StageDef(("experiment.sensitivity",), (), ("cv",)),
     "external": StageDef(_MODEL_CFG + ("experiment.cohorts", "experiment.targets_to_model", "experiment.evaluation",
                                        "experiment.time", "targets"),
-                         ("experiment.py", "external.py", "evaluation"), ("cv", "harmonize")),
+                         ("experiment.py", "external.py", "evaluation", "knn", "targets"), ("cv", "harmonize")),
     "export": StageDef((), ("evaluation",), ()),
 }
 # Stages computed once for the main analysis and shared by the sensitivity variants
@@ -360,7 +364,8 @@ class Pipeline:
             outc = pl.read_parquet(cm / "outcomes.parquet")
             tg, car, diag = build_targets(stays, inp, outc, self.cfg.targets, c,
                                           float(self.cfg.experiment["time"]["cutoff_margin_hours"]),
-                                          float(self.cfg.experiment["features"]["support_gap_hours"]))
+                                          float(self.cfg.experiment["features"]["support_gap_hours"]),
+                                          med_coverage_tracked=medication_tracked(self.cfg, c))
             write_parquet(tg, dv / "targets.parquet")
             write_parquet(car, dv / "carried.parquet")
             LOG.info("targets[%s]: T1 severe %.2f %%", c, 100 * float(tg["t1_severe"].mean() or 0))
@@ -430,7 +435,8 @@ class Pipeline:
                 rep, html_ = completeness(c, read_json(cm / "flow.json"), pl.read_parquet(cm / "stays_index.parquet"),
                                           pl.read_parquet(cm / "inputs_long.parquet"), pl.read_parquet(dv / "targets.parquet"),
                                           pl.read_parquet(dv / "features.parquet"),
-                                          [FeatureSpec(**d) for d in read_json(dv / "feature_specs.json")], self.cfg)
+                                          [FeatureSpec(**d) for d in read_json(dv / "feature_specs.json")], self.cfg,
+                                          postop_evidence=read_json(cm / "postop_evidence.json"))
                 rep_path.write_text(html_, encoding="utf-8")
                 write_json(self.ws.artifacts() / f"completeness_{c}.json", rep)
             else:
@@ -525,20 +531,23 @@ class Pipeline:
         acc = [m for m in loop["models"] if m.get("accepted")]
         fam_cost: dict[str, list[float]] = {}
         for m in acc:
-            fam_cost.setdefault(m["family"], []).append(m["fit_seconds"] + m.get("sage_seconds", 0) + m.get("nca_seconds", 0))
+            fam_cost.setdefault(m["family"], []).append(m["fit_seconds"] + m.get("sage_seconds", 0))
         fam_med = {k: float(np.median(v)) for k, v in fam_cost.items()}
         exclude = []
         others = [v for k, v in fam_med.items() if k != "mlp"]
         if "mlp" in fam_med and others and fam_med["mlp"] > float(pc["mlp_cost_ratio_exclude"]) * float(np.median(others)):
             exclude.append("mlp")
-        per_model = float(np.median([m["fit_seconds"] + m.get("sage_seconds", 0) + m.get("nca_seconds", 0) for m in acc])) if acc else 0
+        per_model = float(np.median([m["fit_seconds"] + m.get("sage_seconds", 0) for m in acc])) if acc else 0
         t = res["timings"]
         n_targets = len(self.cfg.experiment["targets_to_model"])
         n_jobs = int(self.cfg.experiment["cv"]["outer_folds"]) * n_targets
-        lam_cost = t.get("nca_final", 0) * len(self.cfg.experiment["metric"]["lambda_grid"]) * \
-            int(self.cfg.experiment["cv"]["inner_folds"]) * 0.7
-        per_job = per_model * n_stop * (1 + (loop["n_attempts"] - loop["n_accepted"]) / max(loop["n_accepted"], 1) * 0.3) \
-            + lam_cost + 3 * t.get("nca_final", 0) + t.get("baselines", 0) + 120
+        n_inner = int(self.cfg.experiment["cv"]["inner_folds"])
+        lam_cost = t.get("nca_final", 0) * len(self.cfg.experiment["metric"]["lambda_grid"]) * n_inner * 0.7
+        loop_cost = per_model * n_stop * (1 + (loop["n_attempts"] - loop["n_accepted"]) / max(loop["n_accepted"], 1) * 0.3)
+        # C3: one extra consensus-SAGE loop per inner fold, on (n_inner − 1)/n_inner of the data (estimate)
+        inner_sage = self.cfg.experiment["metric"].get("lambda_prior", "inner_fold_sage") == "inner_fold_sage"
+        inner_cost = loop_cost * n_inner * (n_inner - 1) / n_inner if inner_sage else 0.0
+        per_job = loop_cost + inner_cost + lam_cost + 3 * t.get("nca_final", 0) + t.get("baselines", 0) + 120
         par = self.jobs()
         sens = self.cfg.experiment["sensitivity"]
         n_var = len(sens["variants"]) if sens.get("enabled") else 0
@@ -552,6 +561,7 @@ class Pipeline:
                  "family_cost_median_s": fam_med, "timings": t, "delta": loop["delta"],
                  "delta_smooth": loop["delta_smooth"], "d7": d7, "resources_plan": self.res,
                  "extrapolation": {"jobs": n_jobs, "seconds_per_job": per_job, "parallel": par,
+                                   "seconds_loop": loop_cost, "seconds_inner_fold_sage": inner_cost,
                                    "hours_total_cv": waves(n_jobs) * per_job / 3600,
                                    "hours_sensitivity": waves(n_jobs * n_var) * per_job / 3600,
                                    "hours_external_final_models": per_job / 3600 * waves(n_targets)},
@@ -680,6 +690,7 @@ class Pipeline:
         res = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.experiment["targets_to_model"], self.cfg,
                            expected_key=self.key("cv"), expected_folds=set(range(n_outer)))
         write_json(self.ws.artifacts() / "results.json", res)
+        self._patient_outputs(n_outer)
         (self.ws.reports / f"results_{self.variant}.html").write_text(
             render_results(res, self.cfg, f"PERISIM results — internal validation ({self.variant})"), encoding="utf-8")
         if any(self.ws.artifacts("temporal").rglob("fold*.json")):
@@ -701,6 +712,16 @@ class Pipeline:
                     self.note("DECISIONS", f"No convergence ({t}, fold {f['fold']})",
                               f"The loop ended by {f['stop_reason']} with {f['n_accepted']} models.")
         self.mark("report")
+
+    def _patient_outputs(self, n_outer: int) -> None:
+        """§5.6 per-patient records per outer fold (E14): merges each target's pieces. Inside the pod only."""
+        from perisim.knn.predict import merge_patient_outputs
+
+        for f in range(n_outer):
+            parts = [read_jsonl(self.ws.predictions("cv", t) / f"fold{f}_patient.jsonl")
+                     for t in self.cfg.experiment["targets_to_model"]]
+            if any(parts):
+                write_jsonl(self.ws.predictions("cv", "patient_output") / f"fold{f}.jsonl", merge_patient_outputs(parts))
 
     def stage_sensitivity(self) -> None:
         """Sensitivity variants: cheap preparation per variant, then ONE shared queue for all CV jobs."""
@@ -751,6 +772,11 @@ class Pipeline:
         from perisim.evaluation.export import build_export
 
         build_export(self.ws, self.cfg)
+
+
+def medication_tracked(cfg, cohort: str) -> bool:
+    """D6: does the cohort's medication source have per-hospitalization coverage markers (src:medication)?"""
+    return (cfg.harmonization["sources"].get(cohort, {}) or {}).get("medication_coverage") == "tracked"
 
 
 def _files_digest(paths: list[Path]) -> str:
@@ -812,6 +838,8 @@ def _pilot_html(path: Path, pilot: dict) -> None:
                                         ["Models run / attempts", f"{pilot['n_models_run']} / {pilot['n_attempts']}"],
                                         ["Models until stopping (simulated)", pilot["simulated_models_until_stop"]],
                                         ["Seconds per model (median)", pilot["per_model_seconds_median"]],
+                                        ["Consensus loop per job (s)", ex.get("seconds_loop")],
+                                        ["Inner-fold SAGE for λ per job (s, C3)", ex.get("seconds_inner_fold_sage")],
                                         ["CV jobs", ex["jobs"]], ["Estimated CV hours", ex["hours_total_cv"]],
                                         ["Estimated sensitivity hours", ex["hours_sensitivity"]],
                                         ["Estimated external final-model hours", ex["hours_external_final_models"]]], nd=2),
@@ -841,8 +869,12 @@ def _extract_entry(args: dict) -> dict:
         errs = validate(cand, STAYS_SCHEMA, "stays", unique="stay_id")
         if errs:
             return {"cohort": c, "error": "; ".join(errs)}
-        idx, flow = select_index_stays(cand, cfg.cohorts, c)
+        idx, flow = select_index_stays(cand, cfg.cohorts, c, float(cfg.experiment["time"]["cutoff_margin_hours"]))
         write_parquet(cand, out / "stays_candidates.parquet")
+        ev = cand.filter(pl.col("postop_evidence").is_not_null())
+        if ev.height:   # MIMIC-IV (AUDIT D1/D8): source of the surgical evidence; service-only = sensitivity cohort
+            write_json(out / "postop_evidence.json", {r["postop_evidence"]: int(r["len"]) for r in
+                                                      ev.group_by("postop_evidence").len().to_dicts()})
         write_parquet(idx, out / "stays_index.parquet")
         write_json(out / "flow.json", flow)
         if idx.height == 0:
@@ -882,6 +914,7 @@ def _job_entry(args: dict):
         write_parquet(out["pred"], pred.with_name(pred.name + "_pred.parquet"))
         write_parquet(out["ood"], pred.with_name(pred.name + "_ood.parquet"))
         write_parquet(out["p4"] if out["p4"].height else pl.DataFrame({"stay_id": []}), pred.with_name(pred.name + "_p4.parquet"))
+        write_jsonl(pred.with_name(pred.name + "_patient.jsonl"), out["patient"])   # §5.6, never exported
         res["_key"] = args["key"]
         res["fold"] = int(args["fold"])
         write_json(Path(args["out"]), res)

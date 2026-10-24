@@ -5,8 +5,10 @@
 - **Project:** PERISIM (*Perioperative Similarity*)
 - **Lead:** Ramses Marrero García (MD, PhD), AI-Lab, Hospital Clínic de Barcelona / SIMTRI, SNUH
 - **Platform:** KHDP (Korea Health Data Platform, SNUH) + PhysioNet
-- **Document version:** v0.3 (2026-10-21)
+- **Document version:** v0.4 (2026-10-22)
 - **Status:** design closed; operational definitions are a v0 proposal pending clinical validation
+- **v0.4 amendments** (lead's decisions after the full audit, 2026-10-22; rationale in `docs/DECISIONS.md`, IDs from
+  `docs/AUDIT.md`) are marked **[v0.4]** in the text.
 
 ---
 
@@ -88,7 +90,7 @@ Weighting kNN with external importances **is not new** (Addou et al., 2026; Weer
 - Adults (≥18 years).
 - **Postoperative** ICU admission:
   - INSPIRE: `icuin_time` within 24 h after `opend_time`.
-  - MIMIC-IV: ICU stay whose admission follows a surgical service (`hosp.services`) or a surgical procedure on the same or the previous day `[VERIFY rule]`.
+  - MIMIC-IV **[v0.4, D1/D8]**: timestamped operating-room evidence — an OR/PACU transfer in `hosp.transfers` ending within 24 h before the ICU admission. Only for hospitalisations without any OR/PACU transfer, a "major therapeutic" procedure code (HCUP procedure classes, or a declared approximation until they are provided) on the ICU admission day or the day before. A surgical service alone does not qualify (counted as a "service only" sensitivity cohort) `[VERIFY careunit values]`.
   - eICU: `unitadmitsource` from the operating room or post-anaesthesia recovery, or a postoperative admission diagnosis `[VERIFY values]`.
 - **Discharged alive from the ICU.** ICU deaths are excluded by definition and reported in the flow diagram.
 - Unit of analysis: **the first postoperative ICU stay of each hospitalisation**. Patients with several hospitalisations are handled through patient-level splitting (§6).
@@ -97,7 +99,8 @@ Weighting kNN with external importances **is not new** (Addou et al., 2026; Weer
 
 - ICU stay <4 h (likely a recording error or extended recovery) `[open decision]`.
 - ICU discharge directly out of the hospital (home, another centre, palliative care), because there is no ward follow-up.
-- Patients with a limitation-of-care decision **known before the cut-off**, if identifiable `[VERIFY availability]`.
+- **[v0.4, C5]** ICU exit followed within 6 h by an operating room / PACU / interventional radiology / another ICU entry (MIMIC-IV `transfers`; INSPIRE: start of the next operation; eICU: next unit stay): t0 must be a discharge to the ward, otherwise the label is known at t0.
+- Patients with a limitation-of-care decision **known before the cut-off**: **[v0.4, D12]** timestamped records ≤ cut-off (MIMIC-IV Code Status, eICU `carePlanGeneral` care limitation); INSPIRE only if a timestamped field appears.
 - Organ donors and related procedures (INSPIRE flags them from v1.4.2).
 
 ### 3.3 Timing
@@ -121,7 +124,7 @@ Weighting kNN with external importances **is not new** (Addou et al., 2026; Weer
 | ICU stay | ICU length of stay; use of ventilation, vasopressors and renal replacement therapy during the stay; hours from withdrawal of each support to t0 | continuous / binary |
 | Status at discharge | last labs (creatinine, Hb, white cells, platelets, lactate, bilirubin, albumin, blood gases if available), last vital signs and their trend over the 24 h before the cut-off (HR, MAP, RR, SpO₂, temperature), last FiO₂ / oxygen support, GCS if available | continuous |
 | Diagnoses | one binary per 3-character ICD-10 code, **only with a timestamp before the cut-off** and prevalence ≥0.5% `[open decision: threshold]` | binary |
-| Active medication | binaries per ATC level-3 group administered in the 24 h before the cut-off | binary |
+| Active medication | binaries per ATC level-3 group administered in the 24 h before the cut-off. **[v0.4, D6]** Where the medication source does not cover the stay (MIMIC-IV without eMAR; eICU without medication records), these inputs are unobservable (missing), never 0 | binary |
 
 **Harmonisation across cohorts:** the final input set is the **intersection** of what is available in the three cohorts, plus an extended set for INSPIRE and MIMIC-IV only if it adds value. Document every variable in `config/harmonization.yaml`: source in each database, units, transformation and status `[VERIFIED]` / `[VERIFY]`.
 
@@ -134,17 +137,20 @@ Weighting kNN with external importances **is not new** (Addou et al., 2026; Weer
 Approximation of the Clavien-Dindo classification (Dindo et al., 2004) **from structured data**, never from diagnosis codes. Window: (t0, t0 + 30 d] and before hospital discharge.
 
 - **Severe** (≈ grades III–V), if any of:
-  - ICU readmission.
+  - ICU readmission. **[v0.4, D10]** INSPIRE (ICU stays recorded only after surgery): a new ICU entry after another surgery OR a new invasive ventilation / RRT / ECMO / IABP run after t0 in `ward_vitals` (SPECS D1 proxy; ward dialysis of a chronic-RRT patient excluded); its prevalence is checked in the audit before use.
   - In-hospital death.
-  - Surgical reoperation (INSPIRE: new `op_id` in the same hospitalisation; MIMIC-IV: surgical procedure dated after t0 `[VERIFY rule]`).
+  - Surgical reoperation (INSPIRE: new `op_id` in the same hospitalisation; MIMIC-IV **[v0.4, D1]**: a later OR/PACU transfer after t0, minute precision; only for hospitalisations without OR/PACU transfers, a major therapeutic procedure dated after t0, day precision).
   - New mechanical ventilation, vasopressors or renal replacement therapy.
   - Stage 3 AKI by KDIGO creatinine criteria (KDIGO, 2012), using the last creatinine before the cut-off as baseline.
+- **[v0.4, D7] KDIGO timing:** an AKI event at a post-t0 creatinine v(t) when v ≥ 1.5 × the minimum of the previous 7 days or v ≥ 0.3 mg/dL above the minimum of the previous 48 h; the baseline always belongs to the 7-day reference set (and to the 48-h set during the first 48 h after t0). Stage by the maximum ratio to the baseline (≥ 2 → stage 2, ≥ 3 → stage 3); ≥ 4.0 mg/dL → stage 3 only at a detected rise and with a baseline below 4.0 **[D5]**. Creatinine measured during RRT (or within 24 h after a run) is never used.
+- **[v0.4, D5] Chronic dialysis:** for patients with RRT before the index surgery (device / procedure record or ESRD / dialysis-dependence code, timestamped before the surgery) AKI and new RRT are **not applicable**: they do not count, like a component that the cohort cannot observe.
 - **Mild** (≈ grades I–II), if not severe and any of:
   - Stage 1–2 AKI by creatinine (KDIGO, same baseline).
   - Start of a **new systemic antibiotic course** (ATC J01): first administration after t0 + 24 h, no antibiotic in the 48 h before that administration, and at least 2 consecutive days of administration. `[VERIFY feasibility in INSPIRE and MIMIC-IV]`
   - Red blood cell transfusion after t0 `[VERIFY ward recording in both databases]`.
   - *INSPIRE sensitivity analysis only:* sustained ward hypoxaemia (SpO₂ <90% on ≥2 consecutive measurements), because MIMIC-IV has no ward vital signs.
 - **None:** everything else.
+- **[v0.4, D6] Unobserved mild components:** where the medication source does not cover the hospitalisation (MIMIC-IV without eMAR), the antibiotic-course and transfusion components are unobservable and T1 (and T3) is **undefined** for the stay, whatever its other outcomes (a coverage-based exclusion, never an outcome-based one); severe / not severe remains defined. eMAR coverage by period is reported in the audit.
 
 **In eICU:** T1 reduces to **severe / not severe**. "Severe" includes only ICU readmission and in-hospital death, the observable components. It must be reported as validation of a reduced target, not of the full T1.
 
@@ -200,7 +206,7 @@ d(a, b)² = Σ_j  w_j · δ_j(a_j, b_j)²
 | Continuous | labs, vital signs, age, duration | difference of standardised values (training mean and SD) |
 | Ordinal | ASA | rank difference, scaled to [0, 1] |
 | Binary | diagnoses, support use, ATC | 0/1 |
-| Hierarchical | ICD-10-PCS (5 levels) | **one dimension per level**, 0/1 for a match at that level; each level has its own w_j |
+| Hierarchical | ICD-10-PCS (5 levels) | **one dimension per level**, 0/1 for a match at that level; each level has its own w_j. **[v0.4, B6]** rare / unseen codes share an explicit "other" category and missing codes a "missing" one, so a kept code never half-matches a rare one |
 | Single-valued nominal | type of anaesthesia, surgical group, admission source | **smoothed VDM** (below) |
 
 **Smoothed VDM (Stanfill & Waltz, 1986; Wilson & Martinez, 1997):**
@@ -217,7 +223,8 @@ d(a, b)² = Σ_j  w_j · δ_j(a_j, b_j)²
 **Missing values:**
 
 - Continuous: training-median imputation + binary missingness indicator as an extra dimension, if missingness is >5%.
-- Binary presence variables: missing = 0.
+- Binary presence variables: missing = 0 **when the source is observed**. **[v0.4, D6]** Where the source does not cover the stay, the value is unobservable: training-prevalence imputation + missingness indicator if >5%.
+- **[v0.4, B7]** Nominal categories seen in training but rare are pooled into one "other" category; categories never seen in training use `P(y)`.
 - Document the percentage missing per variable and cohort (§7).
 
 ### 5.3 Importance: SAGE aggregated across models
@@ -248,7 +255,7 @@ Learning stops on the **stability of the metric**, not of the importances. That 
 At each iteration n, after adding an accepted model:
 
 1. Update the aggregated importance `imp^(n)`.
-2. Recompute the weights `w^(n)` with the conversion of §5.4, warm-starting from `w^(n−1)`.
+2. **[v0.4, B3]** Recompute the weights implied by the prior, `w^(n) = c · (p^(n) + ε₀)`, where `p^(n)` is the per-variable split of `imp^(n)` (the split used as prior in §5.4) and c is any global scale (it cancels in Δ). No NCA runs inside the loop, so Δ measures the stability of the consensus rather than optimiser noise; the §5.4 conversion is applied once, after stopping. *(v0.3: "recompute w^(n) with the conversion of §5.4, warm-starting from w^(n−1)".)*
 3. Measure the **change in the metric** over a fixed reference set R of patient pairs (e.g. 20,000 random pairs from the training fold, fixed with a seed at the start):
 
    ```
@@ -282,15 +289,23 @@ At each iteration n, after adding an accepted model:
 **Primary:** diagonal NCA regularised towards the SAGE prior.
 
 ```
-L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log(imp_j + ε₀))²
+L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log(imp_j + ε₀))²          (v0.3)
 ```
+
+**[v0.4, B2/B4]** Parameterised as `log w_j = log c + log(p_j + ε₀) + u_j`, with c a free, unpenalised global scale (the bandwidth) and the prior acting on the SAGE **group totals**:
+
+```
+L(w) = LogLoss_LOO_softkNN(w) + λ · (1/G) Σ_g (log Σ_{j∈g} w_j − log c − log(imp_g + ε₀))²
+```
+
+so the NCA itself splits the weight within a group (an uninformative missingness indicator no longer inherits the prior of its value variable), c moves freely at any λ, and λ (a mean over groups) keeps its meaning whatever the number of variables (grid {0, 10⁻³, 10⁻², 10⁻¹, 1, 10}).
 
 - `LogLoss_LOO_softkNN`: class probability from a softmax kernel over weighted distances, excluding the case itself (Goldberger et al., 2004).
 - **The metric is learned without k.** The soft-kernel objective uses all cases weighted by proximity; the bandwidth is absorbed into the scale of w. **The metric is never tuned for a particular k**: k is an execution parameter only (§5.5).
 - **Scalability:** the full version is O(n²). Implement it with **anchor minibatches** and **neighbour candidates** precomputed by approximate search (FAISS, CPU) using the prior weights, refreshed every E epochs. The number of candidates is a generous computational parameter (e.g. 500), not a prediction k.
-- λ is chosen in the inner cross-validation on a logarithmic grid, using the same soft-kernel log-loss (independent of k), including λ = 0 (pure diagonal NCA, which is also a comparator).
+- λ is chosen in the inner cross-validation on a logarithmic grid, using the same soft-kernel log-loss (independent of k), including λ = 0 (pure diagonal NCA, which is also a comparator). **[v0.4, C3]** The SAGE prior used to score each inner validation fold is recomputed on that inner fold's training part (≈ 3× the loop cost, quantified by the pilot), so it never saw the labels it is scored on.
 - Optimisation in log w space (Adam).
-- Within the loop of §5.3.2, each update of w warm-starts from the previous iteration's weights to reduce cost.
+- *(v0.3: "within the loop of §5.3.2, each update of w warm-starts from the previous iteration's weights" — no longer applies, see §5.3.2 [v0.4, B3].)*
 - Report the chosen λ: it is a result in itself (how much the data trust SAGE).
 
 **Simple alternative (comparator):** `w_j = a · imp_j^γ`, with a and γ fitted on the same soft-kernel log-loss.
@@ -302,7 +317,7 @@ L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log(imp_j + ε₀))²
 3. Take the k neighbours. **k is an execution parameter, not a learning parameter:** the metric is the same for any k.
    - Performance is evaluated over the grid k ∈ {10, 20, 50, 100, 200} and the full curve is reported.
    - The main analysis uses a **pre-specified primary k** (proposal: k = 50) `[open decision]`.
-4. Class probability: `(n_c + α · P(c) · C) / (k + α · C)`, with α chosen in the inner cross-validation. Kernel-weighted variant exp(−d²) as a sensitivity analysis.
+4. Class probability: `(n_c + α · P(c) · C) / (k + α · C)`, with α chosen in the inner cross-validation. **[v0.4, C6, declared deviation]** α (and the OOD threshold) are chosen by patient-level leave-one-out on the training fold; with large categories the optimism is negligible (revisit if the audit shows many small nominal categories). Kernel-weighted variant exp(−d²) as a sensitivity analysis.
 5. **Out of support:** if the distance to the k-th neighbour exceeds the 99th percentile of that same distance in training (computed leave-one-out), flag `ood = True`.
 
 ### 5.6 Per-patient output
@@ -325,6 +340,8 @@ L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log(imp_j + ε₀))²
 
 ## 6. Validation
 
+**[v0.4, E10/E11]** Pooled out-of-fold metrics are reported next to per-fold metrics and per-fold T2/T3 cut-points, and SAGE dispersion is reported per variable (fold-specific groups mapped to their variables). **[v0.4, E14]** The §5.6 record is written inside the pod for every test-fold and external query (never exported).
+
 ### 6.1 Internal (INSPIRE)
 
 - **Patient-level split** (`subject_id`), never by surgery or by stay.
@@ -337,6 +354,7 @@ L(w) = LogLoss_LOO_softkNN(w) + λ · Σ_j (log w_j − log(imp_j + ε₀))²
 - **Mode A, full transport:** weights, VDM tables and **INSPIRE case base**; queries from MIMIC-IV / eICU. Measures how much the whole system transfers.
 - **Mode B, metric transport:** INSPIRE weights, but **case base from the target cohort**, evaluated with patient-level leave-one-out within the target cohort. VDM tables recomputed in the target cohort (with cross-validation) as a variant. Measures whether the notion of similarity transfers even when outcomes differ.
 - The difference between A and B is a central result (Q3).
+- **[v0.4, C4] T2/T3 categories in the external cohorts:** the target cohort's tertiles are **cross-fitted** — two patient-level halves, each labelled with the cut-points of the other half (mode B case bases carry the same labels, and the smoothing prior leaves out the query's patient). Absolute categories (≤3 / 4–7 / >7 days) are a **co-primary** external analysis, with the INSPIRE case base relabelled the same way (same learned metric).
 
 ### 6.3 Freezing
 
@@ -357,7 +375,7 @@ Iterating on the method after looking at external results is forbidden.
 5. Diagonal NCA (λ = 0).
 6. kNN with RF-GAP proximities (Rhodes et al., 2023).
 7. Multinomial logistic regression (L2).
-8. Multiclass LightGBM, recalibrated.
+8. Multiclass LightGBM, recalibrated. **[v0.4, E13]** Tuned in the inner cross-validation (small num_leaves × learning-rate grid, early stopping on the inner folds).
 9. SWIFT (Gajic et al., 2008) for the severe / not-severe target, computed in all three cohorts `[VERIFY available variables]`.
 10. In eICU, for length of stay: APACHE IV hospital length-of-stay prediction, as a descriptive reference (not the same estimand as T2: this must be stated).
 

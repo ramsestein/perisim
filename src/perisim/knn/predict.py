@@ -33,6 +33,19 @@ class KNNModel:
         sq = self.subj if loo else subjects_query
         return search_excluding(self.Ew, Q, self.k_max, sq, self.subj if sq is not None else None, self_query=loo)
 
+    def loo_prior(self, labels: np.ndarray | None = None) -> np.ndarray:
+        """Per-query class prior of a patient-level LOO over the reference itself: P(c) computed without the
+        query's own patient, so a query never contributes to its own smoothing prior (AUDIT C4, mode B)."""
+        lab = self.y if labels is None else np.asarray(labels)
+        ok = lab >= 0
+        tot = np.bincount(lab[ok], minlength=self.C).astype(float)
+        _, inv = np.unique(self.subj, return_inverse=True)
+        per = np.zeros((inv.max() + 1, self.C))
+        np.add.at(per, (inv[ok], lab[ok]), 1.0)
+        own = per[inv]
+        rest = tot[None, :] - own
+        return rest / np.maximum(rest.sum(1, keepdims=True), 1.0)
+
     def counts(self, I: np.ndarray, valid: np.ndarray, k: int, labels: np.ndarray | None = None,
                n_classes: int | None = None, D: np.ndarray | None = None, kernel: bool = False) -> np.ndarray:
         lab = self.y if labels is None else labels
@@ -46,13 +59,20 @@ class KNNModel:
             out[:, c] = (wts * (L == c)).sum(1)
         return out
 
-    def probs(self, I, valid, k, alpha=None, D=None, kernel=False) -> np.ndarray:
+    def probs(self, I, valid, k, alpha=None, D=None, kernel=False, labels: np.ndarray | None = None,
+              prior: np.ndarray | None = None) -> np.ndarray:
+        """Smoothed class probabilities. `labels` relabels the reference (same neighbours); `prior` may be one
+        vector or one row per query (patient-level LOO prior)."""
         a = self.alpha.get(k, 1.0) if alpha is None else alpha
-        n = self.counts(I, valid, k, D=D, kernel=kernel)
+        n = self.counts(I, valid, k, labels=labels, D=D, kernel=kernel)
+        if prior is None and labels is not None:
+            lab = np.asarray(labels)
+            prior = np.bincount(lab[lab >= 0], minlength=self.C) / max(int((lab >= 0).sum()), 1)
+        prior = np.broadcast_to(self.prior if prior is None else prior, n.shape)
         tot = n.sum(1, keepdims=True)
-        p = (n + a * self.prior * self.C) / (tot + a * self.C)
+        p = (n + a * prior * self.C) / (tot + a * self.C)
         bad = ~np.isfinite(p).all(1)
-        p[bad] = self.prior
+        p[bad] = prior[bad]
         return p
 
     def fit_alpha_and_ood(self, alpha_grid: list[float], k_primary: int, ood_percentile: float) -> dict:
@@ -101,19 +121,43 @@ class KNNModel:
         return out
 
 
-def patient_records(ids, t0, p_t1, p_t2, k, kth_pct, ood, I, D, ref_ids, carried, max_neighbors: int = 20) -> list[dict]:
-    """Per-patient output in the §5.6 format. CONTAINS identifiers: never exported."""
-    t1_lab = ["none", "mild", "severe"]
-    t2_lab = ["short", "medium", "long"]
+CLASS_LABELS = {"t1": ["none", "mild", "severe"], "t2": ["short", "medium", "long"],
+                "t3": ["early_no_complication", "expected_no_complication", "prolonged_or_mild", "severe_or_death"],
+                "t1_bin": ["not_severe", "severe"]}
+OUTPUT_KEY = {"t1": "p_T1", "t2": "p_T2", "t3": "p_T3", "t1_bin": "p_T1_severe"}
+
+
+def patient_pieces(ids, t0, target: str, P: np.ndarray, k: int, kth_pct=None, ood=None, I=None, D=None, valid=None,
+                   ref_ids=None, carried: dict | None = None, max_neighbors: int = 20) -> list[dict]:
+    """One target's part of the §5.6 per-patient output (AUDIT E14). The neighbours, out-of-support flag and
+    carried summary are added only for the target that feeds the clinical output (experiment.patient_output_target).
+    CONTAINS identifiers: written under predictions/ only, never exported."""
+    lab = CLASS_LABELS[target]
     recs = []
     for i in range(len(ids)):
-        recs.append({
-            "patient_id": str(ids[i]), "t0": float(t0[i]) if t0 is not None else None,
-            "p_T1": {t1_lab[c]: float(p_t1[i, c]) for c in range(p_t1.shape[1])} if p_t1 is not None else None,
-            "p_T2": {t2_lab[c]: float(p_t2[i, c]) for c in range(p_t2.shape[1])} if p_t2 is not None else None,
-            "k": int(k), "ood": bool(ood[i]), "kth_distance_percentile": float(kth_pct[i]),
-            "neighbors": [{"case_id": str(ref_ids[j]), "distance": float(np.sqrt(d))}
-                          for j, d in zip(I[i, :max_neighbors], D[i, :max_neighbors])],
-            "carried_summary": {kk: (float(v[i]) if np.isfinite(v[i]) else None) for kk, v in carried.items()},
-        })
+        r = {"patient_id": str(ids[i]), OUTPUT_KEY[target]: {lab[c]: float(P[i, c]) for c in range(P.shape[1])}}
+        if I is not None:
+            nb = [(j, d) for j, d, v in zip(I[i, :max_neighbors], D[i, :max_neighbors], valid[i, :max_neighbors]) if v]
+            r.update({"t0": float(t0[i]) if t0 is not None and np.isfinite(t0[i]) else None, "k": int(k),
+                      "ood": bool(ood[i]), "kth_distance_percentile": float(kth_pct[i]),
+                      "neighbors": [{"case_id": str(ref_ids[j]), "distance": float(np.sqrt(max(d, 0.0)))} for j, d in nb],
+                      "carried_summary": {("median_los" if kk.startswith("los") else kk):
+                                          (float(v[i]) if np.isfinite(v[i]) else None)
+                                          for kk, v in (carried or {}).items()}})
+        recs.append(r)
     return recs
+
+
+def merge_patient_outputs(pieces: list[list[dict]]) -> list[dict]:
+    """§5.6 records: one per patient, with p_T1 / p_T2 / p_T3 from each target's model and the neighbours of the
+    clinical-output target. A target that excludes the patient (e.g. T2 for non-survivors) leaves its key null."""
+    keys = [OUTPUT_KEY[t] for t in ("t1", "t2", "t3", "t1_bin")]
+    out: dict[str, dict] = {}
+    for part in pieces:
+        for r in part:
+            rec = out.setdefault(r["patient_id"], {"patient_id": r["patient_id"]})
+            rec.update({k: v for k, v in r.items() if k != "patient_id"})
+    for rec in out.values():
+        for k in keys[:3]:
+            rec.setdefault(k, None)
+    return list(out.values())

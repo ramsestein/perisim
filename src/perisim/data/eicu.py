@@ -3,6 +3,8 @@
 Data exist only inside the ICU (§2.2): after ICU discharge, only readmission (another stay in the
 same patienthealthsystemstayid), death and the time/destination of hospital discharge are observed. T1 is
 reduced to severe / non-severe (targets.yaml).
+Medication coverage varies by hospital: the first medication record of each unit stay is emitted as a
+`src:medication` row, so that medication inputs are unobservable (not "absent") without records (D6 rule).
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from perisim.data.common import (
     harmonized_category, map_measurements, variables_for, windowed_join,
 )
 from perisim.data.inspire import _common_flags
-from perisim.data.mimic import _drug_rows
+from perisim.data.mimic import MEDICATION_MARKER, _drug_rows
 
 
 class EicuExtractor(BaseExtractor):
@@ -117,7 +119,29 @@ class EicuExtractor(BaseExtractor):
         ward = as_str("unit_discharge_location").is_in(self.ccfg["ward_discharge_locations"]).fill_null(False)
         out = out.with_columns((pl.col("icu_to_ward") & ward).alias("icu_to_ward"),
                                as_float("unit_visit_number").fill_null(pl.col("unit_order")).alias("unit_order"))
+        # C5: minutes from the unit exit to the next unit stay of the same hospitalization
+        nxt = (out.select("stay_id", "hadm_id", "icu_out_min")
+               .join(out.select("hadm_id", pl.col("icu_in_min").alias("_in")), on="hadm_id", how="inner")
+               .filter(pl.col("_in") >= pl.col("icu_out_min"))
+               .group_by("stay_id").agg((pl.col("_in") - pl.col("icu_out_min")).min().alias("return_within_min")))
+        out = out.join(nxt, on="stay_id", how="left").join(self._limitation(), on="stay_id", how="left")
         return conform(out, STAYS_SCHEMA)
+
+    def _limitation(self) -> pl.DataFrame:
+        """D12: first timestamped care-limitation record (carePlanGeneral) per unit stay, on the hospital clock."""
+        lim = self.src.get("limitation") or {}
+        cp = self.table("careplangeneral", optional=True) if lim else None
+        if cp is None:
+            return pl.DataFrame(schema={"stay_id": pl.Utf8, "limitation_min": pl.Float64})
+        grp, excl = re.compile(lim["group_regex"]), re.compile(lim["exclude_value_regex"])
+        groups = [g for g in cp["group"].drop_nulls().unique().to_list() if grp.search(str(g))]
+        vals = [v for v in cp["value"].drop_nulls().unique().to_list() if not excl.search(str(v))]
+        off = self._patient().select("unit_raw", as_float("hospital_admit_offset").alias("hoff"))
+        cp = (cp.filter(pl.col("group").is_in(groups) & pl.col("value").is_in(vals))
+              .with_columns(as_id("unit_id").alias("unit_raw")).join(off, on="unit_raw", how="inner")
+              .with_columns((as_float("offset") - pl.col("hoff")).alias("t")))
+        return (cp.group_by("unit_raw").agg(pl.col("t").min().alias("limitation_min"))
+                .select(self.sid("unit_raw").alias("stay_id"), "limitation_min"))
 
     # ------------------------------------------------------------------ events
     def extract_events(self, index: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
@@ -198,6 +222,10 @@ class EicuExtractor(BaseExtractor):
                 md = md.filter(~as_str("route").str.contains(route_rx).fill_null(False))
             md = _clock(md, "start", "time_min").with_columns((as_float("stop") - pl.col("hoff")).alias("end_min"),
                                                               as_str("drug").alias("drug"))
+            first = md.drop_nulls("time_min").group_by("unit_raw").agg(pl.col("time_min").min())   # D6 coverage marker
+            inputs.append(windowed_join(first.select("unit_raw", pl.lit(MEDICATION_MARKER).alias("variable"),
+                                                     pl.lit(1.0).alias("value"), "time_min"),
+                                        w, "unit_raw", pl.col("icu_in_min") - 30 * 1440, pl.col("icu_out_min")))
             inputs.append(_drug_rows(md, self.h, w, "unit_raw", *icu_win, with_end=True))
         if self.has_table("diagnosis"):
             dx = _clock(self.table("diagnosis", filters={"unit_id": units}))

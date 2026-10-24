@@ -46,9 +46,9 @@ families:
       epochs: {int: [20, 60]}
       batch_size: 256
 
-# Fixed configuration of the parametric comparators (§6.4)
+# Configuration of the parametric comparators (§6.4)
 baselines:
-  lgbm:
+  lgbm:                          # fixed part; num_leaves / learning_rate / n_estimators come from lgbm_grid
     n_estimators: 400
     learning_rate: 0.05
     num_leaves: 31
@@ -56,6 +56,11 @@ baselines:
     subsample: 0.8
     subsample_freq: 1
     colsample_bytree: 0.8
+  lgbm_grid:                     # AUDIT E13: tuned in the inner CV with early stopping on the inner folds
+    num_leaves: [15, 31, 63]
+    learning_rate: [0.03, 0.1]
+    max_estimators: 2000
+    early_stopping_rounds: 50
   logreg_C_grid: [0.001, 0.01, 0.1, 1.0, 10.0]
   rf:
     n_estimators: 300

@@ -124,6 +124,22 @@ def read_json(path: Path, default: Any = None) -> Any:
         return default
 
 
+def write_jsonl(path: Path, records: list) -> Path:
+    """One compact JSON object per line (per-patient outputs)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, "".join(json.dumps(_clean(json.loads(json.dumps(r, cls=NumpyEncoder))),
+                                               ensure_ascii=False) + "\n" for r in records))
+    return path
+
+
+def read_jsonl(path: Path) -> list:
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return [json.loads(line) for line in fh if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
 def atomic_write_text(path: Path, text: str) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(text, encoding="utf-8")

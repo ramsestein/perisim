@@ -19,14 +19,26 @@ t1:
               antibiotic_course, transfusion]
     eicu:    [icu_readmission, death]
   reduced_cohorts: [eicu]
+  # D10 (SPECS D1 proxy, decided 2026-10-22): in cohorts whose ICU stays are only recorded after a surgery, a NEW
+  # run of these supports after t0 also counts as ICU readmission. The audit reports each source separately.
+  icu_readmission_proxy:
+    inspire: [vent, rrt, ecmo, iabp]
+  # D6: components that depend on the medication source; where the source does not cover the hospitalization they
+  # are unobservable and, with exclude_stay, T1/T3 are undefined for the stay (coverage-based, never outcome-based)
+  medication_components: [antibiotic_course, transfusion]
+  unobserved_mild_policy: exclude_stay   # exclude_stay | reduced_definition
 
-kdigo:                           # KDIGO 2012, baseline = last creatinine before the cutoff
-  ratio_stage1: 1.5
-  ratio_stage2: 2.0
+kdigo:                           # KDIGO 2012, baseline = last creatinine before the cutoff (rolling windows, D7)
+  ratio_stage1: 1.5                #   ≥ 1.5 × the minimum of the previous window_ratio_days (baseline included)
+  ratio_stage2: 2.0                #   stages 2–3 by the maximum ratio to the baseline
   ratio_stage3: 3.0
-  abs_increase_48h: 0.3
-  abs_stage3_mgdl: 4.0
+  abs_increase_48h: 0.3            #   ≥ 0.3 above the minimum of the previous window_abs_hours
+  abs_stage3_mgdl: 4.0             #   only at a detected rise and with a baseline below it (D5)
   baseline_lookback_days: 7
+  window_ratio_days: 7
+  window_abs_hours: 48
+  exclude_during_rrt: true         # D5: creatinine during an RRT run (or within rrt_exclusion_hours after) ignored
+  rrt_exclusion_hours: 24
 
 antibiotic_course:               # [VERIFY feasibility in INSPIRE and MIMIC-IV]
   start_after_t0_hours: 24

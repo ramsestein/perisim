@@ -53,7 +53,7 @@ features:
   support_gap_hours: 6          # merging of support records into intervals (end inferred from absence)
   min_points_slope: 3
   hier_min_count: 10
-  hier_max_levels: 200
+  hier_max_levels: 500          # cap per ICD-10-PCS level (raised for levels 4–5, AUDIT B6); rare → "other" dimension
   nominal_min_count: 10
   nominal_max_categories: 50
   corr_cluster_threshold: 0.8   # §5.3.1
@@ -71,10 +71,7 @@ importance:                     # §5.3
     min_delta: auto             # auto = pre-declared rule in pilot.min_delta_rule
     tol_delta: 0.01
     max_attempts_factor: 3
-  n_reference_pairs: 20000
-  lambda_loop: 1.0              # λ of the conversion inside the stopping loop (the final λ is chosen by inner CV)
-  nca_epochs_per_iter: 3
-  candidate_refresh_every: 5
+  n_reference_pairs: 20000      # Δ is measured on the prior-implied metric w = c·imp (B3): no NCA inside the loop
   sage:
     batch_size: 512
     max_passes: 3
@@ -84,7 +81,11 @@ importance:                     # §5.3
 
 metric:                         # §5.2, §5.4
   vdm_m_grid: [1, 5, 20, 50]
-  lambda_grid: [0, 0.01, 0.1, 1, 10, 100]
+  # λ multiplies the MEAN squared log-deviation of the group totals from the SAGE prior (B2/B4), so the grid has the
+  # same meaning whatever the number of variables
+  lambda_grid: [0, 0.001, 0.01, 0.1, 1, 10]
+  lambda_default: 0.1           # only when λ is not selected (pilot timing run)
+  lambda_prior: inner_fold_sage # C3: SAGE recomputed in each inner fold (≈ 3× the loop cost) | outer (v0)
   n_candidates: 500
   nca:
     epochs: 30
