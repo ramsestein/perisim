@@ -51,3 +51,23 @@ def test_e4_binary_brier_scale():
     from perisim.evaluation.metrics import row_brier_binary
 
     np.testing.assert_allclose(row_brier_binary(np.array([0.8, 0.3]), np.array([1, 0])), [0.04, 0.09])
+
+
+def test_bootstrap_of_a_rare_class_ignores_resamples_without_events():
+    """scikit-learn ≥ 1.6 returns AUPRC = 0 with a warning when a resample has no positives; those resamples must
+    be left out, not counted as 0 (first real run, 2026-10-24)."""
+    import warnings
+
+    from perisim.evaluation import metrics as M
+
+    n = 300
+    y = np.zeros(n, dtype=int)
+    y[:3] = 1                                          # 3 events in 300 patients: many resamples draw none
+    p = np.column_stack([1 - y * 0.9 - 0.05, y * 0.9 + 0.05])     # perfect ranking
+    subj = np.array([f"P{i}" for i in range(n)])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")                 # no sklearn warning may be triggered
+        for fn in (lambda pp, yy: M.auprc_binary(yy, pp[:, 1]), lambda pp, yy: M.auroc_binary(yy, pp[:, 1])):
+            r = M.bootstrap_metric(fn, p, y, subj, 200, seed=1)
+            assert r["ci_low"] == 1.0 and r["ci_high"] == 1.0
+    assert np.isnan(M.auprc_binary(np.zeros(5), np.ones(5))) and np.isnan(M.auroc_binary(np.ones(5), np.ones(5)))

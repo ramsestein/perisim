@@ -155,10 +155,10 @@ Approximation of the Clavien-Dindo classification (Dindo et al., 2004) **from st
 - **Mild** (≈ grades I–II), if not severe and any of:
   - Stage 1–2 AKI by creatinine (KDIGO, same baseline).
   - Start of a **new systemic antibiotic course** (ATC J01): first administration after t0 + 24 h, no antibiotic in the 48 h before that administration, and at least 2 consecutive days of administration. `[VERIFY feasibility in INSPIRE and MIMIC-IV]`
-  - Red blood cell transfusion after t0 `[VERIFY ward recording in both databases]`.
+  - ~~Red blood cell transfusion after t0~~ — **removed from T1 in every cohort [lead, 2026-10-24]**: INSPIRE does not record it (completeness audit: prevalence < 0.5 %); it remains a carried variable.
   - *INSPIRE sensitivity analysis only:* sustained ward hypoxaemia (SpO₂ <90% on ≥2 consecutive measurements), because MIMIC-IV has no ward vital signs.
 - **None:** everything else.
-- **[v0.4, D6] Unobserved mild components:** where the medication source does not cover the hospitalisation (MIMIC-IV without eMAR), the antibiotic-course and transfusion components are unobservable and T1 (and T3) is **undefined** for the stay, whatever its other outcomes (a coverage-based exclusion, never an outcome-based one); severe / not severe remains defined. eMAR coverage by period is reported in the audit.
+- **[v0.4, D6] Unobserved mild components:** where the medication source does not cover the hospitalisation (MIMIC-IV without eMAR), the antibiotic-course component is unobservable and T1 (and T3) is **undefined** for the stay, whatever its other outcomes (a coverage-based exclusion, never an outcome-based one); severe / not severe remains defined. eMAR coverage by period is reported in the audit.
 
 **In eICU:** T1 reduces to **severe / not severe**. "Severe" includes only ICU readmission and in-hospital death, the observable components. It must be reported as validation of a reduced target, not of the full T1.
 
@@ -549,7 +549,7 @@ KHDP research environment: **16 vCPU, 128 GB RAM, 100 GB storage, no GPU.** The 
 | D1 | ICU readmission detection in INSPIRE | Via location or devices in `ward_vitals` | Audit (§7). If not feasible, severe T1 in INSPIRE without readmission and a declared sensitivity analysis |
 | D2 | Cut-off margin | 2 h (sensitivity 4 h) | Clinical validation |
 | D3 | Minimum ICU stay | ≥4 h | Audit |
-| D4 | Components of the mild category | AKI 1–2, new antibiotic course, transfusion | Audit; clinical validation |
+| D4 | Components of the mild category | AKI 1–2, new antibiotic course (transfusion removed 2026-10-24) | Audit; clinical validation |
 | D5 | T2 categories | Per-cohort tertiles | — |
 | D6 | Diagnosis prevalence threshold | 0.5% | Audit |
 | D7 | Stopping-rule parameters (ε, W, P, min_delta, tol_Δ, n_min, n_max) | ε = 0.05; W = 5; P = 10; n_min = 20; n_max = 150; min_delta and tol_Δ from the pilot | Pilot |

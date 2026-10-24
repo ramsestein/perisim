@@ -61,6 +61,10 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   MIMIC-IV (a time point without all three gives no total). Devices `vent`, `crrt`, `ecmo`, `iabp` confirmed.
 - eICU: every configured table and column exists; lab names, FiO2 labels, vasopressor names and discharge locations
   confirmed against the inventory.
+- Completeness audit of the first real run (OPEN_QUESTIONS 36): red blood cell transfusion is removed from T1 in
+  every cohort — INSPIRE does not record it (prevalence < 0.5 %), and development and external validation must share
+  one outcome definition. Mild = AKI 1–2 or a new antibiotic course; transfusion stays a carried variable. The audit
+  no longer raises issues for components listed in `t1.exclude_components`.
 - Lead's answers to OPEN_QUESTIONS 32–35: department OT = ophthalmology (group of EY); CTS split by the ICD-10-PCS
   code of the operation (02 / 5A cardiac, 03–06 vascular, other codes thoracic, no code cardiac); INSPIRE MAP =
   (SBP + 2·DBP) / 3 where SBP and DBP are charted without a MAP; transfusion left to the completeness audit.

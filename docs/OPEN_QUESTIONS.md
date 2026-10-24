@@ -20,7 +20,7 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
 5. **INSPIRE — ATC medication.** `atc_code`, `atc_code2`, `atc_code3` are used as alternative codes for the same
    administration. Confirm their meaning (different levels of the same drug?).
 6. **INSPIRE — red blood cell transfusion.** Searched for by drug name (regex). Confirm whether it is recorded
-   on the ward.
+   on the ward. *Decided 2026-10-24 (lead): not recorded; removed from T1 (see 36).*
 7. **MIMIC-IV — diagnoses.** `diagnoses_icd` has no timestamp (billing at discharge): it is excluded as an
    input by the anti-leakage rule. Consequence: diagnoses are not part of the `core` set (intersection).
 8. **MIMIC-IV — postoperative ICU rule (D10).** *Decided 2026-10-22 (AUDIT D1/D8):* OR/PACU transfer in
@@ -102,13 +102,13 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
 35. **INSPIRE transfusion.** *Decided 2026-10-24 (lead):* no red-cell product among the most frequent drug names; the
     completeness audit decides — if `transfusion_rbc` has no events, the component is reviewed there (T1).
 
-36. **INSPIRE transfusion — completeness audit (first real run, T2 experiment).** The audit stops with "inspire:
-    component transfusion with prevalence < 0.5 %". To decide: (a) check whether blood products appear under other
-    drug names; if not, (b) drop `transfusion` from T1 in every cohort (harmonized definition) or (c) mark it not
-    observable in INSPIRE only. Pending (lead).
+36. **INSPIRE transfusion — completeness audit (first real run, T2 experiment).** The audit stopped with "inspire:
+    component transfusion with prevalence < 0.5 %". *Decided 2026-10-24 (lead):* transfusion is removed from T1 in
+    every cohort (one harmonized outcome definition for development and external validation; mild = AKI 1–2 or a
+    new antibiotic course); it remains a carried variable.
 
 ## Open decisions from SPECS §10 (v0 values in config)
 
-D1 (INSPIRE readmission), D2 (2 h; 4 h in sensitivity), D3 (≥ 4 h), D4 (AKI 1–2, antibiotic, transfusion),
+D1 (INSPIRE readmission), D2 (2 h; 4 h in sensitivity), D3 (≥ 4 h), D4 (AKI 1–2, antibiotic; transfusion removed 2026-10-24),
 D5 (tertiles), D6 (0.5%), D7 (from the pilot), D8 (disabled), D9 (OSF: `freeze --registration`),
 D10 (MIMIC/eICU rule), D11 (k = 50).

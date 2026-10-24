@@ -32,6 +32,23 @@ def row_rps(p: np.ndarray, y: np.ndarray) -> np.ndarray:
     return ((np.cumsum(p, 1) - np.cumsum(oh, 1)) ** 2).sum(1)[:] / max(C - 1, 1)
 
 
+def auroc_binary(y, score) -> float:
+    """AUROC of a binary outcome; NaN when only one class is present (scikit-learn ≥ 1.6 warns instead of raising)."""
+    y = np.asarray(y).astype(bool)
+    if y.all() or not y.any():
+        return float("nan")
+    return float(roc_auc_score(y, score))
+
+
+def auprc_binary(y, score) -> float:
+    """Average precision of a binary outcome; NaN without positives or negatives. scikit-learn returns 0 (with a
+    warning) when a resample has no positives, which would pull the bootstrap CIs of a rare class downwards."""
+    y = np.asarray(y).astype(bool)
+    if y.all() or not y.any():
+        return float("nan")
+    return float(average_precision_score(y, score))
+
+
 def _logit(p):
     p = np.clip(p, 1e-6, 1 - 1e-6)
     return np.log(p / (1 - p))
@@ -105,14 +122,14 @@ def summary(p: np.ndarray, y: np.ndarray, ordinal: bool, severe_class: int | Non
             a, b = calibration_line(p[:, c], yc)
             cal[str(c)] = {"intercept": a, "slope": b, "citl": calibration_in_the_large(p[:, c], yc),
                            "ece": ece(p[:, c], yc), "curve": calibration_curve(p[:, c], yc)}
-            aucs.append(roc_auc_score(yc, p[:, c]))
+            aucs.append(auroc_binary(yc, p[:, c]))
     out["calibration"] = cal
     out["auroc_ovr_macro"] = float(np.mean(aucs)) if aucs else float("nan")
     if severe_class is not None:
         ys = (y == severe_class).astype(int)
         if 0 < ys.sum() < len(ys):
-            out["auroc_severe"] = float(roc_auc_score(ys, p[:, severe_class]))
-            out["auprc_severe"] = float(average_precision_score(ys, p[:, severe_class]))
+            out["auroc_severe"] = auroc_binary(ys, p[:, severe_class])
+            out["auprc_severe"] = auprc_binary(ys, p[:, severe_class])
             if ys.sum() >= 10 and len(ys) - ys.sum() >= 10:
                 out["prevalence_severe"] = float(ys.mean())
     return out
@@ -146,7 +163,8 @@ def bootstrap_rowwise(values: dict[str, np.ndarray], subjects: np.ndarray, n_boo
 
 
 def bootstrap_metric(fn, p: np.ndarray, y: np.ndarray, subjects: np.ndarray, n_boot: int, seed: int) -> dict:
-    """95 % CI by patient bootstrap for a non-decomposable metric (AUROC, AUPRC, slope)."""
+    """95 % CI by patient bootstrap for a non-decomposable metric (AUROC, AUPRC, slope). Resamples where the metric
+    is undefined (NaN, e.g. no event drawn) are left out of the CI."""
     inv, S = _subject_index(subjects)
     order = np.argsort(inv, kind="stable")
     starts = np.searchsorted(inv[order], np.arange(S))

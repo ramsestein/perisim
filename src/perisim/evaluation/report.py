@@ -74,11 +74,9 @@ def evaluate_predictions(pred: pl.DataFrame, target: str, k_primary: int, n_boot
             v.pop("_boot", None)
         s["ci"] = ci
         if (k == k_primary or k == 0) and sev is not None and 0 < (y == sev).sum() < len(y):
-            from sklearn.metrics import average_precision_score, roc_auc_score
-
-            s["ci"]["auroc_severe"] = M.bootstrap_metric(lambda p, yy: roc_auc_score(yy == sev, p[:, sev]), P, y, subj,
+            s["ci"]["auroc_severe"] = M.bootstrap_metric(lambda p, yy: M.auroc_binary(yy == sev, p[:, sev]), P, y, subj,
                                                          min(n_boot, 500), seed)
-            s["ci"]["auprc_severe"] = M.bootstrap_metric(lambda p, yy: average_precision_score(yy == sev, p[:, sev]), P,
+            s["ci"]["auprc_severe"] = M.bootstrap_metric(lambda p, yy: M.auprc_binary(yy == sev, p[:, sev]), P,
                                                          y, subj, min(n_boot, 500), seed)
         out["methods"][key] = s
         if ref_rows is not None and (meth, int(k)) != (ref_m, ref_k) and (k == k_primary or k == 0):
@@ -102,8 +100,6 @@ def paired_between(pred: pl.DataFrame, a: tuple[str, int], b: tuple[str, int], n
 
 
 def _binary_block(p: np.ndarray, y: np.ndarray, subj: np.ndarray, n_boot: int, seed: int) -> dict:
-    from sklearn.metrics import average_precision_score, roc_auc_score
-
     P2 = np.column_stack([1 - p, p])
     ll = M.row_logloss(P2, y)
     br = M.row_brier_binary(p, y)
@@ -112,8 +108,8 @@ def _binary_block(p: np.ndarray, y: np.ndarray, subj: np.ndarray, n_boot: int, s
         v.pop("_boot", None)
     out = {"n": int(len(y)), "logloss": float(ll.mean()), "brier": float(br.mean()), "ci": ci}
     if 0 < y.sum() < len(y):
-        out["auroc"] = M.bootstrap_metric(lambda pp, yy: roc_auc_score(yy, pp[:, 1]), P2, y, subj, min(n_boot, 500), seed)
-        out["auprc"] = M.bootstrap_metric(lambda pp, yy: average_precision_score(yy, pp[:, 1]), P2, y, subj,
+        out["auroc"] = M.bootstrap_metric(lambda pp, yy: M.auroc_binary(yy, pp[:, 1]), P2, y, subj, min(n_boot, 500), seed)
+        out["auprc"] = M.bootstrap_metric(lambda pp, yy: M.auprc_binary(yy, pp[:, 1]), P2, y, subj,
                                           min(n_boot, 500), seed)
         a, b = M.calibration_line(p, y.astype(float))
         out["calibration"] = {"intercept": a, "slope": b}

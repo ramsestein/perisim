@@ -81,7 +81,8 @@ def completeness(cohort: str, flow: list[dict], stays: pl.DataFrame, inputs: pl.
     miss_map = {"aki_3": "aki_observable", "aki_12": "aki_observable",
                 "antibiotic_course": "med_source_observed" if tracked else "med_observable",
                 "hypoxemia_ward": None, "transfusion": "med_source_observed" if tracked else None}
-    t1_def = set(tcfg["t1"]["severe_components"]) | set(tcfg["t1"]["mild_components"])
+    t1_def = ((set(tcfg["t1"]["severe_components"]) | set(tcfg["t1"]["mild_components"]))
+              - set(tcfg["t1"].get("exclude_components") or []))      # excluded components raise no issue
     for comp in ["icu_readmission", "death", "reoperation", "vent_start", "vaso_start", "rrt_start", "aki_3", "aki_12",
                  "antibiotic_course", "transfusion", "hypoxemia_ward"]:
         obs = comp in observable
