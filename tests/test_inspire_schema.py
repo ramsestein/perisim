@@ -1,5 +1,5 @@
 """INSPIRE as the lead's copy ships it (schema_inspire, 2026-10-24): GCS by components, route column, one ATC
-column."""
+column; the lead's answers to OPEN_QUESTIONS 32-34 (CTS split by ICD-10-PCS, MAP from SBP / DBP)."""
 
 import polars as pl
 
@@ -31,3 +31,23 @@ def test_schema_accepts_a_single_atc_column(tmp_path, cfg):
     rep = schema_report(cfg, "inspire", tmp_path / "inspire", tmp_path / "cache", 10)
     assert rep["ok"], rep["tables"]["medications"]
     assert set(rep["tables"]["medications"]["optional_missing"]) == {"atc_code2", "atc_code3"}
+
+
+def test_cts_is_split_by_icd10_pcs(synthetic_inspire):
+    st = synthetic_inspire["stays"]
+    cardiac = st.filter(pl.col("surgical_group") == "cardiac")
+    lung = st.filter(pl.col("pcs_code") == "0BTC0")            # CTS operations with a respiratory-system code
+    assert cardiac.height > 0 and lung.height > 0
+    assert cardiac["pcs_code"].str.starts_with("02").all()
+    assert (lung["surgical_group"] == "thoracic").all()
+
+
+def test_map_is_derived_where_only_sbp_and_dbp_are_charted(synthetic_inspire):
+    s = synthetic_inspire
+    m = (s["inputs"].filter(pl.col("variable") == "vital_map")
+         .join(s["stays"].select("stay_id", "icu_in_min"), on="stay_id")
+         .with_columns((pl.col("time_min") - pl.col("icu_in_min")).alias("dt")))
+    charted, derived = m.filter(pl.col("dt") == 0), m.filter(pl.col("dt") == 120)   # MAP charted at 0 h, not at 2 h
+    assert derived.height > 0
+    assert derived["value"].is_between(60, 100).all()          # (≈120 + 2·≈60) / 3
+    assert charted.group_by("stay_id").len()["len"].max() == 1   # a charted MAP is never duplicated by a derived one

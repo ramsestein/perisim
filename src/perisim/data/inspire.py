@@ -39,6 +39,19 @@ class InspireExtractor(BaseExtractor):
             self._ops = df.with_columns([as_float(c).alias(c) for c in ["age", "weight", "height", "asa"] + _TIME_COLS])
         return self._ops
 
+    def _surgical_group(self) -> pl.Expr:
+        """Department → harmonized group; departments in `inspire_department_by_pcs` (CTS) are split by the ICD-10-PCS
+        code of the operation, the first matching pattern winning; without a code the department's group is kept."""
+        sg = self.h["surgical_groups"]
+        dept = as_str("department").str.to_uppercase()
+        pcs = as_str("pcs_code").fill_null("").str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "")
+        grp = harmonized_category(pl.col("department"), sg["inspire_department"])
+        for d, rules in (sg.get("inspire_department_by_pcs") or {}).items():
+            for r in reversed(rules):
+                grp = (pl.when((dept == str(d).upper()) & pcs.str.contains(r["pattern"]))
+                       .then(pl.lit(r["group"])).otherwise(grp))
+        return grp
+
     # ------------------------------------------------------------------ candidate stays
     def extract_stays(self) -> pl.DataFrame:
         ops = self._operations()
@@ -73,7 +86,7 @@ class InspireExtractor(BaseExtractor):
             apply_bounds(pl.col("asa"), (1, 6)).alias("asa"),
             as_str("emergency").is_in(vals["emergency_true"]).cast(pl.Float64).alias("emergency"),
             as_str("anesthesia_type").str.to_uppercase().alias("anesthesia_type"),
-            harmonized_category(pl.col("department"), self.h["surgical_groups"]["inspire_department"]).alias("surgical_group"),
+            self._surgical_group().alias("surgical_group"),
             as_str("pcs_code").str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "").alias("pcs_code"),
             pl.col("postop"),
         ]
@@ -124,11 +137,26 @@ class InspireExtractor(BaseExtractor):
 
         # Ward and ICU vital signs + devices
         wv = _prep(self.table("ward_vitals", filters={"subject_id": subj}))
-        v = map_measurements(wv, variables_for(self.h, "inspire", "ward_vitals"), "item", "value")
-        v = windowed_join(v.select("subject_raw", "variable", "value", "time_min"), w, "subject_raw",
-                          pl.col("icu_in_min") - 1440, hi)
-        inputs.append(v)
         item = pl.col("item").cast(pl.Utf8).str.strip_chars().str.to_lowercase()
+        v = map_measurements(wv, variables_for(self.h, "inspire", "ward_vitals"), "item", "value")
+        v = v.select("subject_raw", "variable", "value", "time_min")
+        mfs = self.src.get("map_from_sbp_dbp")
+        if mfs:   # MAP = (SBP + 2·DBP) / 3 at the time points with SBP and DBP but no charted MAP (lead, 2026-10-24)
+            s_, d_ = str(mfs["sbp"]).lower(), str(mfs["dbp"]).lower()
+            bp = (wv.filter(item.is_in([s_, d_])).with_columns(item.alias("_c"), as_float("value").alias("_v"))
+                  .drop_nulls("_v").group_by(["subject_raw", "time_min"])
+                  .agg(pl.col("_v").filter(pl.col("_c") == s_).first().alias("sbp"),
+                       pl.col("_v").filter(pl.col("_c") == d_).first().alias("dbp"))
+                  .filter(pl.col("sbp") > pl.col("dbp")))
+            charted = v.filter(pl.col("variable") == "vital_map").select("subject_raw", "time_min").unique()
+            derived = (bp.join(charted, on=["subject_raw", "time_min"], how="anti")
+                       .with_columns(apply_bounds((pl.col("sbp") + 2 * pl.col("dbp")) / 3,
+                                                  self.h["variables"]["vital_map"].get("bounds")).alias("value"),
+                                     pl.lit("vital_map").alias("variable"))
+                       .drop_nulls("value").select("subject_raw", "variable", "value", "time_min"))
+            v = pl.concat([v, derived], how="vertical_relaxed")
+        v = windowed_join(v, w, "subject_raw", pl.col("icu_in_min") - 1440, hi)
+        inputs.append(v)
         gcs_items = [str(i).lower() for i in self.src.get("gcs_component_items", [])]
         if gcs_items:   # GCS total = E + M + V charted at the same time (same rule as MIMIC-IV); partial sets give none
             g = (wv.filter(item.is_in(gcs_items)).with_columns(item.alias("_c"), as_float("value").alias("v"))

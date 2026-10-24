@@ -64,8 +64,11 @@ LABS = {"creatinine": ("creat", 1.0), "hb": ("hb", 1.0), "wbc": (None, 9.0), "pl
 INSPIRE_LAB_NAMES = {"lactate": "lacate", "pco2": "paco2", "po2": "pao2"}   # INSPIRE's own item names ("lacate" sic)
 VITALS = {"hr": 85, "mbp": 80, "rr": 17, "spo2": 96, "bt": 36.8, "fio2": 35}
 # INSPIRE ward_vitals items as INSPIRE names them; GCS charted by component (E4 + M6 + V5 = 15)
-INSPIRE_VITALS = {"hr": 85, "nibp_mbp": 80, "rr": 17, "spo2": 96, "bt": 36.8, "fio2": 35, "gcs_e": 4, "gcs_m": 6,
-                  "gcs_v": 5}
+INSPIRE_VITALS = {"hr": 85, "nibp_sbp": 120, "nibp_dbp": 60, "nibp_mbp": 80, "rr": 17, "spo2": 96, "bt": 36.8,
+                  "fio2": 35, "gcs_e": 4, "gcs_m": 6, "gcs_v": 5}
+# INSPIRE has one cardiothoracic department (CTS), split by the ICD-10-PCS code of the operation
+INSPIRE_DEPT = {"CS": "CTS", "TS": "CTS"}
+INSPIRE_PCS = {"CS": "02100", "TS": "0BTC0"}
 
 
 def _lab_value(name: str, L: dict, i: int, rng, drift: float = 0.0) -> float:
@@ -104,8 +107,10 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
         ops.append(dict(op_id=op_id, subject_id=sid, hadm_id=hid, age=round(L["age"][i] / 5) * 5,
                         sex="M" if L["sex"][i] else "F", weight=round(rng.normal(68, 12), 1),
                         height=round(rng.normal(165, 9), 1), asa=int(L["asa"][i]), emop=int(L["emerg"][i]),
-                        department=L["group"][i], antype=rng.choice(["General", "Neuraxial", "MAC"], p=[.85, .1, .05]),
-                        icd10_pcs=rng.choice(["0DTJ0", "0SRC0", "02100", "0FT44", "0TT10", "00B00"]),
+                        department=INSPIRE_DEPT.get(L["group"][i], L["group"][i]),
+                        antype=rng.choice(["General", "Neuraxial", "MAC"], p=[.85, .1, .05]),
+                        icd10_pcs=INSPIRE_PCS.get(L["group"][i],
+                                                  rng.choice(["0DTJ0", "0SRC0", "02100", "0FT44", "0TT10", "00B00"])),
                         opstart_time=op_s, opend_time=op_e, admission_time=adm, discharge_time=disch,
                         icuin_time=icu_in if has_icu else None, icuout_time=icu_out if has_icu else None,
                         inhosp_death_time=death))
@@ -113,7 +118,8 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
             op_id += 1
             ops.append(dict(op_id=op_id, subject_id=sid, hadm_id=hid, age=round(L["age"][i] / 5) * 5,
                             sex="M" if L["sex"][i] else "F", weight=None, height=None, asa=int(L["asa"][i]), emop=1,
-                            department=L["group"][i], antype="General", icd10_pcs="0W9G0", opstart_time=icu_out + 120,
+                            department=INSPIRE_DEPT.get(L["group"][i], L["group"][i]), antype="General",
+                            icd10_pcs="0W9G0", opstart_time=icu_out + 120,
                             opend_time=icu_out + 180, admission_time=adm, discharge_time=disch,
                             icuin_time=None, icuout_time=None, inhosp_death_time=death))
         if L["chronic"][i]:                         # D5: haemodialysis before the surgery and on the ward, ESRD code
@@ -130,7 +136,8 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
             op_id += 1
             ops.append(dict(op_id=op_id, subject_id=sid, hadm_id=hid, age=round(L["age"][i] / 5) * 5,
                             sex="M" if L["sex"][i] else "F", weight=None, height=None, asa=int(L["asa"][i]), emop=1,
-                            department=L["group"][i], antype="General", icd10_pcs="0DQ80", opstart_time=r_s,
+                            department=INSPIRE_DEPT.get(L["group"][i], L["group"][i]), antype="General",
+                            icd10_pcs="0DQ80", opstart_time=r_s,
                             opend_time=r_s + 90, admission_time=adm, discharge_time=disch,
                             icuin_time=(r_s + 120) if c == "readmission" else None,
                             icuout_time=(r_s + 120 + 1440) if c == "readmission" else None, inhosp_death_time=death))
@@ -145,8 +152,10 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
             if rng.random() < 0.8:
                 drift = (ratio - 1) * min(d / 2, 1) if aki else rng.normal(0, 0.05)
                 labs.append((sid, icu_out + d * 1440, "creatinine", float(L["creat"][i] * (1 + drift))))
-        for t in np.arange(icu_in, icu_out, 120.0):
+        for j, t in enumerate(np.arange(icu_in, icu_out, 120.0)):
             for k_, base in INSPIRE_VITALS.items():
+                if k_ == "nibp_mbp" and j % 2:      # MAP charted at every other time point only, as in INSPIRE
+                    continue
                 v = base if k_.startswith("gcs") else base + rng.normal(0, 0.05 * base) + (8 * L["z"][i] if k_ == "hr" else 0)
                 wv.append((sid, float(t), k_, float(min(v, 100) if k_ in ("spo2", "fio2") else v)))
         if L["vent"][i]:
@@ -460,7 +469,7 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
 
 
 # Bumped when the synthetic schema changes, so a cached synthetic dataset is regenerated
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def write_synthetic(root: Path, harmonization: dict | None = None, n_subjects: int = 700, seed: int = 7) -> Path:

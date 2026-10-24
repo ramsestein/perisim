@@ -73,6 +73,9 @@ sources:
     route_exclude_regex: '(?i)^ex'
     # GCS is charted by component: the total is E + M + V charted at the same time (same rule as MIMIC-IV)
     gcs_component_items: [gcs_e, gcs_m, gcs_v]
+    # nibp_mbp is charted far less often than nibp_sbp / nibp_dbp: MAP = (SBP + 2·DBP) / 3 at the time points with
+    # SBP and DBP but no charted MAP (lead, 2026-10-24)
+    map_from_sbp_dbp: {sbp: nibp_sbp, dbp: nibp_dbp}
     dx_code_length: 3
     # D5: chronic dialysis before the index surgery = ESRD / dialysis-dependence codes (full ICD-10, normalised)
     # or any RRT device record, both timestamped before the surgery start [VERIFY codes]
@@ -499,10 +502,11 @@ medications:
 # 4. Harmonized surgical group (nominal, VDM)
 # ---------------------------------------------------------------------------
 surgical_groups:
-  inspire_department:              # [VERIFY] SNUH service codes
+  inspire_department:              # SNUH department codes (seen in schema_inspire, 2026-10-24)
     CS: cardiac
     TS: thoracic
-    CTS: cardiac
+    CTS: cardiac                   # split by ICD-10-PCS below; cardiac when the operation has no code
+    OT: plastic_other              # ophthalmology (lead, 2026-10-24), the same group as EY
     GS: general_gi
     NS: neuro
     OS: ortho
@@ -517,6 +521,13 @@ surgical_groups:
     DT: ent_head_neck
     VS: vascular
     TR: general_gi
+  # Departments split by the ICD-10-PCS code of the operation (first matching pattern wins; without a code, the
+  # department's group above). CTS = cardiothoracic (lead, 2026-10-24).
+  inspire_department_by_pcs:
+    CTS:
+      - {pattern: '^(02|5A)', group: cardiac}    # heart and great vessels (incl. thoracic aorta); extracorporeal support
+      - {pattern: '^0[3-6]', group: vascular}    # upper / lower arteries and veins
+      - {pattern: '^.', group: thoracic}         # respiratory, oesophagus, mediastinum, chest wall …
   mimic_service:
     CSURG: cardiac
     TSURG: thoracic

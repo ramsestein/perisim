@@ -48,6 +48,9 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   MIMIC-IV (a time point without all three gives no total). Devices `vent`, `crrt`, `ecmo`, `iabp` confirmed.
 - eICU: every configured table and column exists; lab names, FiO2 labels, vasopressor names and discharge locations
   confirmed against the inventory.
+- Lead's answers to OPEN_QUESTIONS 32–35: department OT = ophthalmology (group of EY); CTS split by the ICD-10-PCS
+  code of the operation (02 / 5A cardiac, 03–06 vascular, other codes thoracic, no code cardiac); INSPIRE MAP =
+  (SBP + 2·DBP) / 3 where SBP and DBP are charted without a MAP; transfusion left to the completeness audit.
 
 ## 2026-10-22 — Scientific decisions after the full audit (lead)
 
