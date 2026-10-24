@@ -54,6 +54,9 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   start–stop, systemic routes only, the same name → ATC mapping), with their own D6 coverage marker; eMAR keeps
   priority where it exists (administrations rather than orders). An order running into the window counts from the
   window start (ongoing therapy, never a new course).
+- The non-systemic routes of `prescriptions` are taken from its route inventory (eyes, ears, topical, inhaled,
+  nasal, intradermal, catheter lock / dwell / flush, intravitreal, nerve blocks…); every configured MIMIC-IV
+  item matched its d_items / d_labitems label (marked VERIFIED).
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 

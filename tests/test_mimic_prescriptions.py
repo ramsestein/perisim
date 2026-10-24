@@ -21,6 +21,22 @@ def _inp(rows):
     return conform(df, INPUTS_SCHEMA)
 
 
+def test_route_filter_on_the_real_mimic_route_codes(cfg):
+    """Route codes of the prescriptions inventory (schema_mimic, 2026-10-24)."""
+    import re
+
+    rx = re.compile(cfg.harmonization["sources"]["mimic"]["prescriptions_route_exclude_regex"])
+    local = ["TP", "IH", "TD", "BOTH EYES", "RIGHT EYE", "LEFT EYE", "DWELL", "NU", "NEB", "ID", "LOCK", "INHALATION",
+             "OU", "VG", "INTRAPLEURAL", "NAS", "OD", "BOTH EARS", "FLUSH", "OS", "LEFT EAR", "RIGHT EAR", "AD", "IRR",
+             "TRANSDERMAL", "INTRAVITREAL", "AU", "INTERSPACE", "INTRALESIONAL", "AS", "SUBDERMAL", "PERIPHNERVE",
+             "LUMBAR PLEXUS"]
+    systemic = ["IV", "PO/NG", "PO", "SC", "IV DRIP", "IM", "PR", "ORAL", "IVPCA", "NG", "IV BOLUS", "SL", "DIALYS",
+                "REPLACE", "IT", "IP", "IV INFUSION", "G TUBE", "J TUBE", "SUBCUT", "BU", "BUCCAL", "IO", "NG/OG", "OG",
+                "SC INFUSION", "IA", "IVCI", "INTRA-ARTERIALLY"]
+    assert [r for r in local if not rx.search(r)] == []
+    assert [r for r in systemic if rx.search(r)] == []
+
+
 def test_antibiotic_course_from_order_intervals(cfg):
     day = 1440
     rows = [(f"S{i}", "src:medication", 1.0, T0 - 2000, None) for i in range(4)]
