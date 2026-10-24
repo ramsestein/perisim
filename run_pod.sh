@@ -49,6 +49,11 @@ fi
 : "${PERISIM_EXPERIMENT:=t2}"
 case "$PERISIM_EXPERIMENT" in t1|t2|t3) ;; *) echo "PERISIM_EXPERIMENT must be t1, t2 or t3" >&2; exit 1 ;; esac
 export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL PERISIM_EXPERIMENT
+# The KHDP forward servers (PyPI, PyTorch, conda-forge, GitHub mirrors) resolve inside the pod but not in the pod's
+# HTTP proxy (squid answers 503 ERR_DNS_FAIL): they are always reached directly.
+_np="${no_proxy:-${NO_PROXY:-}}"
+case ",$_np," in *",.khdp-forward-server,"*) ;; *) _np="${_np:+$_np,}.khdp-forward-server" ;; esac
+export no_proxy="$_np" NO_PROXY="$_np"
 
 PIDFILE="$PERISIM_LOCAL/run.pid"
 LOGDIR="$PERISIM_LOCAL/logs"
