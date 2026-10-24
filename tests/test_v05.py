@@ -169,6 +169,33 @@ def test_loop_checkpoint_resumes_identically(cfg, tmp_path, monkeypatch):
     np.testing.assert_allclose(again["feature_importance"], ref["feature_importance"])
 
 
+def test_loop_checkpoint_of_other_variables_is_not_resumed(cfg, tmp_path, monkeypatch):
+    """First real pilot (2026-10-24): a stopped pilot left a checkpoint, the harmonized set then changed with the same
+    number of variables, and the loop resumed curves that belonged to other variables (KeyError)."""
+    import copy
+    import pickle
+
+    from perisim.importance import loop as L
+
+    base = dict(seed=1, n=10, F=3, icfg={}, model_space={}, stopping={}, exclude=[], early_stop=False,
+                group_names=["g"], y=np.zeros(3), X_model=np.zeros((3, 2)), feature_names=["a", "b", "c"],
+                block_kinds=["continuous"] * 3, shapeable=[0, 1, 2])
+    s0 = L.loop_signature(**base)
+    assert L.loop_signature(**{**base, "feature_names": ["a", "b", "d"]}) != s0     # same count, other variables
+    assert L.loop_signature(**{**base, "X_model": np.ones((3, 2))}) != s0          # same variables, other values
+    assert L.loop_signature(**base) == s0
+    c = copy.deepcopy(cfg)
+    c.model_space = {"families": {"logreg": {"weight": 1, "params": {"C": 1.0, "max_iter": 200}}}}
+    c.experiment["importance"]["curves"] = {"subsample": 60, "max_bins": 6, "min_bin": 30}
+    c.experiment["importance"]["n_explain"] = 80
+    ck = tmp_path / "loop.pkl"
+    with open(ck, "wb") as fh:                      # even under a matching signature, foreign curves are discarded
+        pickle.dump({"signature": "same", "curves": {999: []}}, fh)
+    monkeypatch.setattr(L, "loop_signature", lambda **k: "same")
+    res = L.run_importance_loop(**_loop_inputs(c), checkpoint=ck)
+    assert res["n_accepted"] == 4
+
+
 # --------------------------------------------------------------------------- experiments and comparators
 def test_workspace_shares_data_between_experiments(tmp_path):
     from perisim.workspace import Workspace

@@ -17,6 +17,7 @@ The state is checkpointed after every accepted model, so a stopped pod resumes t
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import pickle
 import time
@@ -57,6 +58,19 @@ def _load(path: Path | None, signature: str) -> dict | None:
     return state if state.get("signature") == signature else None
 
 
+def loop_signature(*, seed: int, n: int, F: int, icfg: dict, model_space: dict, stopping: dict, exclude: list[str],
+                   early_stop: bool, group_names: list[str], y: np.ndarray, X_model: np.ndarray,
+                   feature_names: list[str], block_kinds: list[str], shapeable: list[int]) -> str:
+    """Identity of a loop: a checkpoint is resumed only for the same inputs, features and encoder layout. The count
+    of features alone is not enough: a different harmonized set with the same size reused a stale checkpoint whose
+    curves belonged to other variables (first real pilot, 2026-10-24)."""
+    xh = hashlib.sha256(np.ascontiguousarray(X_model, dtype=np.float64).tobytes()).hexdigest()[:16]
+    return stable_hash({"seed": seed, "n": n, "F": F, "imp": icfg, "ms": model_space, "st": stopping,
+                        "excl": sorted(exclude), "early": early_stop, "groups": group_names,
+                        "y": stable_hash(np.asarray(y).tolist()), "X": xh, "features": list(feature_names),
+                        "kinds": list(block_kinds), "shapeable": [int(j) for j in shapeable]})
+
+
 def run_importance_loop(*, X_model: np.ndarray, owner: np.ndarray, col_group: np.ndarray, n_groups: int,
                         group_names: list[str], y: np.ndarray, n_classes: int, inner_train: np.ndarray,
                         inner_val: np.ndarray, enc, ft, group_of_feature: np.ndarray, subjects: np.ndarray,
@@ -93,10 +107,14 @@ def run_importance_loop(*, X_model: np.ndarray, owner: np.ndarray, col_group: np
     top_share = float(ccfg.get("top_importance_share", 1.0))
     flat_alpha = float(ccfg.get("flat_alpha", 0.05))
 
-    signature = stable_hash({"seed": seed, "n": n, "F": F, "imp": icfg, "ms": cfg.model_space, "st": st,
-                             "excl": sorted(exclude_families or []), "early": early_stop,
-                             "groups": group_names, "y": stable_hash(np.asarray(y).tolist())})
+    signature = loop_signature(seed=seed, n=n, F=F, icfg=icfg, model_space=cfg.model_space, stopping=st,
+                               exclude=list(exclude_families or []), early_stop=early_stop, group_names=group_names,
+                               y=y, X_model=X_model, feature_names=list(enc.feature_names),
+                               block_kinds=[b.kind for b in enc.blocks], shapeable=shapeable)
     state = _load(checkpoint, signature)
+    if state and not state.get("done") and set(state.get("curves", {})) != set(shapeable):
+        LOG.warning("Loop checkpoint %s belongs to other variables: starting the loop again", checkpoint)
+        state = None
     if state and state.get("done"):
         LOG.info("  importance loop already finished (checkpoint %s)", checkpoint)
         return state["result"]
