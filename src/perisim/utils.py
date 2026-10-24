@@ -18,6 +18,12 @@ import numpy as np
 LOG = logging.getLogger("perisim")
 
 
+def run_cmd(args: str = "") -> str:
+    """The run_pod.sh command as the user types it where they work (run_pod.sh sets PERISIM_RUN, e.g.
+    `bash perisim/run_pod.sh` from the workspace root)."""
+    return f"{os.environ.get('PERISIM_RUN', 'bash run_pod.sh')} {args}".strip()
+
+
 def setup_logging(logfile: Path | None = None, level: int = logging.INFO) -> None:
     fmt = logging.Formatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s", "%Y-%m-%d %H:%M:%S")
     root = logging.getLogger("perisim")

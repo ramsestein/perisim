@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PERISIM — single entry point in the KHDP pod.
+# PERISIM — single entry point in the KHDP pod. Run it from the workspace root (~/workspace, where perisim/,
+# data/ and venv/ live); from any other folder it works the same.
 #
-#   bash run_pod.sh            # set up the environment and launch the WHOLE pipeline in the background
-#   bash run_pod.sh fg         # same, in the foreground
-#   bash run_pod.sh status     # status of every stage and whether a run is in progress
-#   bash run_pod.sh logs       # follow the log of the latest run (Ctrl-C does not stop it)
-#   bash run_pod.sh stop       # stop the run in progress
-#   bash run_pod.sh smoke      # end-to-end test on synthetic data
-#   bash run_pod.sh test       # pytest (includes the anti-leakage tests on the real data)
-#   bash run_pod.sh freeze --registration <OSF_ID>   # §6.3 freeze (enables the external validation)
-#   bash run_pod.sh resources  # real CPU/memory limits of the container and the jobs × threads plan
-#   bash run_pod.sh setup      # only install / check the environment
+#   bash perisim/run_pod.sh            # set up the environment and launch the WHOLE pipeline in the background
+#   bash perisim/run_pod.sh fg         # same, in the foreground
+#   bash perisim/run_pod.sh status     # status of every stage and whether a run is in progress
+#   bash perisim/run_pod.sh logs       # follow the log of the latest run (Ctrl-C does not stop it)
+#   bash perisim/run_pod.sh stop       # stop the run in progress
+#   bash perisim/run_pod.sh smoke      # end-to-end test on synthetic data
+#   bash perisim/run_pod.sh test       # pytest (includes the anti-leakage tests on the real data)
+#   bash perisim/run_pod.sh freeze --registration <OSF_ID>   # §6.3 freeze (enables the external validation)
+#   bash perisim/run_pod.sh resources  # real CPU/memory limits of the container and the jobs × threads plan
+#   bash perisim/run_pod.sh setup      # only install / check the environment
 #
 # Any extra argument after start/fg is passed to `python -m perisim run`
-# (e.g. `bash run_pod.sh fg --until audit`, `--stage features --force`).
+# (e.g. `bash perisim/run_pod.sh fg --until audit`, `--stage features --force`).
 #
 # Environment variables (optional):
 #   PERISIM_EXPERIMENT  t2 (default, primary target) | t1 | t3 — one experiment per target, each with its own freeze;
-#                       the three share the extraction (e.g. `PERISIM_EXPERIMENT=t1 bash run_pod.sh`)
+#                       the three share the extraction (e.g. `PERISIM_EXPERIMENT=t1 bash perisim/run_pod.sh`)
 #   PERISIM_WORKDIR     working folder (default: updown/perisim/<user>/work)
 #   PERISIM_WORKSPACE   KHDP workspace (default: the first of ~/workspace, /home/khdp-user/workspace or the folders
 #                       above the repository that contains data/, datasets/ or updown/)
@@ -34,6 +35,14 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# How the user calls this script from where they work, for the hints in messages and reports
+# (`bash perisim/run_pod.sh` from the workspace root, `bash run_pod.sh` inside the repository).
+case "$REPO_DIR" in
+  "$PWD") PERISIM_RUN="bash run_pod.sh" ;;
+  "$PWD"/*) PERISIM_RUN="bash ${REPO_DIR#"$PWD"/}/run_pod.sh" ;;
+  *) PERISIM_RUN="bash $REPO_DIR/run_pod.sh" ;;
+esac
+export PERISIM_RUN
 CMD="${1:-start}"
 [ $# -gt 0 ] && shift || true
 
@@ -246,7 +255,7 @@ size_threads() {
   export OMP_NUM_THREADS="$PERISIM_THREADS_PER_JOB" MKL_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
   export OPENBLAS_NUM_THREADS="$PERISIM_THREADS_PER_JOB" NUMEXPR_NUM_THREADS="$PERISIM_THREADS_PER_JOB"
   export POLARS_MAX_THREADS
-  say "Resources: $PERISIM_CPUS usable CPUs → $PERISIM_THREADS_PER_JOB threads per job (details: bash run_pod.sh resources)"
+  say "Resources: $PERISIM_CPUS usable CPUs → $PERISIM_THREADS_PER_JOB threads per job (details: $PERISIM_RUN resources)"
 }
 
 # A PID file is trusted only if that PID is alive AND is a perisim process (PIDs are reused after a restart)
@@ -257,7 +266,7 @@ is_running() {
   ps -p "$pid" -o args= 2>/dev/null | grep -q "perisim" || return 1
 }
 refuse_if_running() {
-  if is_running; then die "A run is already in progress (PID $(cat "$PIDFILE")). Use: bash run_pod.sh logs | stop"; fi
+  if is_running; then die "A run is already in progress (PID $(cat "$PIDFILE")). Use: $PERISIM_RUN logs | stop"; fi
   return 0
 }
 
@@ -281,7 +290,7 @@ launch_bg() {
   echo $! > "$PIDFILE"
   echo "$log" > "$LOGDIR/latest.txt"
   say "Pipeline launched in the background (experiment $PERISIM_EXPERIMENT, PID $!). Log: $log"
-  say "Ctrl-C stops following the log but does NOT stop the pipeline. Use 'bash run_pod.sh stop' to stop it."
+  say "Ctrl-C stops following the log but does NOT stop the pipeline. Use '$PERISIM_RUN stop' to stop it."
   sleep 1
   tail -n +1 -F "$log"
 }

@@ -11,6 +11,7 @@ import polars as pl
 
 from perisim.evaluation import privacy as PV
 from perisim.evaluation.html import box, page, table
+from perisim.utils import run_cmd
 
 PREV_MIN = 0.005
 MISS_MAX = 0.30
@@ -164,7 +165,7 @@ def render(rep: dict, min_n: int) -> str:
     if rep["issues"]:
         sec.append(box("<b>Gate §7: STOP.</b><br>" + "<br>".join(rep["issues"]) +
                        "<br>Recorded in docs/OPEN_QUESTIONS (workdir). To continue after reviewing it: "
-                       "<code>PERISIM_ACK_AUDIT=true bash run_pod.sh</code>", "bad"))
+                       f"<code>PERISIM_ACK_AUDIT=true {run_cmd()}</code>", "bad"))
     else:
         sec.append(box("No prevalence (< 0.5 %) or missingness (> 30 %) issues in the T1 components.", "ok"))
     sec.append("<h2>Flow diagram</h2>" + table(["Step", "Stays", "Patients", "Excluded"],

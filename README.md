@@ -16,13 +16,12 @@ with T2), **T3** (both). Select one with `PERISIM_EXPERIMENT` (default `t2`); th
 
 ## Running in the KHDP pod
 
-In the pod's VSCode terminal:
+In the pod's VSCode terminal, from the workspace root (all the commands below are run from `~/workspace`):
 
 ```bash
 cd ~/workspace
 git clone http://github.khdp-forward-server/ramsestein/perisim.git
-cd perisim
-bash run_pod.sh
+bash perisim/run_pod.sh
 ```
 
 Pod layout (code, data and environment outside `updown`, which is shared object storage and slow for many small
@@ -31,7 +30,8 @@ files; no hidden folders):
 ```
 ~/workspace/
 ├── perisim/        this repository
-├── data/           the datasets, unzipped, one folder per cohort (any names: found by their tables)
+├── data/           the datasets, unzipped, one folder per cohort: inspire/, mimic4/, eicu/
+│                   (the names are free: each cohort is found by its tables, up to 7 levels down)
 ├── venv/           Python environment (created by run_pod.sh, or by the user beforehand)
 ├── perisim_run/    logs, PID and smoke-test files of the runs
 └── updown/perisim/<user>/work/   work and results (persistent)
@@ -53,21 +53,21 @@ It also detects the container's real CPU and memory limits (cgroup) and sizes pr
 automatically, at most 4 × 4 (SPECS §9.1). The consensus loop is checkpointed after every accepted model, so
 `stop` (or a pod restart) costs minutes: relaunching resumes the loop where it was.
 
-Experiments: `bash run_pod.sh` runs T2; `PERISIM_EXPERIMENT=t1 bash run_pod.sh` (later `t3`) runs the next one
+Experiments: `bash perisim/run_pod.sh` runs T2; `PERISIM_EXPERIMENT=t1 bash perisim/run_pod.sh` (later `t3`) runs the next one
 on the same extraction. Only one run at a time.
 
 | Command | Purpose |
 |---|---|
-| `bash run_pod.sh` | set up the environment and launch / **resume** the pipeline |
-| `bash run_pod.sh status` | which stages are done and where it stopped |
-| `bash run_pod.sh logs` | follow the log of the running execution |
-| `bash run_pod.sh stop` | stop it |
-| `bash run_pod.sh fg --until audit` | run in the foreground up to a given stage |
-| `bash run_pod.sh test` | pytest, including the anti-leakage tests on the real data |
-| `bash run_pod.sh freeze --registration <ID>` | §6.3 freeze of the current experiment (enables its external validation) |
-| `PERISIM_EXPERIMENT=t1 bash run_pod.sh` | run another experiment (t1, t3) on the shared extraction |
+| `bash perisim/run_pod.sh` | set up the environment and launch / **resume** the pipeline |
+| `bash perisim/run_pod.sh status` | which stages are done and where it stopped |
+| `bash perisim/run_pod.sh logs` | follow the log of the running execution |
+| `bash perisim/run_pod.sh stop` | stop it |
+| `bash perisim/run_pod.sh fg --until audit` | run in the foreground up to a given stage |
+| `bash perisim/run_pod.sh test` | pytest, including the anti-leakage tests on the real data |
+| `bash perisim/run_pod.sh freeze --registration <ID>` | §6.3 freeze of the current experiment (enables its external validation) |
+| `PERISIM_EXPERIMENT=t1 bash perisim/run_pod.sh` | run another experiment (t1, t3) on the shared extraction |
 
-To update the code: `git pull` and `bash run_pod.sh`. Only the stages whose code or configuration have changed
+To update the code: `git -C perisim pull` and `bash perisim/run_pod.sh`. Only the stages whose code or configuration have changed
 are rerun, because each stage stores a marker with its hash. After an OOM or a pod restart, just relaunch:
 it resumes from the last completed stage (or fold).
 
@@ -110,18 +110,18 @@ models of the external validation are fitted in parallel.
 **Expected first run:** it will almost certainly stop at `discover` or at `audit`. In that case:
 
 1. Review `reports/schema_*.md` and `reports/completeness_*.html` inside the workdir.
-2. Fix `config/harmonization.yaml` on your machine, push, and then `git pull` in the pod.
+2. Fix `config/harmonization.yaml` on your machine, push, and then `git -C perisim pull` in the pod.
 3. Record the decisions in `docs/OPEN_QUESTIONS.md` and `docs/DECISIONS.md`.
-4. To continue after the audit: `PERISIM_ACK_AUDIT=true bash run_pod.sh` (once: the acknowledgement is stored for that exact set of issues; a different set stops the pipeline again).
+4. To continue after the audit: `PERISIM_ACK_AUDIT=true bash perisim/run_pod.sh` (once: the acknowledgement is stored for that exact set of issues; a different set stops the pipeline again).
 
 **External validation:** once internal validation of the experiment is closed, confirm the state of the repository
 and freeze it (one freeze per experiment):
 
 ```bash
-bash run_pod.sh freeze --registration <ID_OSF>
+bash perisim/run_pod.sh freeze --registration <ID_OSF>
 ```
 
-Then relaunch `bash run_pod.sh`. From that moment on, any change to code or configuration blocks
+Then relaunch `bash perisim/run_pod.sh`. From that moment on, any change to code or configuration blocks
 the `external` stage, because §6.3 forbids iterating after looking at external results. Paths, compute
 resources (`PERISIM_JOBS`, `PERISIM_THREADS`) and gate acknowledgements are not part of the frozen method, so
 changing them does not break the freeze; a second freeze is refused once external results exist.

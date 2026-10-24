@@ -33,7 +33,7 @@ import polars as pl
 
 from perisim.config import REPO_ROOT, Config, code_hash, stable_hash
 from perisim.resources import apply_library_limits, plan
-from perisim.utils import (LOG, append_note, dir_size_gb, free_disk_gb, now_iso, read_json, read_jsonl, rss_gb,
+from perisim.utils import (LOG, append_note, run_cmd, dir_size_gb, free_disk_gb, now_iso, read_json, read_jsonl, rss_gb,
                            set_threads, timed, write_json, write_jsonl, write_parquet)
 from perisim.workspace import Workspace
 
@@ -260,7 +260,7 @@ class Pipeline:
         if sys.version_info < (3, 11):
             raise Stop("Python ≥ 3.11 is required (§8.1)")
         if missing:
-            raise Stop(f"Missing packages: {missing}. Run: bash run_pod.sh setup")
+            raise Stop(f"Missing packages: {missing}. Run: {run_cmd('setup')}")
         probe = self.ws.state / ".probe"
         probe.write_text("ok")
         os.replace(probe, self.ws.state / ".probe2")
@@ -463,7 +463,7 @@ class Pipeline:
             raise Stop("§7 completeness audit raised issues:\n  - " + "\n  - ".join(issues_all) +
                        f"\nReports: {self.ws.reports}/completeness_*.html\n"
                        "After reviewing them (and recording the decision in the repo's docs/OPEN_QUESTIONS.md / "
-                       "DECISIONS.md), continue with:  PERISIM_ACK_AUDIT=true bash run_pod.sh")
+                       f"DECISIONS.md), continue with:  PERISIM_ACK_AUDIT=true {run_cmd()}")
         self.mark("audit", digest=stable_hash(issues_all), issues=issues_all)
 
     def stage_harmonize(self) -> None:
@@ -797,7 +797,7 @@ class Pipeline:
         if self.cfg.experiment["gates"]["external_requires_freeze"]:
             if not fr:
                 LOG.warning("external: WAITING for the freeze (§6.3). Review reports/results_main.html and, once the "
-                            "pipeline is final:  bash run_pod.sh freeze --registration <OSF_ID>  then relaunch.")
+                            f"pipeline is final:  {run_cmd('freeze --registration <OSF_ID>')}  then relaunch.")
                 return
             if fr.get("code_hash") != code_hash() or fr.get("config_hash") != self.cfg.scientific_hash():
                 raise Stop("Code or configuration changed since the freeze (§6.3: iterating is forbidden). "

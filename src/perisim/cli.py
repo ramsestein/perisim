@@ -192,7 +192,9 @@ def cmd_freeze(args) -> int:
                                           "config_hash": cfg.scientific_hash(), "git": git,
                                           "registration": args.registration or "PENDING",
                                           "packages": _package_versions()})
-    print(f"[perisim] Frozen ({tag}). The external stage can now run: bash run_pod.sh")
+    from perisim.utils import run_cmd
+
+    print(f"[perisim] Frozen ({tag}). The external stage can now run: {run_cmd()}")
     return 0
 
 

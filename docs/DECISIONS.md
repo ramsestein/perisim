@@ -28,12 +28,14 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 
 ## 2026-10-24 — Pod layout (lead)
 
-- The datasets are the lead's own PhysioNet copies, unzipped in `<workspace>/data/` (one folder per cohort) outside
+- The datasets are the lead's own PhysioNet copies, unzipped in `<workspace>/data/{inspire,mimic4,eicu}` outside
   `updown`, for speed; `run_pod.sh` uses that folder when it exists and the KHDP mount `<workspace>/datasets`
   otherwise. Replaces the data path of 2026-10-21.
 - Python environment in `<workspace>/venv` (the lead may create it beforehand; an existing environment is used as
   it is and never deleted) and run files in `<workspace>/perisim_run`, replacing `~/.perisim`: no hidden folders.
   Pip and matplotlib caches are not written to `~/.cache`; pytest writes no `.pytest_cache`.
+- The repository is cloned in the workspace root (`<workspace>/perisim`) and everything is run from the root:
+  `bash perisim/run_pod.sh`; the hints in messages and reports follow how the script was called.
 
 ## 2026-10-22 — Scientific decisions after the full audit (lead)
 
