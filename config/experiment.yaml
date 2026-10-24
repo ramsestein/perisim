@@ -10,7 +10,7 @@ experiment_name: ${PERISIM_EXPERIMENT:-t2}
 
 paths:
   datasets_root: ${PERISIM_DATASETS:-/home/khdp-user/workspace/datasets}
-  workdir: ${PERISIM_WORKDIR:-/home/khdp-user/workspace/updown/perisim/khdp-user/work}
+  workdir: ${PERISIM_WORKDIR:-/home/khdp-user/workspace/perisim_work}
   # "auto" = discovery under datasets_root (src/perisim/data/discover.py)
   inspire_dir: ${PERISIM_INSPIRE_DIR:-auto}
   mimic_dir: ${PERISIM_MIMIC_DIR:-auto}

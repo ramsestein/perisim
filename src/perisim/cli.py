@@ -45,6 +45,14 @@ def cmd_run(args) -> int:
     rc = pipe.run(stages)
     if rc == 0:
         LOG.info("Reports: %s · Exportable: %s", pipe.ws.reports, pipe.ws.export)
+    dest = os.environ.get("PERISIM_PUBLISH_DIR")
+    if dest:   # also after a stop: the audit and schema reports are what has to be reviewed
+        from perisim.evaluation.export import publish
+
+        try:
+            LOG.info("Reports copied to %s (%d files)", dest, publish(pipe.ws, Path(dest)))
+        except Exception as exc:   # the local workdir stays the source of truth: never fail the run for this
+            LOG.warning("Could not copy the reports to %s: %s", dest, exc)
     return rc
 
 
@@ -136,7 +144,7 @@ def cmd_smoke(args) -> int:
         (work / "workdir" / "experiments" / exp / "state" / "freeze.json").unlink(missing_ok=True)
         env = {**os.environ, "PERISIM_DATASETS": str(data_root), "PERISIM_WORKDIR": str(work / "workdir"),
                "PERISIM_INSPIRE_DIR": "auto", "PERISIM_MIMIC_DIR": "auto", "PERISIM_EICU_DIR": "auto",
-               "PERISIM_ACK_AUDIT": "true", "PERISIM_EXPERIMENT": exp,
+               "PERISIM_ACK_AUDIT": "true", "PERISIM_EXPERIMENT": exp, "PERISIM_PUBLISH_DIR": "",
                "PYTHONPATH": os.pathsep.join([str(REPO_ROOT / "src")] + [p for p in [os.environ.get("PYTHONPATH")] if p])}
         steps = [base + ["run", "--profile", "smoke"] + (["--force"] if args.force else []),
                  base + ["freeze", "--profile", "smoke", "--no-git", "--registration", "SMOKE-TEST"],

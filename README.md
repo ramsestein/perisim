@@ -24,8 +24,8 @@ git clone http://github.khdp-forward-server/ramsestein/perisim.git
 bash perisim/run_pod.sh
 ```
 
-Pod layout (code, data and environment outside `updown`, which is shared object storage and slow for many small
-files; no hidden folders):
+Pod layout (code, data, environment and work on the workspace's local disk: `updown` is shared object storage,
+slow for many small files and unreliable for files being written by several processes; no hidden folders):
 
 ```
 ~/workspace/
@@ -34,7 +34,8 @@ files; no hidden folders):
 │                   (the names are free: each cohort is found by its tables, up to 7 levels down)
 ├── venv/           Python environment (created by run_pod.sh, or by the user beforehand)
 ├── perisim_run/    logs, PID and smoke-test files of the runs
-└── updown/perisim/<user>/work/   work and results (persistent)
+├── perisim_work/   work folder: cache, extracts, models, reports, export package
+└── updown/perisim/<user>/results/   copy of the reports and export package after every run (persistent, shared)
 ```
 
 `run_pod.sh` does everything on its own:
@@ -78,7 +79,8 @@ it resumes from the last completed stage (or fold).
 | Workspace | the first of `~/workspace`, `/home/khdp-user/workspace` or the folders above the repository that contains `data/`, `datasets/` or `updown/` (the pod user may not be `khdp-user`) | `PERISIM_WORKSPACE` |
 | Data (read-only) | `<workspace>/data` if it exists (the user's own copy), otherwise the KHDP mount `<workspace>/datasets` | `PERISIM_DATASETS` |
 | INSPIRE / MIMIC-IV / eICU | automatic discovery under datasets | `PERISIM_INSPIRE_DIR`, `PERISIM_MIMIC_DIR`, `PERISIM_EICU_DIR` |
-| Work and results | `~/workspace/updown/perisim/<user>/work` (shared data) and `…/work/experiments/<t1\|t2\|t3>/` | `PERISIM_WORKDIR`, `PERISIM_EXPERIMENT` |
+| Work and results | `<workspace>/perisim_work` (shared data) and `…/perisim_work/experiments/<t1\|t2\|t3>/` | `PERISIM_WORKDIR`, `PERISIM_EXPERIMENT` |
+| Copy of reports, docs and export package (after every run, also after a stop) | `updown/perisim/<user>/results/` (empty = no copy) | `PERISIM_PUBLISH_DIR` |
 | Python environment | `<workspace>/venv` | `PERISIM_VENV` |
 | Logs, PID and smoke-test files | `<workspace>/perisim_run` | `PERISIM_LOCAL` |
 
@@ -129,7 +131,7 @@ changing them does not break the freeze; a second freeze is refused once externa
 
 ## Export (KHDP §3.2)
 
-`<workdir>/export/` contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with
+`<workdir>/export/` (copied after every run to `updown/perisim/<user>/results/experiments/<t>/export/`) contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with
 cells of n ≥ 10. It includes `EXPORT_MANIFEST.md` and a zip. To take it out of the pod, write to
 `admin@khdp.net` stating the purpose and the destination, and follow their review. Per-patient predictions
 (`predictions/`) and the extracts (`common/`, `derived/`, `cache/`) are **never** exported.

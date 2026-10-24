@@ -20,7 +20,9 @@
 # Environment variables (optional):
 #   PERISIM_EXPERIMENT  t2 (default, primary target) | t1 | t3 — one experiment per target, each with its own freeze;
 #                       the three share the extraction (e.g. `PERISIM_EXPERIMENT=t1 bash perisim/run_pod.sh`)
-#   PERISIM_WORKDIR     working folder (default: updown/perisim/<user>/work)
+#   PERISIM_WORKDIR     working folder (default: <workspace>/perisim_work, local disk)
+#   PERISIM_PUBLISH_DIR where every run copies its reports and export package (default: updown/perisim/<user>/results;
+#                       empty = no copy)
 #   PERISIM_WORKSPACE   KHDP workspace (default: the first of ~/workspace, /home/khdp-user/workspace or the folders
 #                       above the repository that contains data/, datasets/ or updown/)
 #   PERISIM_DATASETS    datasets root (default: <workspace>/data, one folder per cohort, if it exists; otherwise the
@@ -61,10 +63,16 @@ if [ -z "${PERISIM_DATASETS:-}" ]; then
   else PERISIM_DATASETS="$PERISIM_WORKSPACE/datasets"; fi
 fi
 _user="$(id -un 2>/dev/null || echo "${USER:-khdp-user}")"
-if [ -d "$PERISIM_WORKSPACE/updown" ]; then
-  : "${PERISIM_WORKDIR:=$PERISIM_WORKSPACE/updown/perisim/$_user/work}"
+# Work on the workspace's local disk: updown (shared object storage) loses files that are being written and renamed
+# by several processes (first real run, 2026-10-24). Every run then copies its reports and export package (aggregates
+# only) to updown, which is persistent and shared.
+if [ -d "$PERISIM_WORKSPACE" ]; then
+  : "${PERISIM_WORKDIR:=$PERISIM_WORKSPACE/perisim_work}"
 else
   : "${PERISIM_WORKDIR:=$REPO_DIR/work}"
+fi
+if [ -d "$PERISIM_WORKSPACE/updown" ]; then
+  : "${PERISIM_PUBLISH_DIR=$PERISIM_WORKSPACE/updown/perisim/$_user/results}"
 fi
 # Environment and run files in the workspace, outside updown (shared object storage, slow for the many small files
 # of an environment) and without hidden folders. Without a workspace (local development): next to the repository.
@@ -76,7 +84,8 @@ _rundir="$PERISIM_WORKSPACE"; [ -d "$_rundir" ] || _rundir="$REPO_DIR"
 : "${PERISIM_TORCH_INDEXES:=http://torch-download.khdp-forward-server/whl/cpu http://torch-download.khdp-forward-server/whl/cu126}"
 : "${PERISIM_EXPERIMENT:=t2}"
 case "$PERISIM_EXPERIMENT" in t1|t2|t3) ;; *) echo "PERISIM_EXPERIMENT must be t1, t2 or t3" >&2; exit 1 ;; esac
-export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL PERISIM_EXPERIMENT
+PERISIM_PUBLISH_DIR="${PERISIM_PUBLISH_DIR:-}"
+export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL PERISIM_EXPERIMENT PERISIM_PUBLISH_DIR
 # The KHDP forward servers (PyPI, PyTorch, conda-forge, GitHub mirrors) resolve inside the pod but not in the pod's
 # HTTP proxy (squid answers 503 ERR_DNS_FAIL): they are always reached directly.
 _np="${no_proxy:-${NO_PROXY:-}}"

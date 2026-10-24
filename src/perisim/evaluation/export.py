@@ -24,6 +24,26 @@ def _sha(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()[:16]
 
 
+def publish(ws, dest: Path) -> int:
+    """Copies the aggregate outputs of the experiment — reports, the pod's docs and the export package — and the
+    shared schema reports to `dest` (run_pod.sh: updown/perisim/<user>/results, persistent and shared). Never
+    predictions/, common/, derived/ or cache/. Returns the number of files copied."""
+    exp = Path(dest) / "experiments" / ws.experiment
+    pairs = [(ws.data_reports, Path(dest) / "reports"), (ws.reports, exp / "reports"), (ws.docs, exp / "docs"),
+             (ws.export, exp / "export")]
+    n = 0
+    for src, dst in pairs:
+        if not src.is_dir():
+            continue
+        for p in sorted(src.rglob("*")):
+            if p.is_file() and p.suffix.lower() in ALLOWED_SUFFIX | {".zip"}:
+                q = dst / p.relative_to(src)
+                q.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(p, q)
+                n += 1
+    return n
+
+
 def build_export(ws, cfg) -> Path:
     out = ws.export
     for p in out.iterdir():

@@ -37,6 +37,15 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The repository is cloned in the workspace root (`<workspace>/perisim`) and everything is run from the root:
   `bash perisim/run_pod.sh`; the hints in messages and reports follow how the script was called.
 
+## 2026-10-24 — Work folder on the local disk (lead)
+
+- The first run with the three cohorts failed in `extract`: in `updown` (shared object storage) the temporary cache
+  files written by the parallel extractions vanished before their rename. The work folder moves to the workspace's
+  local disk (`<workspace>/perisim_work`, `PERISIM_WORKDIR`), like the data and the environment.
+- After every run (also after a stop) the reports, the pod's docs and the export package — aggregates only — are
+  copied to `updown/perisim/<user>/results/` (`PERISIM_PUBLISH_DIR`, empty = no copy); never predictions, extracts
+  or cache. The local work folder remains the source of truth.
+
 ## 2026-10-24 — Completeness audit with the three cohorts (lead)
 
 - MIMIC-IV `rrt_start` (prevalence < 0.5 %) accepted: RRT after the ICU exit is recorded only back in the ICU, as in
