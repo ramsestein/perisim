@@ -20,7 +20,9 @@
 #   PERISIM_EXPERIMENT  t2 (default, primary target) | t1 | t3 — one experiment per target, each with its own freeze;
 #                       the three share the extraction (e.g. `PERISIM_EXPERIMENT=t1 bash run_pod.sh`)
 #   PERISIM_WORKDIR     working folder (default: updown/perisim/<user>/work)
-#   PERISIM_DATASETS    datasets root (default: /home/khdp-user/workspace/datasets)
+#   PERISIM_WORKSPACE   KHDP workspace (default: the first of ~/workspace, /home/khdp-user/workspace or the folders
+#                       above the repository that contains datasets/ or updown/)
+#   PERISIM_DATASETS    datasets root (default: <workspace>/datasets)
 #   PERISIM_INSPIRE_DIR / PERISIM_MIMIC_DIR / PERISIM_EICU_DIR  explicit paths (otherwise auto)
 #   PERISIM_JOBS / PERISIM_THREADS  force jobs × threads (default: auto from the container limits)
 #   PERISIM_ACK_AUDIT=true   continue after reviewing the completeness audit (§7)
@@ -32,7 +34,14 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CMD="${1:-start}"
 [ $# -gt 0 ] && shift || true
 
-: "${PERISIM_WORKSPACE:=/home/khdp-user/workspace}"
+# Workspace: the KHDP guide says /home/khdp-user/workspace, but the pod user may differ (e.g. coder): use the first
+# candidate that has datasets/ or updown/ (the user's home, the guide's path, or the folders above the repository).
+if [ -z "${PERISIM_WORKSPACE:-}" ]; then
+  for _cand in "$HOME/workspace" /home/khdp-user/workspace "$(dirname "$REPO_DIR")" "$(dirname "$(dirname "$REPO_DIR")")"; do
+    if [ -d "$_cand/datasets" ] || [ -d "$_cand/updown" ]; then PERISIM_WORKSPACE="$_cand"; break; fi
+  done
+  : "${PERISIM_WORKSPACE:=/home/khdp-user/workspace}"
+fi
 : "${PERISIM_DATASETS:=$PERISIM_WORKSPACE/datasets}"
 _user="$(id -un 2>/dev/null || echo "${USER:-khdp-user}")"
 if [ -d "$PERISIM_WORKSPACE/updown" ]; then

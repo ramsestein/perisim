@@ -44,7 +44,7 @@ def calibration_line(p: np.ndarray, y: np.ndarray, iters: int = 50) -> tuple[flo
     beta = np.array([0.0, 1.0])
     for _ in range(iters):
         eta = X @ beta
-        mu = 1 / (1 + np.exp(-eta))
+        mu = 1 / (1 + np.exp(-np.clip(eta, -500, 500)))     # clipped: no overflow on (quasi-)separable data
         W = mu * (1 - mu) + 1e-9
         g = X.T @ (y - mu)
         H = X.T @ (X * W[:, None]) + 1e-8 * np.eye(2)
@@ -60,7 +60,7 @@ def calibration_in_the_large(p: np.ndarray, y: np.ndarray, iters: int = 50) -> f
     off = _logit(p)
     a = 0.0
     for _ in range(iters):
-        mu = 1 / (1 + np.exp(-(a + off)))
+        mu = 1 / (1 + np.exp(-np.clip(a + off, -500, 500)))
         g = (y - mu).sum()
         h = (mu * (1 - mu)).sum() + 1e-9
         a += g / h

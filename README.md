@@ -62,7 +62,8 @@ it resumes from the last completed stage (or fold).
 
 | What | Default | Variable |
 |---|---|---|
-| Data (read-only) | `/home/khdp-user/workspace/datasets` | `PERISIM_DATASETS` |
+| Workspace | the first of `~/workspace`, `/home/khdp-user/workspace` or the folders above the repository that contains `datasets/` or `updown/` (the pod user may not be `khdp-user`) | `PERISIM_WORKSPACE` |
+| Data (read-only) | `<workspace>/datasets` | `PERISIM_DATASETS` |
 | INSPIRE / MIMIC-IV / eICU | automatic discovery under datasets | `PERISIM_INSPIRE_DIR`, `PERISIM_MIMIC_DIR`, `PERISIM_EICU_DIR` |
 | Work and results | `~/workspace/updown/perisim/<user>/work` (shared data) and `…/work/experiments/<t1\|t2\|t3>/` | `PERISIM_WORKDIR`, `PERISIM_EXPERIMENT` |
 | Environment and terminal logs | `~/.perisim` | `PERISIM_LOCAL` |
