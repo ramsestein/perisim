@@ -158,7 +158,7 @@ Approximation of the Clavien-Dindo classification (Dindo et al., 2004) **from st
   - ~~Red blood cell transfusion after t0~~ — **removed from T1 in every cohort [lead, 2026-10-24]**: INSPIRE does not record it (completeness audit: prevalence < 0.5 %); it remains a carried variable.
   - *INSPIRE sensitivity analysis only:* sustained ward hypoxaemia (SpO₂ <90% on ≥2 consecutive measurements), because MIMIC-IV has no ward vital signs.
 - **None:** everything else.
-- **[v0.4, D6] Unobserved mild components:** where the medication source does not cover the hospitalisation (MIMIC-IV without eMAR), the antibiotic-course component is unobservable and T1 (and T3) is **undefined** for the stay, whatever its other outcomes (a coverage-based exclusion, never an outcome-based one); severe / not severe remains defined. eMAR coverage by period is reported in the audit.
+- **[v0.4, D6] Unobserved mild components:** where the medication source does not cover the hospitalisation, the antibiotic-course component is unobservable and T1 (and T3) is **undefined** for the stay, whatever its other outcomes (a coverage-based exclusion, never an outcome-based one); severe / not severe remains defined. eMAR coverage by period is reported in the audit. **[2026-10-24]** MIMIC-IV hospitalisations without any eMAR record (the early years) take their medication from `prescriptions` (orders, start–stop), so only those with neither source stay undefined; an order covers its whole interval in the antibiotic-course rule.
 
 **In eICU:** T1 reduces to **severe / not severe**. "Severe" includes only ICU readmission and in-hospital death, the observable components. It must be reported as validation of a reduced target, not of the full T1.
 

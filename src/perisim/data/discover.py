@@ -30,7 +30,7 @@ INVENTORY = {
     "inspire": [("labs", "item"), ("ward_vitals", "item"), ("medications", "drug"), ("medications", "route"),
                 ("operations", "department"), ("operations", "anesthesia_type")],
     "mimic": [("services", "curr_service"), ("admissions", "admission_type"), ("admissions", "discharge_location"),
-              ("admissions", "admission_location")],
+              ("admissions", "admission_location"), ("prescriptions", "route")],
     "eicu": [("patient", "unit_admit_source"), ("patient", "unit_discharge_location"),
              ("patient", "hospital_discharge_location"), ("lab", "item"), ("infusiondrug", "drug"),
              ("respiratorycharting", "label")],

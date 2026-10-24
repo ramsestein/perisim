@@ -107,6 +107,13 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
     every cohort (one harmonized outcome definition for development and external validation; mild = AKI 1–2 or a
     new antibiotic course); it remains a carried variable.
 
+37. **MIMIC-IV `rrt_start` with prevalence < 0.5 % (completeness audit, three cohorts).** *Decided 2026-10-24
+    (lead):* accepted as it is. RRT after the ICU exit is only recorded when the patient is back in the ICU, as in
+    INSPIRE (CRRT records only): a rare severe component with the same definition in both cohorts.
+38. **MIMIC-IV `antibiotic_course` with missingness > 30 % (eMAR only).** *Decided 2026-10-24 (lead):* the
+    hospitalizations without any eMAR record take their medication from `prescriptions` (orders, start–stop, systemic
+    routes only); D6 still applies to those with neither source.
+
 ## Open decisions from SPECS §10 (v0 values in config)
 
 D1 (INSPIRE readmission), D2 (2 h; 4 h in sensitivity), D3 (≥ 4 h), D4 (AKI 1–2, antibiotic; transfusion removed 2026-10-24),

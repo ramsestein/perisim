@@ -212,7 +212,7 @@ def _ts(base: dt.datetime, minutes: float) -> str:
 
 def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
     L = _latent(n, rng)
-    adm_r, pat, icu, srv, prc, lab, ch, inp, pev, emar = [], [], [], [], [], [], [], [], [], []
+    adm_r, pat, icu, srv, prc, lab, ch, inp, pev, emar, presc = [], [], [], [], [], [], [], [], [], [], []
     stay = 30000000
     trf, tid = [], 40000000
     spec = [70000000]
@@ -330,7 +330,14 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
         if g and c == "vaso":
             s0 = icu_out + 1.5 * 1440
             inp.append((sid, hid, idx_stay, 221906, _ts(base, s0), _ts(base, s0 + 300)))
-        if early:                                    # D6: no eMAR in the early period
+        if early:                                    # D6: no eMAR in the early period; prescriptions for part of it
+            if rng.random() < 0.5:
+                presc.append((sid, hid, _ts(base, op_s), _ts(base, op_s + 1440), "CeFAZolin", "IV"))
+                presc.append((sid, hid, _ts(base, icu_in), _ts(base, icu_out), "Pantoprazole", "IV"))
+                presc.append((sid, hid, _ts(base, icu_in), _ts(base, icu_in + 600), "Vancomycin", "LOCK"))   # not systemic
+                if (not g) and L["mild"][i] and L["comp_l"][i] == "antibiotic":   # one order covering 3 days
+                    s0 = icu_out + rng.uniform(1.2, 3) * 1440
+                    presc.append((sid, hid, _ts(base, s0), _ts(base, s0 + 3 * 1440), "Piperacillin-Tazobactam", "IV"))
             continue
         emar.append((sid, hid, _ts(base, op_s), "CeFAZolin", "Administered"))
         for t in np.arange(icu_in, icu_out, 720.0):
@@ -359,6 +366,7 @@ def synth_mimic(root: Path, n: int, rng: np.random.Generator) -> None:
     _w(S(inp, ["subject_id", "hadm_id", "stay_id", "itemid", "starttime", "endtime"]), d / "icu" / "inputevents.csv.gz")
     _w(S(pev, ["subject_id", "hadm_id", "stay_id", "itemid", "starttime", "endtime"]), d / "icu" / "procedureevents.csv.gz")
     _w(S(emar, ["subject_id", "hadm_id", "charttime", "medication", "event_txt"]), d / "hosp" / "emar.csv.gz")
+    _w(S(presc, ["subject_id", "hadm_id", "starttime", "stoptime", "drug", "route"]), d / "hosp" / "prescriptions.csv.gz")
     items = [(220045, "Heart Rate"), (220052, "Arterial Blood Pressure mean"), (220181, "Non Invasive Blood Pressure mean"),
              (220210, "Respiratory Rate"), (220277, "O2 saturation pulseoxymetry"), (223762, "Temperature Celsius"),
              (223761, "Temperature Fahrenheit"), (223835, "Inspired O2 Fraction"), (220739, "GCS - Eye Opening"),
@@ -469,7 +477,7 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
 
 
 # Bumped when the synthetic schema changes, so a cached synthetic dataset is regenerated
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def write_synthetic(root: Path, harmonization: dict | None = None, n_subjects: int = 700, seed: int = 7) -> Path:

@@ -37,6 +37,17 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The repository is cloned in the workspace root (`<workspace>/perisim`) and everything is run from the root:
   `bash perisim/run_pod.sh`; the hints in messages and reports follow how the script was called.
 
+## 2026-10-24 — Completeness audit with the three cohorts (lead)
+
+- MIMIC-IV `rrt_start` (prevalence < 0.5 %) accepted: RRT after the ICU exit is recorded only back in the ICU, as in
+  INSPIRE; same definition, rare component.
+- MIMIC-IV medication: the hospitalizations without any eMAR record (early years) use `prescriptions` (orders,
+  start–stop, systemic routes only, the same name → ATC mapping), with their own D6 coverage marker; eMAR keeps
+  priority where it exists (administrations rather than orders). An order running into the window counts from the
+  window start (ongoing therapy, never a new course).
+- The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
+  administration is one instant (identical result for point records).
+
 ## 2026-10-24 — Model-transfer validations (lead), SPECS §6.2b
 
 - New stage `transfer`, after `external` (so on the frozen pipeline). In MIMIC-IV and eICU: one patient-level split,

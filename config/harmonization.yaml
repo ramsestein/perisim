@@ -132,6 +132,12 @@ sources:
         file: hosp/emar
         columns: {subject_id: subject_id, hadm_id: hadm_id, charttime: charttime, medication: medication,
                   event_txt: event_txt}
+      # Orders (start–stop), used only for the hospitalizations WITHOUT any eMAR record — the early MIMIC-IV years,
+      # before eMAR existed (lead, 2026-10-24; completeness audit: antibiotic missingness > 30 % with eMAR only)
+      prescriptions:
+        file: hosp/prescriptions
+        columns: {hadm_id: hadm_id, starttime: starttime, stoptime: stoptime, drug: drug}
+        optional_columns: {route: route}
       d_items:
         file: icu/d_items
         columns: {itemid: itemid, label: label}
@@ -139,6 +145,9 @@ sources:
         file: hosp/d_labitems
         columns: {itemid: itemid, label: label}
     emar_administered_events: ["Administered", "Partial Administered", "Started", "Restarted", "Applied", "Confirmed"]
+    # prescriptions.route codes that are not systemic (topical, eyes, ears, inhaled, nasal, vaginal, transdermal,
+    # irrigation, catheter lock) [VERIFY against the route inventory in schema_mimic]
+    prescriptions_route_exclude_regex: '(?i)^(TP|OU|OS|OD|AU|AS|AD|IH|NU|VG|TD|IRR|NEB|LOCK|EX|TOPICAL|OPHTHALMIC|OPTHALMIC|NASAL|INHALATION|VAGINAL|TRANSDERMAL)\b'
     support_items:                 # [VERIFY] against d_items
       vent: {table: procedureevents, items: [225792]}
       vaso: {table: inputevents, items: [221906, 221289, 221749, 222315, 221662]}

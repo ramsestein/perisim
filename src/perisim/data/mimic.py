@@ -317,9 +317,11 @@ class MimicExtractor(BaseExtractor):
                                          pl.lit("minute").alias("precision")))
 
         # Administered medication (eMAR) → ATC by name (inputs and antibiotic course only; no support_vaso)
+        with_emar: set[str] = set()
         if self.has_table("emar"):
             em_all = self.table("emar", filters={"hadm_id": hadm})
             em_all = em_all.with_columns(as_id("hadm_id").alias("hadm_raw"), dt_minutes(em_all, "charttime").alias("time_min"))
+            with_emar = set(em_all["hadm_raw"].drop_nulls().unique().to_list())
             # D6: coverage marker = the first eMAR record of the hospitalization (any event)
             first = em_all.drop_nulls("time_min").group_by("hadm_raw").agg(pl.col("time_min").min())
             inputs.append(windowed_join(first.select("hadm_raw", pl.lit(MEDICATION_MARKER).alias("variable"),
@@ -334,7 +336,27 @@ class MimicExtractor(BaseExtractor):
             outcomes.append(t.select("stay_id", pl.lit("transfusion_rbc").alias("component"), "time_min",
                                      pl.lit("minute").alias("precision")))
         else:
-            self.log.warning("MIMIC without eMAR: medication is unobservable for every hospitalization (D6)")
+            self.log.warning("MIMIC without eMAR: medication comes from prescriptions only (D6)")
+        # Prescriptions (orders, start–stop) for the hospitalizations without any eMAR record (lead, 2026-10-24): the
+        # same name → ATC mapping, the order interval kept as end_min (the antibiotic course counts the days it covers)
+        no_emar = [h for h in hadm if h not in with_emar]
+        if no_emar and self.has_table("prescriptions"):
+            pr = self.table("prescriptions", filters={"hadm_id": no_emar}, extra=self.optional_column_names("prescriptions"))
+            pr = pr.with_columns(as_id("hadm_id").alias("hadm_raw"), dt_minutes(pr, "starttime").alias("time_min"),
+                                 dt_minutes(pr, "stoptime").alias("end_min"), as_str("drug").alias("drug"))
+            pr = pr.drop_nulls("time_min")
+            first = pr.group_by("hadm_raw").agg(pl.col("time_min").min())     # D6 coverage marker (any order)
+            inputs.append(windowed_join(first.select("hadm_raw", pl.lit(MEDICATION_MARKER).alias("variable"),
+                                                     pl.lit(1.0).alias("value"), "time_min"),
+                                        w, "hadm_raw", admit - 30 * 1440, hi))
+            route_rx = self.src.get("prescriptions_route_exclude_regex")
+            if route_rx and "route" in pr.columns:   # systemic routes only (AUDIT D4)
+                pr = pr.filter(~as_str("route").str.contains(route_rx).fill_null(False))
+            # an order running into the window counts from the window start: ongoing therapy, never a new course
+            lo = w.group_by("hadm_raw").agg((pl.col("icu_in_min") - 1440).min().alias("_lo"))
+            pr = (pr.join(lo, on="hadm_raw").filter(pl.coalesce("end_min", "time_min") >= pl.col("_lo"))
+                  .with_columns(pl.max_horizontal("time_min", "_lo").alias("time_min")).drop("_lo"))
+            inputs.append(_drug_rows(pr, self.h, w, "hadm_raw", pl.col("icu_in_min") - 1440, hi, with_end=True))
 
         # D5: dialysis procedures of the subject dated before the ICU admission day (chronic / prior RRT)
         rrt_rx = self.src.get("chronic_rrt_procedure_regex")

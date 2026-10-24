@@ -31,20 +31,22 @@ def _flag(stays: pl.DataFrame, ids: pl.Series | list, name: str) -> pl.DataFrame
 
 def _antibiotic_courses(times: pl.DataFrame, s: pl.DataFrame, cfg: dict) -> list[str]:
     """New systemic antibiotic course: first administration after t0 + 24 h, with no J01 in the previous 48 h,
-    and administration on ≥ N consecutive days (24 h windows from that administration)."""
+    and administration on ≥ N consecutive days (24 h windows from that administration). A record covers
+    [start, end]: an order (MIMIC-IV prescriptions, eICU) its whole interval, an administration (eMAR) one instant."""
     after = float(cfg["start_after_t0_hours"]) * 60
     wash = float(cfg["washout_hours"]) * 60
     ndays = int(cfg["min_consecutive_days"])
     j = times.join(s.select("stay_id", "t0", "win_end"), on="stay_id")
     out = []
     for (sid,), g in j.group_by(["stay_id"]):
-        t = np.sort(g["time_min"].to_numpy())
+        st = g["time_min"].to_numpy().astype(float)
+        en = g["end_min"].to_numpy().astype(float) if "end_min" in g.columns else st.copy()
+        en = np.where(np.isfinite(en), np.maximum(en, st), st)
         t0, wend = g["t0"][0], g["win_end"][0]
-        for a in t[(t > t0 + after) & (t <= wend)]:
-            prev = t[(t >= a - wash) & (t < a)]
-            if prev.size:
+        for a in np.unique(st[(st > t0 + after) & (st <= wend)]):
+            if ((st < a) & (en >= a - wash)).any():          # J01 given (or still running) in the previous 48 h
                 continue
-            if all(((t >= a + d * 1440) & (t < a + (d + 1) * 1440)).any() for d in range(ndays)):
+            if all(((st < a + (d + 1) * 1440) & (en >= a + d * 1440)).any() for d in range(ndays)):
                 out.append(sid)
                 break
     return out
@@ -179,7 +181,7 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
     comp["aki_3"] = aki.select("stay_id", (pl.col("aki_stage") == 3).alias("aki_3"))
     comp["aki_12"] = aki.select("stay_id", pl.col("aki_stage").is_in([1, 2]).alias("aki_12"))
 
-    ab = li.filter(pl.col("variable").str.starts_with("atc:" + "J01")).select("stay_id", "time_min")
+    ab = li.filter(pl.col("variable").str.starts_with("atc:" + "J01")).select("stay_id", "time_min", "end_min")
     comp["antibiotic_course"] = _flag(s, _antibiotic_courses(ab, s, tcfg["antibiotic_course"]), "antibiotic_course")
     any_med_post = li.filter(pl.col("variable").str.starts_with("atc:") & in_win)["stay_id"].unique().to_list()
     # D6: medication source coverage of the hospitalization (any record, any time)
