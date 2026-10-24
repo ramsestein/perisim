@@ -78,6 +78,18 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
 26. **Sensitivity variants and the cohort.** The limitation exclusion uses the main cutoff (t0 − 2 h) for every
     variant, because the index cohort is extracted once (the 4 h variant keeps the same stays).
 
+## Introduced by methodology v0.5 (2026-10-24)
+
+27. **T3 metric.** Learned anew (implemented) or combined from the T1 and T2 metrics? To decide after T1.
+28. **Flatness rule of the shapes.** Implemented as a homogeneity F test at 5 % (Bonferroni over classes) on top of the
+    decided shrinkage, because "τ² = 0" alone keeps about half of the pure-noise curves (see DECISIONS.md).
+29. **Shapes in the target cohort.** Modes A and B transport INSPIRE's shapes; re-estimating them in MIMIC-IV / eICU
+    (the analogue of the B-VDM variant) would require training the consensus models there — not done (declared).
+30. **Missing values in the shape geometry.** Kept as median imputation + missingness indicator (the indicator is a
+    binary axis); a "missing" position on each continuous axis was discussed but not adopted.
+31. **Relabelled sensitivity variants** assess the results under another outcome definition with the main metric;
+    whether the metric itself would differ is not assessed (declared).
+
 ## Open decisions from SPECS §10 (v0 values in config)
 
 D1 (INSPIRE readmission), D2 (2 h; 4 h in sensitivity), D3 (≥ 4 h), D4 (AKI 1–2, antibiotic, transfusion),

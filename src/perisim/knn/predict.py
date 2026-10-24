@@ -121,7 +121,7 @@ class KNNModel:
         return out
 
 
-CLASS_LABELS = {"t1": ["none", "mild", "severe"], "t2": ["short", "medium", "long"],
+CLASS_LABELS = {"t1": ["none", "mild", "severe"], "t2": ["short", "medium", "long", "death"],
                 "t3": ["early_no_complication", "expected_no_complication", "prolonged_or_mild", "severe_or_death"],
                 "t1_bin": ["not_severe", "severe"]}
 OUTPUT_KEY = {"t1": "p_T1", "t2": "p_T2", "t3": "p_T3", "t1_bin": "p_T1_severe"}

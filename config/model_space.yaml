@@ -1,12 +1,23 @@
-# Model space for consensus SAGE (§5.3.1). Defined BEFORE seeing any results.
+# Model space for consensus SAGE and the shape functions (§5.3.1). Defined BEFORE seeing any results.
 # Ranges: [min, max]; "log" = log-uniform sampling; lists = uniform choice.
-# Everything on CPU (§9.1): LightGBM / XGBoost in hist mode; MLP with 2 small hidden layers.
+# Everything on CPU (§9.1): LightGBM / XGBoost in hist mode. Decided 2026-10-24: the MLP is replaced by a penalised
+# spline logistic regression (smooth non-linear shapes at low cost) and the logistic family samples its penalty
+# (L2 / LASSO / elastic-net). Shapes per family: straight lines, smooth curves, steps.
 
 families:
   logreg:
     weight: 1
     params:
       C: {log: [1.0e-3, 10.0]}
+      penalty: {choice: [l2, l1, elasticnet]}
+      l1_ratio: {uniform: [0.1, 0.9]}     # used only with elasticnet
+      max_iter: 1000
+  spline_logreg:
+    weight: 1
+    params:
+      C: {log: [1.0e-3, 10.0]}
+      n_knots: {choice: [4, 6, 8]}
+      degree: 3
       max_iter: 1000
   random_forest:
     weight: 1
@@ -35,16 +46,6 @@ families:
       subsample: {uniform: [0.5, 1.0]}
       colsample_bytree: {uniform: [0.5, 1.0]}
       reg_lambda: {log: [1.0e-3, 10.0]}
-  mlp:
-    weight: 1
-    params:
-      hidden1: {choice: [32, 64]}
-      hidden2: {choice: [16, 32]}
-      dropout: {uniform: [0.0, 0.3]}
-      lr: {log: [1.0e-4, 3.0e-3]}
-      weight_decay: {log: [1.0e-6, 1.0e-3]}
-      epochs: {int: [20, 60]}
-      batch_size: 256
 
 # Configuration of the parametric comparators (§6.4)
 baselines:
@@ -66,6 +67,7 @@ baselines:
     n_estimators: 300
     min_samples_leaf: 10
     max_features: sqrt
+  group_prevalence_m: 20         # trivial comparator: prevalence by surgical group, m-estimate towards the overall
   rf_gap:
     n_estimators: 200
     min_samples_leaf: 5

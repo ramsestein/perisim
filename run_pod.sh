@@ -17,6 +17,8 @@
 # (e.g. `bash run_pod.sh fg --until audit`, `--stage features --force`).
 #
 # Environment variables (optional):
+#   PERISIM_EXPERIMENT  t2 (default, primary target) | t1 | t3 — one experiment per target, each with its own freeze;
+#                       the three share the extraction (e.g. `PERISIM_EXPERIMENT=t1 bash run_pod.sh`)
 #   PERISIM_WORKDIR     working folder (default: updown/perisim/<user>/work)
 #   PERISIM_DATASETS    datasets root (default: /home/khdp-user/workspace/datasets)
 #   PERISIM_INSPIRE_DIR / PERISIM_MIMIC_DIR / PERISIM_EICU_DIR  explicit paths (otherwise auto)
@@ -44,7 +46,9 @@ fi
 : "${PERISIM_CONDA_ENV:=$PERISIM_LOCAL/conda-py311}"
 : "${PERISIM_PIP_INDEX:=http://pypi.khdp-forward-server/simple}"
 : "${PERISIM_TORCH_INDEXES:=http://torch-download.khdp-forward-server/whl/cpu http://torch-download.khdp-forward-server/whl/cu126}"
-export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL
+: "${PERISIM_EXPERIMENT:=t2}"
+case "$PERISIM_EXPERIMENT" in t1|t2|t3) ;; *) echo "PERISIM_EXPERIMENT must be t1, t2 or t3" >&2; exit 1 ;; esac
+export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL PERISIM_EXPERIMENT
 
 PIDFILE="$PERISIM_LOCAL/run.pid"
 LOGDIR="$PERISIM_LOCAL/logs"
@@ -239,7 +243,7 @@ launch_bg() {
   fi
   echo $! > "$PIDFILE"
   echo "$log" > "$LOGDIR/latest.txt"
-  say "Pipeline launched in the background (PID $!). Log: $log"
+  say "Pipeline launched in the background (experiment $PERISIM_EXPERIMENT, PID $!). Log: $log"
   say "Ctrl-C stops following the log but does NOT stop the pipeline. Use 'bash run_pod.sh stop' to stop it."
   sleep 1
   tail -n +1 -F "$log"
@@ -255,7 +259,8 @@ case "$CMD" in
   smoke)
     setup_env; exec "$VPY" -m perisim smoke --workdir "$PERISIM_LOCAL/smoke" "$@" ;;
   test)
-    setup_env; cd "$REPO_DIR"; export PERISIM_TEST_WORKDIR="$PERISIM_WORKDIR"; exec "$VPY" -m pytest "$@" ;;
+    setup_env; cd "$REPO_DIR"; export PERISIM_TEST_WORKDIR="$PERISIM_WORKDIR/experiments/$PERISIM_EXPERIMENT"
+    export PERISIM_TEST_BASE="$PERISIM_WORKDIR"; exec "$VPY" -m pytest "$@" ;;
   resources)
     setup_env; exec "$VPY" -m perisim resources ;;
   status)

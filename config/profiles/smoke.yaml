@@ -14,6 +14,7 @@ experiment:
     augment_copies: 1
     stopping: {W: 2, P: 2, n_min: 3, n_max: 6, min_delta: auto, tol_delta: 0.01, max_attempts_factor: 3}
     n_reference_pairs: 2000
+    curves: {subsample: 120, max_bins: 8, min_bin: 20, top_importance_share: 1.0}
     sage: {batch_size: 128, max_passes: 1, convergence_threshold: 0.05}
   metric:
     vdm_m_grid: [1, 20]
@@ -34,13 +35,21 @@ experiment:
     enabled: true
     variants:
       - name: margin_4h
+        mode: refit
         overrides: {experiment: {time: {cutoff_margin_hours: 4}}}
+      - name: t2_absolute
+        mode: relabel
+        targets: [t2]
+        overrides: {targets: {t2: {categories: absolute}}}
+      - name: t1_no_antibiotic
+        mode: relabel
+        targets: [t1, t3]
+        overrides: {targets: {t1: {exclude_components: [antibiotic_course]}}}
 model_space:
   families:
     random_forest: {params: {n_estimators: {int: [20, 40]}}}
     lightgbm: {params: {n_estimators: {int: [20, 60]}}}
     xgboost: {params: {n_estimators: {int: [20, 60]}}}
-    mlp: {params: {epochs: {int: [2, 4]}}}
   baselines:
     lgbm: {n_estimators: 50}
     lgbm_grid: {num_leaves: [7, 15], learning_rate: [0.1], max_estimators: 80, early_stopping_rounds: 10}

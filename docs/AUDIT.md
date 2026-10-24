@@ -175,6 +175,9 @@ observability). D14 remains deferred to the first audit.
 
 **Pending engineering (not yet done):** F1 (adaptive retry after an OOM-killed worker), F9 (cgroup path lookup via
 `/proc/self/cgroup`), F12 (smoke coverage: all variants, audit stop path), F13 (variants rebuild external cohorts),
-B5 (kernel-variant α), B8 (re-filter early models), B9, B10, C7 (storetime), C8, C9, C11, C12, D15, D17,
+B5 (kernel-variant α), B9, B10, C7 (storetime), C8, C9, C11, C12, D15, D17,
 D18, E6 (Q4 inference, discharge destination), E7 (characteristics table, per-target flow), E12 (temporal split by
 patient). A7 resolved by the owner (stray `r/` removed).
+
+**Methodology v0.5 (2026-10-24):** B8 fixed (early accepted models outside (1+ε)·best leave the consensus); the
+MLP family removed; the v0.4 HVDM geometry kept as a comparator (see SPECS v0.5 and docs/DECISIONS.md).

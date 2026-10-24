@@ -84,3 +84,34 @@ ones would be an outcome-dependent selection); severe / not severe and T2 stay d
 - **E14:** the §5.6 per-patient JSON is generated inside the pod for every test-fold and external query
   (`predictions/`, never exported), with a data-free schema example in the report.
 - **E10 / E11:** per-fold metrics and cut-points next to the pooled ones; SAGE dispersion reported per variable.
+
+## 2026-10-24 — Methodology v0.5 (discussion with the lead)
+
+Status: **decided and implemented** (SPECS v0.5, tests in `tests/test_v05.py`). Options and reasoning: section 4 of
+`docs/DECISIONS_PENDING.md`.
+
+- **Metric geometry:** every continuous / ordinal / nominal / PCS variable lives on its consensus shape function
+  g_j (centred log-odds, one component per class), read from the competitive models of the SAGE loop (ALE for
+  ordered variables, local effect against the reference category for nominal / PCS), fitted by least squares with a
+  per-model scale, shrunk per value (DerSimonian–Laird), and replaced by a neutral axis (rank / one-hot) when it is
+  not distinguishable from flat. Weights w_j (SAGE prior + NCA) unchanged. The v0.4 HVDM geometry is a comparator.
+- **Flatness rule (implementation note):** "τ² = 0" alone keeps about half of the pure-noise curves (DerSimonian–
+  Laird τ² > 0 whenever Q exceeds its degrees of freedom), so a curve is kept only if a homogeneity F test (between-
+  model variance pooled over the values) rejects "flat" at 5 % with Bonferroni over the classes; on simulated noise
+  this neutralises ≈ 93 % of the curves and keeps every weak real shape tested. The shrinkage is as decided.
+- **Stopping:** Δ on the prior-implied metric over the CURRENT shapes (B3 extended); the loop is checkpointed after
+  each accepted model; early accepted models outside (1+ε)·best leave the consensus (AUDIT B8).
+- **Model space:** logistic regression with sampled penalty (L2 / LASSO / elastic-net), penalised spline logistic
+  regression (replaces the MLP), random forest, LightGBM, XGBoost. The pilot excludes any family costing > 3× the
+  median of the others.
+- **T2:** short / medium / long (survivors' tertiles) / in-hospital death, ordinal with death worst.
+- **Experiments:** one per target (`PERISIM_EXPERIMENT=t2|t1|t3`, default t2), each with its own freeze (git tag
+  `perisim-freeze-<target>-…`) and work folder; extraction shared.
+- **Comparators:** trivial prevalence and prevalence by surgical group (internal), INSPIRE prevalence and the target
+  cohort's LOO prevalence (external), Euclidean kNN on neutral axes, HVDM geometry with the same prior and λ, plus
+  the v0.4 list.
+- **Sensitivity:** outcome-definition variants by relabelling the main metric's case base; input variants refitted
+  for the experiment's target only.
+- **Cost:** curve subsample 1,000 per model; pilot budget gate with the pre-declared lever order (subsample →
+  shapes only for 95 % of the importance → C3 prior from the outer fold).
+- **Not decided yet:** the T3 metric (learned anew, as implemented now, or combined from T1 and T2).

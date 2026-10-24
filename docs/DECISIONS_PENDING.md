@@ -128,3 +128,56 @@ Tertiles computed on the whole external cohort (the test set) make calibration-i
 ### C6 — α by in-sample LOO vs inner folds — ✅ keep LOO (declared)
 Measured optimism is negligible with large categories. **Recommendation: keep LOO (declared)**; revisit only
 if the audit shows many small nominal categories.
+
+## 4. Methodology v0.5 — agreed in discussion (2026-10-24), implemented (SPECS v0.5)
+
+Agreed with the lead while discussing the heterogeneous metric; implemented on 2026-10-24 (see docs/DECISIONS.md
+for the implementation notes, in particular the flatness test).
+
+### Per-variable shape functions (amends SPECS §5.2)
+`d(a,b)² = Σ_j w_j ‖g_j(a_j) − g_j(b_j)‖²`: g_j is the SHAPE (how the values of a variable relate to the outcome),
+w_j the IMPORTANCE (how much it counts). Both come from the multivariable consensus models; the kNN captures the
+remaining interactions by locality, and neighbours share the same reasons for their prediction (profiles).
+- **Estimation (gap 1):** consensus curve fitted by least squares to the curves of all accepted models, with a
+  per-model scale and offset. Stopping by Δ of the full distance (weights and shapes; consistent with B3).
+  Per-variable R² = agreement between models (generality diagnostic), used to neutralise non-general shapes.
+- **Scale (gap 2):** centred log-odds (transports across baseline risks, treats low risks correctly).
+- **Dimension (gap 3):** one component per class (vector) for every target, since T2 now includes death; the
+  share explained by a 1-D summary is reported per variable as a diagnostic.
+- **Representation (gap 4):** ~20 quantile bins with light smoothing; constant extension beyond the observed range
+  (the share of external values outside the INSPIRE range is reported); plain least squares.
+- **Label optimism (gap 5):** estimated inside the training fold, curves read on the explanation subsample;
+  ≥ 50 patients per bin / category (rare ones pooled with their neighbour or PCS parent); in-fold vs test
+  optimism reported; no cross-fitting (it would break the common space the kNN needs).
+- **Folding of U-shaped variables (gap 6):** accepted and declared; its cost is measured in Q4 against the current
+  HVDM metric (comparator); a double axis only as a sensitivity analysis if needed.
+- **Cost (gap 7):** each model's curves are read on a fresh random subsample of 1,000 patients (bootstrap-like,
+  configurable). Levers pre-declared, in this order, if the pilot exceeds the budget: (1) smaller curve
+  subsample, (2) shapes only for the variables covering 95 % of the SAGE importance, (3) C3 → outer-fold prior.
+  The budget is set after the pilot.
+- **Shape vs magnitude (gap 8):** shapes normalised like every δ_j (shape = g, magnitude = w); each value shrunk
+  per its noise (DerSimonian–Laird) and a curve not distinguishable from flat keeps the neutral axis (rank / one-hot,
+  the variable is kept with its weight because it may matter through interactions).
+- **Neighbourhood density (gap 9):** monitored only — effective dimension of the weights, contrast (distance to the
+  k-th neighbour / distance between random pairs) and out-of-support rate, each against the HVDM and Euclidean
+  comparators.
+
+### Model space of the consensus
+Logistic regression with a sampled penalty (L2 / L1 / elastic-net); penalised spline logistic regression
+(GAM-like, replaces the MLP: smooth non-linear shapes at low cost); random forest; LightGBM; XGBoost. No Bayesian
+family: the consensus already averages models, Bayesian logistic regression ≈ L2, BART / GPs are infeasible here.
+
+### Experiments and targets
+- **Three separate experiments**, each complete (internal CV, sensitivity, external validation, its own freeze and
+  pre-registration), in this order: **T2** (primary target and demonstration of the method), **T1**
+  (complications, plus a comparison with T2: neighbour overlap, weight ranks, curve shapes — "does similarity
+  depend on the outcome?"), **T3** (both dimensions; metric learned anew vs combined from T1 and T2, to decide).
+  One work directory per experiment, extraction shared. Changes to later experiments informed by earlier
+  external results are declared in DECISIONS.md.
+- **T2 redefined (amends SPECS §4.2):** short / medium / long (tertiles of the survivors' post-ICU stay) /
+  in-hospital death within 30 days, ordinal with death as the worst state. T2 is no longer survivors-only and is
+  defined for every patient at t0.
+- **Sensitivity:** outcome-definition variants by relabelling the case base with the main metric (minutes);
+  input variants (4 h margin, diagnosis window) refitted for the experiment's target only.
+- **Engineering:** checkpoint the consensus loop after each accepted model and each external target, so that
+  stopping the pod costs minutes, not hours.

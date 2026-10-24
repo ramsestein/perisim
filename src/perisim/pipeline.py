@@ -17,7 +17,9 @@ from __future__ import annotations
 import concurrent.futures as cf
 import multiprocessing as mp
 import os
+import pickle
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -80,13 +82,15 @@ STAGE_DEFS: dict[str, StageDef] = {
     "harmonize": StageDef(("experiment.features", "experiment.cohorts"), ("pipeline.py",), ("features", "audit")),
     "pilot": StageDef(_MODEL_CFG + ("experiment.pilot",), ("importance", "metric", "knn", "experiment.py", "pipeline.py"),
                       ("harmonize", "targets")),
-    "cv": StageDef(_MODEL_CFG + ("experiment.baselines", "experiment.targets_to_model", "targets.t2", "targets.t3"),
+    "cv": StageDef(_MODEL_CFG + ("experiment.baselines", "experiment.experiment_name", "experiment.targets_to_model",
+                                 "targets.t2", "targets.t3"),
                    ("importance", "metric", "knn", "experiment.py", "baselines"), ("pilot", "harmonize", "targets")),
     "temporal": StageDef(("experiment.cv.temporal",), (), ("cv",)),
     "report": StageDef(("experiment.evaluation", "experiment.knn", "experiment.patient_output_target"),
-                       ("evaluation", "knn/predict.py"), ("cv",)),
+                       ("evaluation", "knn/predict.py", "compare.py"), ("cv",)),
     "sensitivity": StageDef(("experiment.sensitivity",), (), ("cv",)),
-    "external": StageDef(_MODEL_CFG + ("experiment.cohorts", "experiment.targets_to_model", "experiment.evaluation",
+    "external": StageDef(_MODEL_CFG + ("experiment.cohorts", "experiment.experiment_name", "experiment.targets_to_model",
+                                       "experiment.evaluation",
                                        "experiment.time", "targets"),
                          ("experiment.py", "external.py", "evaluation", "knn", "targets"), ("cv", "harmonize")),
     "export": StageDef((), ("evaluation",), ()),
@@ -124,11 +128,11 @@ def _child_threads(n: int):
 class Pipeline:
     def __init__(self, cfg: Config, ws: Workspace | None = None, force: bool = False):
         self.cfg = cfg
-        self.ws = ws or Workspace(cfg.workdir, cfg.variant)
+        self.ws = ws or Workspace(cfg.workdir, cfg.variant, cfg.experiment_name)
         self.force = force
         self.variant = cfg.variant
         self._keys: dict[str, str] = {}
-        self.disc = read_json(self.ws.shared_artifacts() / "discovery.json", {}) or {}
+        self.disc = read_json(self.ws.data_artifacts() / "discovery.json", {}) or {}
         self.res = plan(cfg.experiment.get("resources"))
         apply_library_limits(self.res["cpus"])
 
@@ -167,7 +171,7 @@ class Pipeline:
 
     def _marker(self, stage: str, cohort: str | None) -> Path:
         variant = _SHARED_STAGES.get(stage, self.variant)
-        d = self.ws.state / variant
+        d = (self.ws.shared_state if variant == "_" else self.ws.state) / variant   # data stages: shared by experiments
         d.mkdir(parents=True, exist_ok=True)
         return d / (f"{stage}__{cohort}.json" if cohort else f"{stage}.json")
 
@@ -202,11 +206,11 @@ class Pipeline:
         append_note(self.ws.docs / f"{kind}.md", f"[{self.variant}] {title}", body)
 
     def check_disk(self, label: str) -> None:
-        free = free_disk_gb(self.ws.root)
-        LOG.info("Disk after %s: %.1f GB free; workdir %.2f GB", label, free, dir_size_gb(self.ws.root))
+        free = free_disk_gb(self.ws.base)
+        LOG.info("Disk after %s: %.1f GB free; workdir %.2f GB", label, free, dir_size_gb(self.ws.base))
         if np.isfinite(free) and free < float(self.cfg.experiment["resources"]["min_free_disk_gb"]):
-            raise Stop(f"Only {free:.1f} GB free (< min_free_disk_gb). Free some space in {self.ws.root} "
-                       f"(e.g. delete {self.ws.root / 'cache'}) and relaunch.")
+            raise Stop(f"Only {free:.1f} GB free (< min_free_disk_gb). Free some space in {self.ws.base} "
+                       f"(e.g. delete {self.ws.base / 'cache'}) and relaunch.")
 
     # ------------------------------------------------------------------ run
     def run(self, stages: list[str] | None = None) -> int:
@@ -237,9 +241,10 @@ class Pipeline:
 
         info = {"python": sys.version, "platform": platform.platform(), "os_cpu_count": os.cpu_count(),
                 "resources_plan": self.res, "code_hash": code_hash(), "config_hash": self.cfg.hash(),
-                "profile": self.cfg.profile, "workdir": str(self.ws.root), "time": now_iso(),
+                "profile": self.cfg.profile, "workdir": str(self.ws.base), "experiment": self.cfg.experiment_name,
+                "time": now_iso(),
                 "threads_env": {k: os.environ.get(k) for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "POLARS_MAX_THREADS")}}
-        info["free_disk_gb"] = round(free_disk_gb(self.ws.root), 1)
+        info["free_disk_gb"] = round(free_disk_gb(self.ws.base), 1)
         vers = {}
         for mod in ("numpy", "polars", "pyarrow", "pandas", "scipy", "sklearn", "lightgbm", "xgboost", "torch", "faiss",
                     "yaml", "psutil", "matplotlib", "sage"):
@@ -286,14 +291,14 @@ class Pipeline:
             if not p:
                 continue
             rep = schema_report(self.cfg, c, Path(p), self.ws.cache(c), min_n)
-            write_json(self.ws.reports / f"schema_{c}.json", rep)
-            (self.ws.reports / f"schema_{c}.md").write_text(schema_markdown(rep), encoding="utf-8")
+            write_json(self.ws.data_reports / f"schema_{c}.json", rep)
+            (self.ws.data_reports / f"schema_{c}.md").write_text(schema_markdown(rep), encoding="utf-8")
             disc[c]["schema_ok"] = rep["ok"]
             if not rep["ok"]:
                 miss = {t: e.get("missing") for t, e in rep["tables"].items() if e.get("missing")}
                 self.note("OPEN_QUESTIONS", f"{c} schema does not match",
                           f"Columns not found: {miss}. Fix config/harmonization.yaml (see reports/schema_{c}.md).")
-        write_json(self.ws.shared_artifacts() / "discovery.json", disc)
+        write_json(self.ws.data_artifacts() / "discovery.json", disc)
         self.disc = disc
         self._keys.clear()
         self._disc_digest = stable_hash({c: disc[c].get("path") for c in COHORTS})
@@ -303,7 +308,7 @@ class Pipeline:
                        f"Top-level folders: {disc['_datasets_root']['top_level'][:40]}\n"
                        f"Set PERISIM_INSPIRE_DIR=/path/to/inspire and relaunch.")
         if not disc[dev].get("schema_ok", True):
-            raise Stop(f"The {dev} schema does not match config/harmonization.yaml: see {self.ws.reports}/schema_{dev}.md")
+            raise Stop(f"The {dev} schema does not match config/harmonization.yaml: see {self.ws.data_reports}/schema_{dev}.md")
         self.mark("discover", digest=self._disc_digest)
 
     def stage_extract(self) -> None:
@@ -318,7 +323,7 @@ class Pipeline:
         par = max(1, min(len(todo), self.res["cpus"] // 4 or 1, int(mem // GB_PER_EXTRACTION) or 1))
         thr = max(1, self.res["cpus"] // par)
         args = [{"cfg": self.cfg.to_dict(), "profile": self.cfg.profile, "cohort": c, "src": self.disc[c]["path"],
-                 "workdir": str(self.ws.root), "threads": thr} for c in todo]
+                 "workdir": str(self.ws.base), "threads": thr} for c in todo]
         LOG.info("extract: %d cohort(s) in %d parallel process(es) × %d threads", len(todo), par, thr)
         results = []
         if par == 1:
@@ -415,7 +420,8 @@ class Pipeline:
             LOG.info("leakage[%s]: metamorphic check passed (inputs identical without post-cutoff data)", c)
         tests = REPO_ROOT / "tests"
         if tests.is_dir():
-            env = {**os.environ, "PERISIM_TEST_WORKDIR": str(self.ws.root), "PERISIM_TEST_VARIANT": self.variant}
+            env = {**os.environ, "PERISIM_TEST_WORKDIR": str(self.ws.root), "PERISIM_TEST_BASE": str(self.ws.base),
+                   "PERISIM_TEST_VARIANT": self.variant}
             r = subprocess.run([sys.executable, "-m", "pytest", "-q", str(tests / "test_no_leakage.py"),
                                 str(tests / "test_vdm_in_fold.py")], env=env, capture_output=True, text=True)
             LOG.info("anti-leakage pytest:\n%s", r.stdout[-2000:])
@@ -516,11 +522,13 @@ class Pipeline:
         set_threads(self.threads())
         st = {"n_max": int(pc["n_models"]), "min_delta": None}
         t0 = time.perf_counter()
-        res, _ = run_fold(self.cfg, data, pc["target"], np.where(folds != f)[0], np.where(folds == f)[0],
+        ck = self.ws.predictions("pilot") / "ckpt"
+        res, _ = run_fold(self.cfg, data, self.cfg.pilot_target, np.where(folds != f)[0], np.where(folds == f)[0],
                           seed=self.cfg.seed, threads=self.threads(),
                           baselines=self.cfg.experiment["baselines"] if pc.get("include_baselines") else [],
-                          stopping_override=st, early_stop=False, select_hparams=False)
+                          stopping_override=st, early_stop=False, select_hparams=False, checkpoint_dir=ck)
         wall = time.perf_counter() - t0
+        shutil.rmtree(ck, ignore_errors=True)
         loop = res["importance_loop"]
         stp = self.cfg.experiment["importance"]["stopping"]
         md_cfg = stp.get("min_delta")
@@ -531,15 +539,19 @@ class Pipeline:
         acc = [m for m in loop["models"] if m.get("accepted")]
         fam_cost: dict[str, list[float]] = {}
         for m in acc:
-            fam_cost.setdefault(m["family"], []).append(m["fit_seconds"] + m.get("sage_seconds", 0))
+            fam_cost.setdefault(m["family"], []).append(m["fit_seconds"] + m.get("sage_seconds", 0)
+                                                        + m.get("curve_seconds", 0))
         fam_med = {k: float(np.median(v)) for k, v in fam_cost.items()}
         exclude = []
-        others = [v for k, v in fam_med.items() if k != "mlp"]
-        if "mlp" in fam_med and others and fam_med["mlp"] > float(pc["mlp_cost_ratio_exclude"]) * float(np.median(others)):
-            exclude.append("mlp")
-        per_model = float(np.median([m["fit_seconds"] + m.get("sage_seconds", 0) for m in acc])) if acc else 0
+        ratio = float(pc.get("family_cost_ratio_exclude", 3.0))
+        for fam_, cost in fam_med.items():      # a family costing > ratio × the median of the others is excluded
+            others = [v for k, v in fam_med.items() if k != fam_]
+            if others and cost > ratio * float(np.median(others)):
+                exclude.append(fam_)
+        per_model = float(np.median([m["fit_seconds"] + m.get("sage_seconds", 0) + m.get("curve_seconds", 0)
+                                     for m in acc])) if acc else 0
         t = res["timings"]
-        n_targets = len(self.cfg.experiment["targets_to_model"])
+        n_targets = len(self.cfg.targets_to_model)
         n_jobs = int(self.cfg.experiment["cv"]["outer_folds"]) * n_targets
         n_inner = int(self.cfg.experiment["cv"]["inner_folds"])
         lam_cost = t.get("nca_final", 0) * len(self.cfg.experiment["metric"]["lambda_grid"]) * n_inner * 0.7
@@ -550,7 +562,7 @@ class Pipeline:
         per_job = loop_cost + inner_cost + lam_cost + 3 * t.get("nca_final", 0) + t.get("baselines", 0) + 120
         par = self.jobs()
         sens = self.cfg.experiment["sensitivity"]
-        n_var = len(sens["variants"]) if sens.get("enabled") else 0
+        n_var = len([v for v in self._variants() if v.get("mode", "refit") == "refit"]) if sens.get("enabled") else 0
         waves = lambda n: int(np.ceil(n / par))  # noqa: E731  (one shared queue: idle cores only in the last wave)
         d7 = {"min_delta": md, "tol_delta": float(stp["tol_delta"]), "W": int(stp["W"]), "P": int(stp["P"]),
               "n_min": int(stp["n_min"]), "n_max": int(stp["n_max"]), "epsilon": float(self.cfg.experiment["importance"]["epsilon"]),
@@ -565,10 +577,19 @@ class Pipeline:
                                    "hours_total_cv": waves(n_jobs) * per_job / 3600,
                                    "hours_sensitivity": waves(n_jobs * n_var) * per_job / 3600,
                                    "hours_external_final_models": per_job / 3600 * waves(n_targets)},
-                 "fold": f, "target": pc["target"]}
+                 "fold": f, "target": self.cfg.pilot_target}
+        ex = pilot["extrapolation"]
+        ex["hours_experiment"] = ex["hours_total_cv"] + ex["hours_sensitivity"] + ex["hours_external_final_models"]
         write_json(self.ws.shared_artifacts() / "pilot.json", pilot)
-        write_json(self.ws.shared_artifacts() / "d7.json", d7)
         _pilot_html(self.ws.reports / "pilot.html", pilot)
+        budget = pc.get("budget_hours")
+        if budget not in (None, "null") and ex["hours_experiment"] > float(budget):
+            levers = "\n".join(f"  {i + 1}. {lv}" for i, lv in enumerate(pc.get("cost_levers") or []))
+            raise Stop(f"The pilot estimates {ex['hours_experiment']:.1f} h for this experiment, above the budget of "
+                       f"{float(budget):g} h (experiment.pilot.budget_hours). Apply the pre-declared levers IN THIS ORDER "
+                       f"in config/experiment.yaml until the estimate fits, then relaunch:\n{levers}\n"
+                       f"See reports/pilot.html.")
+        write_json(self.ws.shared_artifacts() / "d7.json", d7)
         self.note("DECISIONS", "D7 fixed with the pilot (pre-declared rule)",
                   f"min_delta={md:.6g} (rule {pc['min_delta_rule']}), tol_delta={d7['tol_delta']}, W={d7['W']}, "
                   f"P={d7['P']}, n_min={d7['n_min']}, n_max={d7['n_max']}, ε={d7['epsilon']}. "
@@ -600,14 +621,15 @@ class Pipeline:
                   "threads": self.threads(), "features": names, "common_dir": str(self.ws.common(dev)),
                   "derived_dir": str(self.ws.derived(dev)), "key": ckey}
         jobs = []
-        for t in self.cfg.experiment["targets_to_model"]:
+        for t in self.cfg.targets_to_model:
             for f, tr, te in splits:
                 out = self.ws.artifacts(tag, t) / f"fold{f}.json"
                 prev = read_json(out)
                 if prev and prev.get("_key") == ckey and not self.force:
                     continue
                 jobs.append({**common, "target": t, "fold": int(f), "train": tr, "test": te, "out": str(out),
-                             "pred": str(self.ws.predictions(tag, t) / f"fold{f}")})
+                             "pred": str(self.ws.predictions(tag, t) / f"fold{f}"),
+                             "save_model": tag == "cv" and self.variant == "main"})
         return jobs
 
     def stage_cv(self, tag: str = "cv", split: tuple[np.ndarray, np.ndarray] | None = None) -> None:
@@ -626,7 +648,8 @@ class Pipeline:
         tests = REPO_ROOT / "tests"
         if not tests.is_dir():
             return
-        env = {**os.environ, "PERISIM_TEST_WORKDIR": str(self.ws.root), "PERISIM_TEST_VARIANT": self.variant}
+        env = {**os.environ, "PERISIM_TEST_WORKDIR": str(self.ws.root), "PERISIM_TEST_BASE": str(self.ws.base),
+               "PERISIM_TEST_VARIANT": self.variant}
         r = subprocess.run([sys.executable, "-m", "pytest", "-q", *[str(tests / f) for f in files]], env=env,
                            capture_output=True, text=True)
         LOG.info("real-data tests %s:\n%s", when, r.stdout[-1500:])
@@ -687,14 +710,17 @@ class Pipeline:
         if self.done("report") and not self.force:
             return
         n_outer = int(self.cfg.experiment["cv"]["outer_folds"])
-        res = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.experiment["targets_to_model"], self.cfg,
+        res = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.targets_to_model, self.cfg,
                            expected_key=self.key("cv"), expected_folds=set(range(n_outer)))
         write_json(self.ws.artifacts() / "results.json", res)
         self._patient_outputs(n_outer)
+        from perisim.compare import run_comparisons
+
+        run_comparisons(self)        # T1 vs T2, T3 vs T2 / T1: does the similarity depend on the outcome?
         (self.ws.reports / f"results_{self.variant}.html").write_text(
             render_results(res, self.cfg, f"PERISIM results — internal validation ({self.variant})"), encoding="utf-8")
         if any(self.ws.artifacts("temporal").rglob("fold*.json")):
-            rt = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.experiment["targets_to_model"],
+            rt = aggregate_cv(self.ws.artifacts(), self.ws.predictions(), self.cfg.targets_to_model,
                               self.cfg, tag="temporal", expected_key=self.key("cv"), expected_folds={0})
             write_json(self.ws.artifacts() / "results_temporal.json", rt)
             (self.ws.reports / "results_temporal.html").write_text(
@@ -719,26 +745,40 @@ class Pipeline:
 
         for f in range(n_outer):
             parts = [read_jsonl(self.ws.predictions("cv", t) / f"fold{f}_patient.jsonl")
-                     for t in self.cfg.experiment["targets_to_model"]]
+                     for t in self.cfg.targets_to_model]
             if any(parts):
                 write_jsonl(self.ws.predictions("cv", "patient_output") / f"fold{f}.jsonl", merge_patient_outputs(parts))
 
+    def _variants(self) -> list[dict]:
+        """Sensitivity variants that apply to this experiment's target (`targets` absent = all)."""
+        tgt = set(self.cfg.targets_to_model)
+        return [v for v in self.cfg.experiment.get("sensitivity", {}).get("variants", [])
+                if not v.get("targets") or tgt & set(v["targets"])]
+
     def stage_sensitivity(self) -> None:
-        """Sensitivity variants: cheap preparation per variant, then ONE shared queue for all CV jobs."""
+        """Outcome-definition variants by relabelling the main metric's case base (minutes); input variants refitted
+        with ONE shared queue for all their CV jobs."""
+        from perisim.sensitivity import relabel_variant
+
         sc = self.cfg.experiment.get("sensitivity", {})
         if self.variant != "main" or not sc.get("enabled"):
             return
+        n_outer = int(self.cfg.experiment["cv"]["outer_folds"])
         subs: list[Pipeline] = []
-        for v in sc.get("variants", []):
+        for v in self._variants():
             vcfg = self.cfg.with_overrides(v.get("overrides", {}), variant=v["name"])
             sub = Pipeline(vcfg, self.ws.for_variant(v["name"]), force=self.force)
             sub.disc = self.disc
-            LOG.info("── sensitivity: preparing %s", v["name"])
-            rc = sub.run(VARIANT_PREP_STAGES)
+            relabel = v.get("mode", "refit") == "relabel"
+            LOG.info("── sensitivity: preparing %s (%s)", v["name"], "relabel" if relabel else "refit")
+            rc = sub.run(["targets"] if relabel else VARIANT_PREP_STAGES)
             if rc == 3:
                 raise Stop(f"Variant {v['name']} stopped (see log)")
             if rc != 0:
                 raise RuntimeError(f"Variant {v['name']} failed")
+            if relabel:
+                relabel_variant(self, sub, n_outer)
+                continue
             subs.append(sub)
         jobs = [j for sub in subs if self.force or not sub.done("cv") for j in sub.cv_jobs()]
         if jobs:
@@ -905,19 +945,24 @@ def _job_entry(args: dict):
         data = load_cohort_data(Path(args["common_dir"]), Path(args["derived_dir"]), args["features"])
         d7 = args["d7"]
         st = {k: d7[k] for k in ("W", "P", "n_min", "n_max", "min_delta", "tol_delta") if k in d7}
+        pred = Path(args["pred"])
+        pred.parent.mkdir(parents=True, exist_ok=True)
+        ck = pred.with_name(pred.name + "_ckpt")      # loop checkpoints: a stopped pod resumes mid-job
         res, out = run_fold(cfg, data, args["target"], np.asarray(args["train"]), np.asarray(args["test"]),
                             seed=fold_seed(cfg, int(args["fold"])), threads=int(args["threads"]),
                             baselines=cfg.experiment["baselines"], stopping_override=st,
-                            exclude_families=set(d7.get("exclude_families", [])), early_stop=True)
-        pred = Path(args["pred"])
-        pred.parent.mkdir(parents=True, exist_ok=True)
+                            exclude_families=set(d7.get("exclude_families", [])), early_stop=True, checkpoint_dir=ck)
         write_parquet(out["pred"], pred.with_name(pred.name + "_pred.parquet"))
         write_parquet(out["ood"], pred.with_name(pred.name + "_ood.parquet"))
         write_parquet(out["p4"] if out["p4"].height else pl.DataFrame({"stay_id": []}), pred.with_name(pred.name + "_p4.parquet"))
         write_jsonl(pred.with_name(pred.name + "_patient.jsonl"), out["patient"])   # §5.6, never exported
+        if args.get("save_model"):          # fold metric for the relabelled sensitivity variants (pod only)
+            with open(pred.with_name(pred.name + "_model.pkl"), "wb") as fh:
+                pickle.dump(out["model"], fh, protocol=pickle.HIGHEST_PROTOCOL)
         res["_key"] = args["key"]
         res["fold"] = int(args["fold"])
         write_json(Path(args["out"]), res)
+        shutil.rmtree(ck, ignore_errors=True)
         return True
     except Exception:
         return f"[{args.get('variant')}] {args.get('target')} fold {args.get('fold')}:\n{traceback.format_exc()}"

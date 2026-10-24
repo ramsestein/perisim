@@ -40,7 +40,8 @@ def cmd_run(args) -> int:
             stages = stages[stages.index(args.from_stage):]
         if args.until:
             stages = stages[: stages.index(args.until) + 1]
-    LOG.info("PERISIM · workdir=%s · stages=%s · profile=%s", cfg.workdir, ",".join(stages), cfg.profile)
+    LOG.info("PERISIM · experiment=%s · workdir=%s · stages=%s · profile=%s", cfg.experiment_name, cfg.workdir,
+             ",".join(stages), cfg.profile)
     rc = pipe.run(stages)
     if rc == 0:
         LOG.info("Reports: %s · Exportable: %s", pipe.ws.reports, pipe.ws.export)
@@ -54,7 +55,7 @@ def cmd_status(args) -> int:
     cfg = _cfg(args)
     pipe = Pipeline(cfg)
     r = pipe.res
-    print(f"workdir: {cfg.workdir}")
+    print(f"experiment: {cfg.experiment_name} (target {', '.join(cfg.targets_to_model)}) · workdir: {cfg.workdir}")
     print(f"resources: {r['cpus']} CPUs, {r['memory_gb']} GB → {r['jobs']} jobs × {r['threads_per_job']} threads")
     for st in MAIN_STAGES:
         if STAGE_DEFS[st].per_cohort:
@@ -127,23 +128,25 @@ def cmd_smoke(args) -> int:
 
     work = Path(args.workdir or Path.cwd() / "work_smoke").resolve()
     data_root = work / "datasets"
-    (work / "workdir" / "state" / "freeze.json").unlink(missing_ok=True)  # each smoke run freezes its own version
     cfg0 = load_config(profile="smoke")
     write_synthetic(data_root, cfg0.harmonization, n_subjects=args.n, seed=args.seed)
-    env = {**os.environ, "PERISIM_DATASETS": str(data_root), "PERISIM_WORKDIR": str(work / "workdir"),
-           "PERISIM_INSPIRE_DIR": "auto", "PERISIM_MIMIC_DIR": "auto", "PERISIM_EICU_DIR": "auto",
-           "PERISIM_ACK_AUDIT": "true",
-           "PYTHONPATH": os.pathsep.join([str(REPO_ROOT / "src")] + [p for p in [os.environ.get("PYTHONPATH")] if p])}
     base = [sys.executable, "-m", "perisim"]
-    steps = [base + ["run", "--profile", "smoke"] + (["--force"] if args.force else []),
-             base + ["freeze", "--profile", "smoke", "--no-git", "--registration", "SMOKE-TEST"],
-             base + ["run", "--profile", "smoke", "--stage", "external,export"]]
-    for cmd in steps:  # internal pipeline → freeze → external validation (as in the pod, without the pauses)
-        print("[perisim] smoke:", " ".join(cmd[2:]))
-        rc = subprocess.call(cmd, env=env)
-        if rc != 0:
-            return rc
-    print(f"[perisim] smoke OK · reports in {work / 'workdir' / 'reports'}")
+    exps = [e for e in (args.experiments or "t2,t1,t3").split(",") if e]
+    for exp in exps:   # the three experiments share the extraction; each one freezes its own version
+        (work / "workdir" / "experiments" / exp / "state" / "freeze.json").unlink(missing_ok=True)
+        env = {**os.environ, "PERISIM_DATASETS": str(data_root), "PERISIM_WORKDIR": str(work / "workdir"),
+               "PERISIM_INSPIRE_DIR": "auto", "PERISIM_MIMIC_DIR": "auto", "PERISIM_EICU_DIR": "auto",
+               "PERISIM_ACK_AUDIT": "true", "PERISIM_EXPERIMENT": exp,
+               "PYTHONPATH": os.pathsep.join([str(REPO_ROOT / "src")] + [p for p in [os.environ.get("PYTHONPATH")] if p])}
+        steps = [base + ["run", "--profile", "smoke"] + (["--force"] if args.force else []),
+                 base + ["freeze", "--profile", "smoke", "--no-git", "--registration", "SMOKE-TEST"],
+                 base + ["run", "--profile", "smoke", "--stage", "external,export"]]
+        for cmd in steps:  # internal pipeline → freeze → external validation (as in the pod, without the pauses)
+            print(f"[perisim] smoke [{exp}]:", " ".join(cmd[2:]))
+            rc = subprocess.call(cmd, env=env)
+            if rc != 0:
+                return rc
+    print(f"[perisim] smoke OK ({', '.join(exps)}) · reports in {work / 'workdir' / 'experiments'}/<experiment>/reports")
     return 0
 
 
@@ -156,8 +159,9 @@ def cmd_freeze(args) -> int:
     from perisim.workspace import Workspace
 
     cfg = _cfg(args)
-    ws = Workspace(cfg.workdir)
-    tag = f"perisim-freeze-{now_iso()[:19].replace(':', '').replace('T', '-')}"
+    ws = Workspace(cfg.workdir, experiment=cfg.experiment_name)
+    # one freeze (and pre-registration) per experiment: T2, T1 and T3 are separate experiments (2026-10-24)
+    tag = f"perisim-freeze-{cfg.experiment_name}-{now_iso()[:19].replace(':', '').replace('T', '-')}"
     if (ws.artifacts() / "external.json").exists():
         print("[perisim] External results already exist: re-freezing would allow iterating after looking at them "
               "(§6.3). Refused.")
@@ -209,7 +213,7 @@ def cmd_export(args) -> int:
     from perisim.workspace import Workspace
 
     cfg = _cfg(args)
-    print(build_export(Workspace(cfg.workdir), cfg))
+    print(build_export(Workspace(cfg.workdir, experiment=cfg.experiment_name), cfg))
     return 0
 
 
@@ -246,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     sm.add_argument("--n", type=int, default=700, help="synthetic patients per cohort")
     sm.add_argument("--seed", type=int, default=7)
     sm.add_argument("--force", action="store_true")
+    sm.add_argument("--experiments", default=None, help="comma-separated experiments (default t2,t1,t3)")
     sm.set_defaults(fn=cmd_smoke)
 
     f = sub.add_parser("freeze", help="§6.3 freeze (enables the external validation)")

@@ -5,10 +5,12 @@
 - **Project:** PERISIM (*Perioperative Similarity*)
 - **Lead:** Ramses Marrero García (MD, PhD), AI-Lab, Hospital Clínic de Barcelona / SIMTRI, SNUH
 - **Platform:** KHDP (Korea Health Data Platform, SNUH) + PhysioNet
-- **Document version:** v0.4 (2026-10-22)
+- **Document version:** v0.5 (2026-10-24)
 - **Status:** design closed; operational definitions are a v0 proposal pending clinical validation
 - **v0.4 amendments** (lead's decisions after the full audit, 2026-10-22; rationale in `docs/DECISIONS.md`, IDs from
   `docs/AUDIT.md`) are marked **[v0.4]** in the text.
+- **v0.5 amendments** (methodology discussion with the lead, 2026-10-24: per-variable shape functions, T2 with death,
+  one experiment per target, model space, trivial comparators, sensitivity by relabelling) are marked **[v0.5]**.
 
 ---
 
@@ -24,6 +26,12 @@ For each new patient, the system returns:
 4. An **out-of-support alert** when the patient lies far from the reference cases.
 
 ### 1.1 Research questions
+
+**[v0.5] Three separate experiments, one per target**, each complete (internal CV, sensitivity, external validation,
+its own freeze and pre-registration) and in this order: **T2** (primary target and demonstration of the method),
+**T1** (complications; plus whether the similarity learned for T1 resembles the one learned for T2 — neighbour
+overlap, weight ranks, shapes), **T3** (both dimensions). The extraction is shared. Changes to a later experiment
+informed by the external results of an earlier one are declared.
 
 - **Q1 (method):** does the metric weighted by multi-model SAGE improve the kNN's log-loss and calibration compared with the unweighted distance and with direct metric learning (diagonal NCA)?
 - **Q2 (performance):** is it competitive with reference parametric models (logistic regression, gradient boosting) and with the clinical SWIFT score?
@@ -158,8 +166,9 @@ Approximation of the Clavien-Dindo classification (Dindo et al., 2004) **from st
 
 #### T2 — Post-ICU hospital length of stay
 
-- Definition: days from t0 to hospital discharge, **in survivors only**. Death is already part of severe T1.
-- **Cohort-relative** categories: tertiles computed in the training set of each cohort (short / medium / long). This absorbs structural length-of-stay differences between health systems.
+- Definition: days from t0 to hospital discharge, **in survivors only**. Death is already part of severe T1. *(v0.3)*
+- **[v0.5] Death as a fourth class:** short / medium / long (tertiles of the survivors' stay) / in-hospital death within 30 days, **ordinal with death as the worst state**. At t0 it is unknown who will survive, so T2 is defined for every patient; the survivors-only selection disappears.
+- **Cohort-relative** categories: tertiles computed in the training set of each cohort (short / medium / long), on the survivors' stay. This absorbs structural length-of-stay differences between health systems.
 - Sensitivity: absolute categories (≤3 / 4–7 / >7 days) `[open decision]`.
 
 #### T3 (secondary) — Composite ordinal trajectory
@@ -198,8 +207,17 @@ d(a, b)² = Σ_j  w_j · δ_j(a_j, b_j)²
 
 - **δ_j:** shape of the dissimilarity, by variable type (§5.2). Each δ_j is normalised to unit variance in training so that w_j keeps its meaning.
 - **w_j ≥ 0:** scale (importance), derived from SAGE and adjusted as in §5.4.
+- **[v0.5]** `d(a, b)² = Σ_j w_j ‖g_j(a_j) − g_j(b_j)‖²`: each variable lives on its **shape function** g_j — the consensus, across the competitive models of §5.3, of how its values move the prediction (centred log-odds, one component per class). g_j says *how* a variable relates to the outcome, w_j *how much* it counts; both come from multivariable models, and the kNN captures the remaining interactions by locality. Neighbours are therefore patients who reach the same prediction for the same reasons (profiles).
 
 ### 5.2 Variable types and δ_j
+
+**[v0.5] Shape geometry (replaces the per-type rules below, which remain as the HVDM comparator):**
+
+- **Continuous / ordinal:** ≤ 20 training quantile bins of ≥ 50 patients; the curve of each model is read by accumulated local effects (ALE) — only real patients, moved within their own bin — so correlated variables do not leak into it; constant extension beyond the observed range.
+- **Nominal / ICD-10-PCS:** categories (codes) with ≥ 50 patients; rare PCS codes are pooled with their parent code when that pool is large enough, otherwise into "other"; the curve of each model is the local effect of each category against the most frequent one, averaged over the patients of that category. Never-seen categories → neutral (zero) contribution.
+- **Binary and missingness indicators:** 0/1 (their shape is equivalent after normalisation). Missing values keep median imputation + indicator.
+- **Consensus:** least-squares fit to all the models' curves with a per-model scale; agreement R² reported; each value shrunk towards the mean by τ² / (τ² + se²) (DerSimonian–Laird over the values, as the SAGE aggregation); a curve not distinguishable from flat (homogeneity F test with the between-model variance pooled over values, α = 0.05 with Bonferroni over classes) keeps its **neutral axis**: rank (empirical CDF) for continuous / ordinal, one-hot for nominal / PCS. Each model's curves are read on a fresh random subsample of 1,000 explanation cases (bootstrap-like).
+- Everything is estimated inside the training fold, on the explanation subsample (cases not used to fit the models); the in-fold vs test optimism is reported; no cross-fitting (it would break the common space of the kNN).
 
 | Type | Examples | δ_j |
 |---|---|---|
@@ -231,7 +249,7 @@ d(a, b)² = Σ_j  w_j · δ_j(a_j, b_j)²
 
 **Method references:** Covert et al. (2020) for SAGE; Frye et al. (2021) for the masked surrogate; Ning et al. (2022) for aggregation over a Rashomon set.
 
-1. **Model space**, defined before seeing results and stored in `config/model_space.yaml`: logistic regression (L2), random forest, LightGBM, XGBoost, MLP. Each family with hyperparameter ranges.
+1. **Model space**, defined before seeing results and stored in `config/model_space.yaml`: logistic regression (L2), random forest, LightGBM, XGBoost, MLP. Each family with hyperparameter ranges. **[v0.5]** The MLP is replaced by a penalised **spline logistic regression** (smooth non-linear shapes at low cost) and the logistic regression samples its penalty (**L2 / LASSO / elastic-net**). Shapes per family: straight lines, smooth curves, steps. No Bayesian family (the consensus already averages models). Accepted models that fall outside (1+ε)·best as the loop improves leave the consensus (AUDIT B8).
 2. **Sampling:** at each iteration, a family and hyperparameters are sampled at random.
 3. **Training with *feature dropout*:** each model is trained with random masks over **groups** of variables (§5.3.1). It thus acts as a surrogate able to predict with any subset. Models are *not* retrained per subset.
 4. **Competitiveness filter:** a model is accepted only if its log-loss on the inner validation fold is ≤ (1 + ε) × the best log-loss observed so far. ε = 0.05 `[open decision]`.
@@ -340,6 +358,8 @@ so the NCA itself splits the weight within a group (an uninformative missingness
 
 ## 6. Validation
 
+**[v0.5] Sensitivity analyses:** variants that change only the outcome definition (T1 without antibiotics / AKI, alternative KDIGO, ward hypoxaemia, T2 absolute categories) are evaluated by **relabelling** the case base with the main metric of each outer fold (α refitted); variants that change the inputs (4 h margin, diagnosis window) are refitted in full, for the experiment's target only.
+
 **[v0.4, E10/E11]** Pooled out-of-fold metrics are reported next to per-fold metrics and per-fold T2/T3 cut-points, and SAGE dispersion is reported per variable (fold-specific groups mapped to their variables). **[v0.4, E14]** The §5.6 record is written inside the pod for every test-fold and external query (never exported).
 
 ### 6.1 Internal (INSPIRE)
@@ -368,7 +388,9 @@ Iterating on the method after looking at external results is forbidden.
 
 ### 6.4 Comparators (all with the same splits and the same nested fitting)
 
-1. Euclidean kNN on standardised variables (no weights).
+0. **[v0.5] Trivial references:** the training prevalence of each class, and the prevalence by surgical group (m-estimate towards the overall); externally, INSPIRE's prevalence (mode A) and the target cohort's own prevalence without the query's patient (mode B).
+1. Euclidean kNN on standardised variables (no weights). **[v0.5]** On the neutral axes (rank / one-hot), i.e. without any outcome information.
+1b. **[v0.5]** The v0.4 geometry (HVDM: standardised continuous + VDM nominal) with the same SAGE prior and λ: isolates the effect of the shape functions.
 2. kNN with single-model weights: mean |SHAP| from LightGBM (Weerts et al., 2019).
 3. kNN with random forest importance (Addou et al., 2026).
 4. kNN with ReliefF weights.
@@ -486,7 +508,8 @@ KHDP research environment: **16 vCPU, 128 GB RAM, 100 GB storage, no GPU.** The 
 
 **Design consequences:**
 
-- **Models:** LightGBM and XGBoost in `hist` mode on CPU. The MLP in the model space is limited to 2 small hidden layers (PyTorch on CPU). If its cost dominates in the pilot, it is dropped from the model space and logged in `DECISIONS.md`.
+- **Models:** LightGBM and XGBoost in `hist` mode on CPU. The MLP in the model space is limited to 2 small hidden layers (PyTorch on CPU). If its cost dominates in the pilot, it is dropped from the model space and logged in `DECISIONS.md`. **[v0.5]** The MLP is no longer in the model space; any family costing > 3× the median of the others in the pilot is excluded.
+- **[v0.5] Budget and cost levers:** the pilot estimates the hours of the experiment (CV + sensitivity + external); if a budget is set and exceeded, the pipeline stops and lists the pre-declared levers, to apply in this order: (1) smaller curve subsample, (2) shapes only for the variables covering 95 % of the SAGE importance, (3) λ prior from the outer fold instead of per inner fold (C3). The consensus loop is checkpointed after every accepted model, so stopping the pod costs minutes.
 - **Parallelism:** at most 4 concurrent jobs with 4 threads each. Do not oversubscribe cores: set `OMP_NUM_THREADS` and `n_jobs` explicitly.
 - **SAGE:** explanation subsample of 2,000 cases and grouped variables (§5.3.1) by default. n_max = 150 models.
 - **Metric learning:** PyTorch on CPU with minibatches. FAISS on CPU (`IndexFlatL2` over vectors scaled by √w; at this size no approximate index is needed for inference).
@@ -496,7 +519,7 @@ KHDP research environment: **16 vCPU, 128 GB RAM, 100 GB storage, no GPU.** The 
   - do not duplicate original tables;
   - do not store the SAGE-loop models: keep only their importance vectors, metrics and seed, enough to reproduce them;
   - check disk usage at the end of each stage.
-- **Mandatory pilot** before the full pipeline: 1 outer fold and T1, to measure time per model, time per SAGE, number of models until stopping and peak memory, and to extrapolate the total cost.
+- **Mandatory pilot** before the full pipeline: 1 outer fold and T1, to measure time per model, time per SAGE, number of models until stopping and peak memory, and to extrapolate the total cost. **[v0.5]** One pilot per experiment, on its own target.
 
 ---
 

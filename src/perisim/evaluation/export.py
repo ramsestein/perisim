@@ -34,6 +34,8 @@ def build_export(ws, cfg) -> Path:
     cands: list[tuple[Path, str]] = []
     for p in ws.reports.glob("*"):
         cands.append((p, f"reports/{p.name}"))
+    for p in ws.data_reports.glob("schema_*"):            # discovery reports, shared by the experiments
+        cands.append((p, f"reports/{p.name}"))
     for p in ws.docs.glob("*.md"):
         cands.append((p, f"docs/{p.name}"))
     art = ws.root / "artifacts"
@@ -54,7 +56,7 @@ def build_export(ws, cfg) -> Path:
         kept.append((rel, dst.stat().st_size, _sha(dst)))
     lines = [
         "# PERISIM — candidate export package", "",
-        f"Generated: {now_iso()} · code {cfg.hash()[:8]} · workdir `{ws.root}`", "",
+        f"Generated: {now_iso()} · code {cfg.hash()[:8]} · experiment `{ws.experiment}` · workdir `{ws.root}`", "",
         "Contents: aggregates only (metrics, weights w_j, importances, VDM tables with n ≥ "
         f"{cfg.experiment['evaluation']['small_cell_threshold']}, curves, HTML reports). No patient rows.", "",
         "## KHDP procedure", "",

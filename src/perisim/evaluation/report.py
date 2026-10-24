@@ -12,7 +12,7 @@ from perisim.evaluation.html import box, esc, fig_img, page, table
 from perisim.experiment import ORDINAL, SEVERE
 from perisim.utils import read_json
 
-T_LABELS = {"t1": ["none", "mild", "severe"], "t2": ["short", "medium", "long"],
+T_LABELS = {"t1": ["none", "mild", "severe"], "t2": ["short", "medium", "long", "death"],
             "t3": ["early", "expected", "prolonged/mild", "severe/death"], "t1_bin": ["not severe", "severe"]}
 
 
@@ -188,8 +188,28 @@ def aggregate_cv(art_dir: Path, pred_dir: Path, targets: list[str], cfg, tag: st
             "importance": imp_disp,
             "weights_mean": _mean_dict([f["perisim"]["weights"] for f in fj]),
             "per_fold": _per_fold_metrics(fold_preds, {int(f["fold"]): f.get("thresholds") for f in fj}, t, kp),
+            "density": [{"fold": int(f["fold"]), **{f"{m}_{k}": v for m, d in (f.get("density") or {}).items()
+                                                     for k, v in d.items()}} for f in fj],
+            "shapes": _shape_summary(fj),
         }
     return res
+
+
+def _shape_summary(fj: list[dict]) -> dict:
+    """Per variable: in how many folds it got a shape, mean agreement R² between models, and the fold-0 curve."""
+    out: dict[str, dict] = {}
+    for f in fj:
+        for name, d in (f["importance_loop"].get("shape_diag") or {}).items():
+            o = out.setdefault(name, {"folds": 0, "shaped": 0, "r2": []})
+            o["folds"] += 1
+            o["shaped"] += int(bool(d.get("shaped")))
+            if d.get("r2") is not None:
+                o["r2"].append(float(d["r2"]))
+    first = fj[0]["perisim"].get("shape_tables") or {} if fj else {}
+    for name, o in out.items():
+        o["r2_mean"] = float(np.mean(o.pop("r2"))) if o.get("r2") else None
+        o["curve_fold0"] = first.get(name)
+    return out
 
 
 def _per_fold_metrics(fold_preds: dict[int, pl.DataFrame], thresholds: dict, target: str, kp: int) -> list[dict]:
@@ -252,7 +272,8 @@ def _importance_dispersion(fj: list[dict]) -> dict:
 # §5.6 output structure shown in the report: placeholder values only, never data (E14)
 PATIENT_OUTPUT_SCHEMA = {
     "patient_id": "<stay identifier>", "t0": "<minutes, cohort clock>",
-    "p_T1": {"none": 0.0, "mild": 0.0, "severe": 0.0}, "p_T2": {"short": 0.0, "medium": 0.0, "long": 0.0},
+    "p_T1": {"none": 0.0, "mild": 0.0, "severe": 0.0},
+    "p_T2": {"short": 0.0, "medium": 0.0, "long": 0.0, "death": 0.0},
     "p_T3": {"early_no_complication": 0.0, "expected_no_complication": 0.0, "prolonged_or_mild": 0.0,
              "severe_or_death": 0.0},
     "k": 0, "ood": False, "kth_distance_percentile": 0.0,
@@ -283,7 +304,7 @@ def eval_sections(ev: dict, n_boot: int) -> list[str]:
                      ci.get("rps", {}).get("mean"), s.get("auroc_ovr_macro"), s.get("auroc_severe"),
                      _ci(ci.get("auroc_severe")), s.get("auprc_severe")])
     sec.append(table(["Method@k", "n", "Log-loss", "95 % CI", "Brier (Σ classes)", "95 % CI", "RPS", "AUROC OvR",
-                      "AUROC severe", "95 % CI", "AUPRC severe"], rows))
+                      "AUROC worst class", "95 % CI", "AUPRC worst class"], rows))
     cal_rows = [[key, c, v["intercept"], v["slope"], v["citl"], v["ece"]]
                 for key, s in ev["methods"].items() if key.endswith("@" + ev["reference"].split("@")[1]) or "@" not in key
                 for c, v in s.get("calibration", {}).items()]
@@ -387,10 +408,40 @@ def render_results(res: dict, cfg, title: str) -> str:
                                          for k, vals in (x["thresholds"] or {}).items())]
                               for x in r["per_fold"]], nd=4))
         imp = list(r["importance"].items())[:30]
-        sec.append("<h3>Consensus SAGE importance per variable and dispersion across models (E11)</h3>")
-        sec.append(table(["Variable", "aggregated", "model mean", "SD", "p10", "p90", "n models", "n folds"],
+        shp = r.get("shapes") or {}
+        sec.append("<h3>Consensus SAGE importance per variable, dispersion across models (E11) and shapes (v0.5)</h3>")
+        sec.append(box("Shape: folds in which the variable got a consensus shape (τ² &gt; 0) out of the folds where it "
+                       "was shapeable; R² = agreement between the models' curves (diagnostic only). A variable without a "
+                       "shape keeps its neutral axis (rank / one-hot).", "note"))
+        sec.append(table(["Variable", "aggregated", "model mean", "SD", "p10", "p90", "n models", "n folds",
+                          "shaped / folds", "shape R²"],
                          [[g, v["aggregated_mean"], v["models_mean"], v["models_sd"], v["models_p10"], v["models_p90"],
-                           v["n_models"], v.get("n_folds")] for g, v in imp], nd=4))
+                           v["n_models"], v.get("n_folds"),
+                           f"{shp[g]['shaped']} / {shp[g]['folds']}" if g in shp else "—",
+                           shp.get(g, {}).get("r2_mean")] for g, v in imp], nd=4))
+        top = [g for g, _ in imp if (shp.get(g) or {}).get("curve_fold0")][:6]
+        if top:
+            fig, axes = plt.subplots(1, len(top), figsize=(2.6 * len(top), 2.6), squeeze=False)
+            for ax, g in zip(axes[0], top):
+                cur = shp[g]["curve_fold0"]
+                for c in range(len(cur[0]["g"])):
+                    ax.plot(range(len(cur)), [v["g"][c] for v in cur], marker=".", lw=1,
+                            label=T_LABELS[t][c] if c < len(T_LABELS[t]) else str(c))
+                ax.set_title(g, fontsize=8)
+                ax.set_xticks([])
+                ax.axhline(0, color="k", lw=0.5)
+            axes[0][0].set_ylabel("centred log-odds")
+            axes[0][-1].legend(fontsize=6)
+            fig.suptitle(f"{t.upper()}: consensus shapes of the most important variables (fold 0; x = bin / category)",
+                         fontsize=9)
+            sec.append(fig_img(fig))
+        if r.get("density"):
+            sec.append("<h3>Neighbourhood density (gap 9): effective dimension, contrast and out-of-support rate</h3>")
+            sec.append(box("Contrast = median distance to the k-th neighbour / median distance between random training "
+                           "pairs; close to 1 means the neighbours are no closer than any patient (no real profiles).",
+                           "note"))
+            keys = sorted({k for d in r["density"] for k in d if k != "fold"})
+            sec.append(table(["Fold"] + keys, [[d["fold"]] + [d.get(k) for k in keys] for d in r["density"]], nd=3))
         if r["p4"]:
             rows = []
             for var, d in r["p4"].items():

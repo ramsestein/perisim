@@ -49,9 +49,9 @@ hypoxemia_ward:
   spo2_threshold: 90
   min_consecutive: 2
 
-t2:
-  categories: tertiles           # tertiles (D5, per cohort and within the training fold) | absolute
-  labels: [short, medium, long]
+t2:                              # 2026-10-24: survivors' stay tertiles + in-hospital death (ordinal, death worst)
+  categories: tertiles           # tertiles (D5, per cohort and within the training fold, survivors) | absolute
+  labels: [short, medium, long, death]
   absolute_cut_days: [3, 7]      # ≤3 / 4–7 / >7 days
   truncate_days: 30
 

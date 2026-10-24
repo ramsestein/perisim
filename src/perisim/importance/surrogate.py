@@ -3,7 +3,10 @@
 Each model learns to predict with any subset of groups present: this way SAGE simulates the absence of a
 group with the model's own mask, without marginal imputation or retraining per subset.
 - Trees (RF, LightGBM, XGBoost): absent group → NaN (all three support NaN natively).
-- Linear and MLP: absent group → 0 (the mean after standardization) + a per-group mask indicator.
+- Linear, spline-linear and MLP: absent group → 0 (the mean after standardization) + a per-group mask indicator.
+- Logistic regression samples its penalty (L2 / L1 = LASSO / elastic-net); the spline logistic regression expands
+  the continuous / ordinal columns in a cubic B-spline basis (a penalised GAM: smooth non-linear shapes). Decided
+  2026-10-24; the MLP is no longer in the model space.
 """
 
 from __future__ import annotations
@@ -46,8 +49,9 @@ def random_masks(n: int, G: int, rng: np.random.Generator) -> np.ndarray:
 
 class Surrogate:
     def __init__(self, family: str, params: dict, col_group: np.ndarray, n_groups: int, n_classes: int,
-                 seed: int = 0, threads: int = 4):
+                 seed: int = 0, threads: int = 4, spline_cols: np.ndarray | None = None):
         self.family = family
+        self.spline_cols = None if spline_cols is None else np.asarray(spline_cols, dtype=bool)
         self.params = dict(params)
         self.col_group = np.asarray(col_group)
         self.G = int(n_groups)
@@ -64,6 +68,9 @@ class Surrogate:
             Xm[absent_cols] = np.nan
             return Xm
         Xm = np.where(absent_cols, 0.0, X).astype(np.float32)
+        if self.family == "spline_logreg" and getattr(self, "spline", None) is not None and self.spline_cols.any():
+            Z = self.spline.transform(Xm[:, self.spline_cols]).astype(np.float32)
+            Xm = np.hstack([Z, Xm[:, ~self.spline_cols]])
         return np.hstack([Xm, (~mask).astype(np.float32)])
 
     # ------------------------------------------------------------------ fitting
@@ -71,6 +78,16 @@ class Surrogate:
         t0 = time.perf_counter()
         rng = np.random.default_rng(self.seed)
         n = X.shape[0]
+        if self.family == "spline_logreg":
+            from sklearn.preprocessing import SplineTransformer
+
+            if self.spline_cols is None:
+                self.spline_cols = np.zeros(X.shape[1], dtype=bool)
+            self.spline = None
+            if self.spline_cols.any():
+                self.spline = SplineTransformer(n_knots=int(self.params.get("n_knots", 6)),
+                                                degree=int(self.params.get("degree", 3)), knots="quantile",
+                                                extrapolation="constant").fit(X[:, self.spline_cols])
         masks = [np.ones((n, self.G), dtype=bool)] + [random_masks(n, self.G, rng) for _ in range(augment_copies)]
         Xa = np.vstack([self._apply_mask(X, m) for m in masks])
         ya = np.tile(np.asarray(y), len(masks))
@@ -89,10 +106,15 @@ class Surrogate:
 
     def _make(self, k: int):
         p = self.params
-        if self.family == "logreg":
+        if self.family in ("logreg", "spline_logreg"):
             from sklearn.linear_model import LogisticRegression
 
-            return LogisticRegression(C=p["C"], max_iter=int(p.get("max_iter", 1000)))
+            pen = p.get("penalty", "l2")
+            if pen == "l2":
+                return LogisticRegression(C=p["C"], max_iter=int(p.get("max_iter", 1000)))
+            return LogisticRegression(C=p["C"], penalty=pen, solver="saga", max_iter=int(p.get("max_iter", 1000)),
+                                      l1_ratio=float(p["l1_ratio"]) if pen == "elasticnet" else None,
+                                      random_state=self.seed)
         if self.family == "random_forest":
             from sklearn.ensemble import RandomForestClassifier
 

@@ -4,6 +4,9 @@
 
 project: perisim
 seed: 20261021
+# One experiment per target (decided 2026-10-24), each complete with its own freeze: t2 (primary target and
+# demonstration of the method), then t1 (complications), then t3 (both). Shared extraction, separate work folders.
+experiment_name: ${PERISIM_EXPERIMENT:-t2}
 
 paths:
   datasets_root: ${PERISIM_DATASETS:-/home/khdp-user/workspace/datasets}
@@ -52,9 +55,9 @@ features:
   preop_lab_lookback_days: 180
   support_gap_hours: 6          # merging of support records into intervals (end inferred from absence)
   min_points_slope: 3
-  hier_min_count: 10
+  hier_min_count: 10            # HVDM comparator (v0.4 geometry)
   hier_max_levels: 500          # cap per ICD-10-PCS level (raised for levels 4–5, AUDIT B6); rare → "other" dimension
-  nominal_min_count: 10
+  nominal_min_count: 10         # HVDM comparator (v0.4 geometry)
   nominal_max_categories: 50
   corr_cluster_threshold: 0.8   # §5.3.1
   block_group_threshold: 50     # §5.3.1 [open decision]
@@ -71,7 +74,13 @@ importance:                     # §5.3
     min_delta: auto             # auto = pre-declared rule in pilot.min_delta_rule
     tol_delta: 0.01
     max_attempts_factor: 3
-  n_reference_pairs: 20000      # Δ is measured on the prior-implied metric w = c·imp (B3): no NCA inside the loop
+  n_reference_pairs: 20000      # Δ on the prior-implied metric w = c·imp over the CURRENT shapes (B3, v0.5): no NCA
+  curves:                       # v0.5 per-variable shape functions (consensus of the accepted models)
+    subsample: 1000             # fresh random subsample of the explanation set for each model (bootstrap-like)
+    max_bins: 20                # quantile bins per continuous / ordinal variable
+    min_bin: 50                 # ≥ 50 training patients per bin / category (rare categories pooled)
+    top_importance_share: 1.0   # cost lever 2: shapes only for the variables covering this share of SAGE importance
+    flat_alpha: 0.05            # a shape is kept only if the homogeneity F test rejects "flat" (Bonferroni over classes)
   sage:
     batch_size: 512
     max_passes: 3
@@ -80,7 +89,10 @@ importance:                     # §5.3
   privileged_information: false # D8 (secondary analysis)
 
 metric:                         # §5.2, §5.4
-  vdm_m_grid: [1, 5, 20, 50]
+  # shape (v0.5): every variable on its consensus shape function g_j (centred log-odds, one component per class);
+  # hvdm (v0.4): standardized continuous + VDM nominal — kept as a comparator
+  geometry: shape
+  vdm_m_grid: [1, 5, 20, 50]    # VDM m (HVDM comparator only; fixed at the second value, not selected)
   # λ multiplies the MEAN squared log-deviation of the group totals from the SAGE prior (B2/B4), so the grid has the
   # same meaning whatever the number of variables
   lambda_grid: [0, 0.001, 0.01, 0.1, 1, 10]
@@ -101,20 +113,31 @@ knn:                            # §5.5
   alpha_grid: [0, 0.1, 0.5, 1, 2, 5, 10]
   ood_percentile: 99
 
-targets_to_model: [t1, t2, t3]
-patient_output_target: t1       # metric whose neighbours feed the clinical output §5.6 (see OPEN_QUESTIONS)
+targets_to_model: auto          # auto = [experiment_name]
+patient_output_target: auto     # auto = the experiment's target (its neighbours feed the §5.6 output)
 
-baselines: [euclidean, shap_lgbm, rf_importance, relieff, nca_diag, power_prior, rf_gap, logreg, lgbm, swift]
+# Comparators (§6.4): trivial references (prevalence, prevalence by surgical group), unsupervised kNN (euclidean),
+# weighted kNN from the literature, the v0.4 geometry (hvdm, same importance and λ), metric learning (nca_diag,
+# power_prior), supervised proximities (rf_gap) and parametric models (logreg, lgbm, swift).
+baselines: [prevalence, group_prevalence, euclidean, hvdm, shap_lgbm, rf_importance, relieff, nca_diag, power_prior,
+            rf_gap, logreg, lgbm, swift]
 
 pilot:                          # §9.1, M3
   outer_fold: 0
-  target: t1
+  target: auto                  # auto = the experiment's target
   n_models: 60
   include_baselines: false
   # Rule declared before running: min_delta = fraction × the pilot's Δ̃ at iteration n_min
   min_delta_rule:
     fraction_of_delta_at_nmin: 0.05
-  mlp_cost_ratio_exclude: 3.0   # if the MLP costs > 3× the median of the others, it is excluded (§9.1)
+  family_cost_ratio_exclude: 3.0  # a family costing > 3× the median of the others is excluded (§9.1)
+  # Time budget of the experiment (hours: CV + sensitivity + external). null = no gate. If the pilot's estimate
+  # exceeds it, the pipeline stops and lists the pre-declared levers, applied IN THIS ORDER:
+  budget_hours: null
+  cost_levers:
+    - importance.curves.subsample (e.g. 1000 → 500)
+    - importance.curves.top_importance_share (e.g. 1.0 → 0.95)
+    - metric.lambda_prior (inner_fold_sage → outer)
 
 gates:
   audit_stop_on_issues: true    # §7: stop if prevalence < 0.5 % or missingness > 30 %
@@ -125,20 +148,35 @@ evaluation:
   n_bootstrap: 2000
   small_cell_threshold: 10      # §9: cells with n < 10 are suppressed in anything exportable
 
-sensitivity:                    # §4.2, §6.6 — run after the main CV; all variants share one job queue
+sensitivity:                    # §4.2, §6.6 — run after the main CV
   enabled: true
+  # mode relabel: outcome-definition variants, evaluated with the MAIN metric of each fold and the case base
+  #   relabelled with the variant's definition (minutes). mode refit: input variants, whole CV refitted (all refit
+  #   variants share one job queue). targets: experiments the variant applies to (absent = all).
   variants:
     - name: margin_4h
+      mode: refit
       overrides: {experiment: {time: {cutoff_margin_hours: 4}}}
     - name: t1_no_antibiotic
+      mode: relabel
+      targets: [t1, t3]
       overrides: {targets: {t1: {exclude_components: [antibiotic_course]}}}
     - name: t1_no_aki
+      mode: relabel
+      targets: [t1, t3]
       overrides: {targets: {t1: {exclude_components: [aki_12, aki_3]}}}
     - name: kdigo_alternative
+      mode: relabel
+      targets: [t1, t3]
       overrides: {targets: {kdigo: {ratio_stage1: 1.3, abs_increase_48h: 0.5}}}
     - name: t2_absolute
+      mode: relabel
+      targets: [t2]
       overrides: {targets: {t2: {categories: absolute}}}
     - name: dx_before_cutoff
+      mode: refit
       overrides: {experiment: {features: {dx_window: before_cutoff}}}
     - name: ward_hypoxemia
+      mode: relabel
+      targets: [t1, t3]
       overrides: {targets: {t1: {include_sensitivity_components: [hypoxemia_ward]}}}

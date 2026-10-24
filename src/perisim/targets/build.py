@@ -229,6 +229,7 @@ def build_targets(stays: pl.DataFrame, inputs: pl.DataFrame, outcomes: pl.DataFr
          pl.when(undefined).then(None).when(pl.col("t1_severe") == 1).then(2).when(any_of(mild)).then(1).otherwise(0)
          .cast(pl.Int8)).alias("t1"))
 
+    # T2 = survivors' stay categories + death as the worst ordinal state (the thresholds use survivors only)
     trunc = float(tcfg["t2"]["truncate_days"])
     los = (s["disch"] - s["t0"]) / 1440.0
     t = t.join(s.select("stay_id", ((pl.col("disch") - pl.col("t0")) / 1440.0).alias("los_raw"),
@@ -265,10 +266,14 @@ def t2_thresholds(los_train: np.ndarray, tcfg: dict) -> tuple[float, float]:
     return float(q1), float(q2)
 
 
-def t2_categories(los: np.ndarray, thr: tuple[float, float]) -> np.ndarray:
+def t2_categories(los: np.ndarray, thr: tuple[float, float], death: np.ndarray | None = None) -> np.ndarray:
+    """T2 (decided 2026-10-24): 0 short < 1 medium < 2 long (tertiles of the SURVIVORS' post-ICU stay) < 3 in-hospital
+    death within the follow-up. Defined for every patient at t0; −1 only when neither is known."""
     out = np.full(los.shape, -1, dtype=np.int64)
     ok = np.isfinite(los)
     out[ok] = np.digitize(los[ok], [thr[0], thr[1]], right=True)
+    if death is not None:
+        out[np.asarray(death) == 1] = 3
     return out
 
 

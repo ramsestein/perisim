@@ -16,6 +16,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src" / "perisim"
 CONFIG_SECTIONS = ("experiment", "cohorts", "harmonization", "targets", "model_space")
+EXPERIMENTS = ("t1", "t2", "t3")
 
 _ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 _SCALAR_RE = re.compile(r"(?i)true|false|yes|no|on|off|-?\d+(\.\d+)?([eE][-+]?\d+)?")
@@ -107,6 +108,29 @@ class Config:
     @property
     def workdir(self) -> Path:
         return Path(self.experiment["paths"]["workdir"]).expanduser()
+
+    @property
+    def experiment_name(self) -> str:
+        """One experiment per target (decided 2026-10-24): t2 (primary), t1, t3."""
+        name = str(self.experiment.get("experiment_name", "t2"))
+        if name not in EXPERIMENTS:
+            raise ValueError(f"experiment_name must be one of {EXPERIMENTS} (PERISIM_EXPERIMENT), not {name!r}")
+        return name
+
+    @property
+    def targets_to_model(self) -> list[str]:
+        t = self.experiment.get("targets_to_model", "auto")
+        return [self.experiment_name] if t in (None, "auto") else list(t)
+
+    @property
+    def pilot_target(self) -> str:
+        t = self.experiment["pilot"].get("target", "auto")
+        return self.targets_to_model[0] if t in (None, "auto") else str(t)
+
+    @property
+    def patient_output_target(self) -> str:
+        t = self.experiment.get("patient_output_target", "auto")
+        return self.targets_to_model[0] if t in (None, "auto") else str(t)
 
     @property
     def seed(self) -> int:

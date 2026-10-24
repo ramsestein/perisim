@@ -24,8 +24,15 @@ def cfg():
 
 @pytest.fixture(scope="session")
 def real_workdir():
+    """(experiment root, variant). The shared data layer (common/) is in real_base."""
     wd = os.environ.get("PERISIM_TEST_WORKDIR")
     return (Path(wd), os.environ.get("PERISIM_TEST_VARIANT", "main")) if wd else None
+
+
+@pytest.fixture(scope="session")
+def real_base():
+    b = os.environ.get("PERISIM_TEST_BASE") or os.environ.get("PERISIM_TEST_WORKDIR")
+    return Path(b) if b else None
 
 
 @pytest.fixture(scope="session")

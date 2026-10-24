@@ -65,14 +65,13 @@ def test_metamorphic_no_leakage_synthetic(synthetic_inspire, cfg):
     assert metamorphic_leak_check(st, inp, cfg, "inspire") == []
 
 
-def test_real_metamorphic(real_workdir, cfg):
+def test_real_metamorphic(real_workdir, real_base, cfg):
     if real_workdir is None:
         pytest.skip("no real workdir")
     from perisim.features.build import metamorphic_leak_check
 
-    wd, variant = real_workdir
     for c in ("inspire", "mimic", "eicu"):
-        cm = wd / "common" / c
+        cm = real_base / "common" / c
         if not (cm / "stays_index.parquet").exists():
             continue
         st = pl.read_parquet(cm / "stays_index.parquet")

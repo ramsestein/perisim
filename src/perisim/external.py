@@ -14,6 +14,10 @@ targets (T1, T2, T3) are independent, so they run in parallel processes (at most
   categories (same learned metric) and the logistic regression is refitted on them.
 - Sensitivity: INSPIRE percentile discretization applied to MIMIC-IV / eICU (§4.1).
 - §5.6 per-patient output for every external query (mode A, primary analysis), inside the pod only (E14).
+- Geometry shape (v0.5): modes A and B transport the weights AND the consensus shapes of INSPIRE. The B-VDM variant
+  exists only for the HVDM geometry (re-estimating the shapes in the target cohort would require training the
+  consensus models there; declared). Comparators: unsupervised Euclidean kNN (neutral axes), trivial prevalence
+  (INSPIRE's, mode A; the target cohort's patient-level LOO, mode B), logistic regression and SWIFT.
 """
 
 from __future__ import annotations
@@ -80,7 +84,7 @@ def absolute_labels(target: str, data, tcfg: dict) -> np.ndarray:
     """T2 / T3 with the absolute cut-points (≤ a / (a, b] / > b days): no threshold is estimated from data."""
     a, b = (float(x) for x in tcfg["t2"]["absolute_cut_days"])
     if target == "t2":
-        return t2_categories(data.los, (a, b))
+        return t2_categories(data.los, (a, b), data.death)
     y = t3_labels(data.t1, data.los, (a, b))
     y[data.t1 < 0] = -1
     return y
@@ -101,8 +105,9 @@ def run_external(pipe) -> None:
     dev = cfg.experiment["cohorts"]["development"]
     externals = [c for c in cfg.experiment["cohorts"]["external"] if c in pipe.available_cohorts()]
     d7 = pipe.d7()
-    targets = list(cfg.experiment["targets_to_model"])
-    common = {"cfg": cfg.to_dict(), "profile": cfg.profile, "workdir": str(ws.root), "names": pipe.feature_names(),
+    targets = list(cfg.targets_to_model)
+    common = {"cfg": cfg.to_dict(), "profile": cfg.profile, "base": str(ws.base), "experiment": ws.experiment,
+              "names": pipe.feature_names(),
               "d7": d7, "threads": pipe.threads(), "dev": dev, "externals": externals}
     args = [{**common, "target": t} for t in targets]
     par = max(1, min(len(targets), pipe.jobs()))
@@ -145,8 +150,12 @@ def _external_target(args: dict) -> dict:
         setup_logging()
         set_threads(int(args["threads"]))
         cfg = Config(**args["cfg"], profile=args["profile"], variant="main")
-        ws = Workspace(args["workdir"])
-        return {"target": target, "result": _evaluate_target(cfg, ws, target, args)}
+        ws = Workspace(args["base"], experiment=args["experiment"])
+        res = _evaluate_target(cfg, ws, target, args)
+        import shutil
+
+        shutil.rmtree(ws.predictions("external", target) / "ckpt", ignore_errors=True)
+        return {"target": target, "result": res}
     except Exception:
         return {"target": target, "error": traceback.format_exc()}
 
@@ -177,11 +186,13 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
     C = TARGET_CLASSES[target]
     LOG.info("external: final %s model on %s (n=%d)", target, dev, len(tr))
     ft_dev = D.ft.take(tr)
+    ck = ws.predictions("external", target) / "ckpt"
     fp = fit_perisim(cfg, ft_dev, y[tr], C, seed=cfg.seed, threads=threads, stopping_override=st,
-                     exclude_families=set(d7.get("exclude_families", [])), early_stop=True)
+                     exclude_families=set(d7.get("exclude_families", [])), early_stop=True, checkpoint_dir=ck)
     E_dev = fp.enc.transform(ft_dev)
+    N_dev = fp.enc.transform_neutral(ft_dev)          # unsupervised axes for the Euclidean comparator
     ones = np.ones(fp.enc.n_features)
-    w_dims, e_dims = fp.enc.weights_dims(fp.w), fp.enc.weights_dims(ones)
+    w_dims, e_dims = fp.enc.weights_dims(fp.w), fp.enc.neutral_weights_dims(ones)
     Xm_dev, _ = fp.enc.transform_model(ft_dev)
     car_dev = {k: v[tr] for k, v in D.carried.items() if np.isfinite(v[tr]).any()}
 
@@ -193,7 +204,7 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
 
     # Mode A case bases, one per labelling of INSPIRE: the target's own, the eICU-reduced T1 (AUDIT E1) and the
     # absolute T2/T3 categories (C4). The learned metric is the same; only the labels the kNN counts change.
-    euc = KNNModel(E_dev, e_dims, y[tr], C, ft_dev.subjects, k_grid)
+    euc = KNNModel(N_dev, e_dims, y[tr], C, ft_dev.subjects, k_grid)
     euc.fit_alpha_and_ood(kcfg["alpha_grid"], kp, kcfg["ood_percentile"])
     cases = {"own": {"knn": fp.knn, "ok": np.arange(len(tr)), "carried": car_dev, "euc": euc, "lr": _lr(y[tr], C),
                      "swift": None, "C": C}}
@@ -204,7 +215,7 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
         cb = _case_base(E_dev, w_dims, yr, 2, ft_dev, k_grid, kcfg, car_dev)
         if cb is not None and 0 < yr[cb["ok"]].sum() < cb["ok"].size:
             ok = cb["ok"]
-            cb.update(euc=_case_base(E_dev, e_dims, yr, 2, ft_dev, [kp], kcfg, {})["knn"], lr=_lr(yr, 2), C=2,
+            cb.update(euc=_case_base(N_dev, e_dims, yr, 2, ft_dev, [kp], kcfg, {})["knn"], lr=_lr(yr, 2), C=2,
                       swift=parametric.fit_swift(swift_inputs(ft_dev.take(ok)), yr[ok])[0],
                       prevalence=float(yr[ok].mean()))
             cases["reduced"] = cb
@@ -212,12 +223,14 @@ def _evaluate_target(cfg, ws, target: str, args: dict) -> dict:
         ya = absolute_labels(target, D, cfg.targets)[tr]
         cb = _case_base(E_dev, w_dims, ya, C, ft_dev, k_grid, kcfg, car_dev)
         if cb is not None:
-            cb.update(euc=_case_base(E_dev, e_dims, ya, C, ft_dev, [kp], kcfg, {})["knn"], lr=_lr(ya, C), swift=None, C=C)
+            cb.update(euc=_case_base(N_dev, e_dims, ya, C, ft_dev, [kp], kcfg, {})["knn"], lr=_lr(ya, C), swift=None, C=C)
             cases["absolute"] = cb
 
     tres: dict = {"final_model": {"lambda": fp.info["lambda"], "m": fp.info["m"], "alpha": fp.info["alpha"],
                                   "weights": dict(zip(fp.enc.feature_names, np.round(fp.w, 8).tolist())),
                                   "vdm_tables": fp.enc.vdm_tables(int(cfg.experiment["evaluation"]["small_cell_threshold"])),
+                                  "shape_tables": fp.enc.shape_tables(int(cfg.experiment["evaluation"]["small_cell_threshold"])),
+                                  "geometry": fp.enc.geometry,
                                   "n_accepted": fp.loop["n_accepted"], "stop_reason": fp.loop["stop_reason"],
                                   "thresholds": thr}, "cohorts": {}}
     for c in args["externals"]:
@@ -316,7 +329,7 @@ def _analysis(cfg, ws, fp, case: dict, E, te: np.ndarray, ye: np.ndarray, crossf
         for k in k_grid:
             frames.append(_pred_frame(fte.ids, fte.subjects, yt, f"A_perisim{suf}", k, probs[k]))
         if not suf and primary:   # §5.6 records of the external queries (mode A), inside the pod only
-            nbrs = target == cfg.experiment.get("patient_output_target", "t1")
+            nbrs = target == cfg.patient_output_target
             car = knnA.carried_summary(I, valid, kp, case["carried"]) if nbrs else None
             write_jsonl(ws.predictions("external", target) / f"{c}_patient.jsonl",
                         patient_pieces(fte.ids, E.t0[te], et, probs[kp], kp,
@@ -328,21 +341,29 @@ def _analysis(cfg, ws, fp, case: dict, E, te: np.ndarray, ye: np.ndarray, crossf
             frames.append(_pred_frame(fte.ids, fte.subjects, yt, f"B_perisim{suf}", k, Pb[k]))
         if suf:
             continue
-        # ---- B-VDM: VDM tables recomputed in the target cohort (patient-level CV)
-        Pv = {k: np.zeros((te.size, Cb)) for k in k_grid}
-        for mask, lab in groups:
-            P_ = _mode_b_vdm(fp, fte, lab, Cb, k_grid, alpha=dict(knnA.alpha))
+        # ---- B-VDM: VDM tables recomputed in the target cohort (patient-level CV); HVDM geometry only
+        if fp.enc.geometry == "hvdm":
+            Pv = {k: np.zeros((te.size, Cb)) for k in k_grid}
+            for mask, lab in groups:
+                P_ = _mode_b_vdm(fp, fte, lab, Cb, k_grid, alpha=dict(knnA.alpha))
+                for k in k_grid:
+                    Pv[k][mask] = P_[k][mask]
             for k in k_grid:
-                Pv[k][mask] = P_[k][mask]
-        for k in k_grid:
-            frames.append(_pred_frame(fte.ids, fte.subjects, yt, "B_vdm_target", k, Pv[k]))
-        # ---- comparators
+                frames.append(_pred_frame(fte.ids, fte.subjects, yt, "B_vdm_target", k, Pv[k]))
+        # ---- comparators: unsupervised kNN (neutral axes) and trivial prevalences
         eA = case["euc"]
-        Pe, _ = knn_predict(eA, Ee, fte.subjects, [kp])
+        Ne = fp.enc.transform_neutral(fte)
+        Pe, _ = knn_predict(eA, Ne, fte.subjects, [kp])
         frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_euclidean", kp, Pe[kp]))
-        Pbe, _, Ibe, vbe = _mode_b(Ee, fp.enc.weights_dims(np.ones(fp.enc.n_features)), fte.subjects, groups, Cb, [kp],
-                                   eA.alpha)
+        Pbe, _, Ibe, vbe = _mode_b(Ne, fp.enc.neutral_weights_dims(np.ones(fp.enc.n_features)), fte.subjects, groups,
+                                   Cb, [kp], eA.alpha)
         frames.append(_pred_frame(fte.ids, fte.subjects, yt, "B_euclidean", kp, Pbe[kp]))
+        frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_prevalence", 0,
+                                  np.tile(knnA.prior, (te.size, 1))))
+        Pp = np.zeros((te.size, Cb))
+        for mask, lab in groups:           # the target cohort's own prevalence, without the query's patient
+            Pp[mask] = kb.loo_prior(lab)[mask]
+        frames.append(_pred_frame(fte.ids, fte.subjects, yt, "B_prevalence", 0, Pp))
         Xe, _ = fp.enc.transform_model(fte)
         frames.append(_pred_frame(fte.ids, fte.subjects, yt, "A_logreg", 0, case["lr"](Xe)))
         if case.get("swift") is not None:
@@ -366,6 +387,7 @@ def _analysis(cfg, ws, fp, case: dict, E, te: np.ndarray, ye: np.ndarray, crossf
         "B_perisim − B_euclidean": paired_between(pred, ("B_perisim", kp), ("B_euclidean", kp), nb, cfg.seed),
         "B_vdm_target − B_perisim": paired_between(pred, ("B_vdm_target", kp), ("B_perisim", kp), nb, cfg.seed),
         "A_perisim − A_euclidean": paired_between(pred, ("A_perisim", kp), ("A_euclidean", kp), nb, cfg.seed),
+        "B_perisim − B_prevalence": paired_between(pred, ("B_perisim", kp), ("B_prevalence", 0), nb, cfg.seed),
     }.items() if v is not None}
     write_parquet(pred, ws.predictions("external", target) / f"{c}{'' if primary else '_' + name}_pred.parquet")
     return res
