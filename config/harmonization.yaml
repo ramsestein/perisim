@@ -49,7 +49,10 @@ sources:
       medications:
         file: medications
         columns: {subject_id: subject_id, time: chart_time, drug: drug_name}
-        atc_columns: [atc_code, atc_code2, atc_code3]   # [VERIFY] meaning of each column
+        optional_columns: {route: route}
+        # Only the first ATC column is required: the lead's copy ships atc_code only (schema 2026-10-24), the data
+        # dictionary also lists atc_code2 / atc_code3 (combination products); those are used when present.
+        atc_columns: [atc_code, atc_code2, atc_code3]
       diagnosis:
         file: diagnosis
         columns: {subject_id: subject_id, time: chart_time, code: icd10_cm}
@@ -57,14 +60,19 @@ sources:
       sex_male: ["M", "m", "1", "Male", "male"]
       emergency_true: ["1", "1.0", "Y", "y", "True", "true", "E"]
       donor_true: ["1", "1.0", "Y", "y", "True", "true"]
-    devices:                       # in ward_vitals [VERIFY names and whether they are "active" records]
+    devices:                       # in ward_vitals; vent, crrt, ecmo, iabp seen in schema_inspire (2026-10-24)
       mode: runs                   # runs = one record per active time point; ends after a gap ≥ support_gap_hours
       items:
         vent: [vent, mv, ventilator]
         rrt: [crrt, rrt, hd, cvvh]
         ecmo: [ecmo]
         iabp: [iabp]
-    transfusion_drug_regex: "(?i)(\\bRBC\\b|red blood|packed red|prbc|적혈구)"   # [VERIFY]
+    transfusion_drug_regex: "(?i)(\\bRBC\\b|red blood|packed red|prbc|적혈구)"   # [VERIFY] not among the top drug names
+    # medications.route = po / iv / ex (data dictionary): "ex" (external, e.g. topical epinephrine) feeds neither the
+    # ATC inputs nor the vasopressor support, as local products in MIMIC-IV / eICU (AUDIT D4) [VERIFY values]
+    route_exclude_regex: '(?i)^ex'
+    # GCS is charted by component: the total is E + M + V charted at the same time (same rule as MIMIC-IV)
+    gcs_component_items: [gcs_e, gcs_m, gcs_v]
     dx_code_length: 3
     # D5: chronic dialysis before the index surgery = ESRD / dialysis-dependence codes (full ICD-10, normalised)
     # or any RRT device record, both timestamped before the surgery start [VERIFY codes]
@@ -223,7 +231,7 @@ sources:
       temperature: vital_temp
       systemicmean: vital_map
       noninvasivemean: vital_map
-    fio2_labels: ["FiO2", "FIO2 (%)", "FiO2 (%)"]
+    fio2_labels: ["FiO2", "FIO2 (%)"]
     gcs_names: ["GCS Total"]
     dx_code_regex: "[A-Z][0-9][0-9A-Z]"   # ICD-10 codes inside icd9code ("xxx.x, Ixx.x")
     # D12: any "Care Limitation" item other than full therapy [VERIFY values]
@@ -240,105 +248,105 @@ variables:
     units: mg/dL
     bounds: [0.1, 25]
     sources:
-      inspire: {table: labs, items: [creatinine], status: VERIFY}
+      inspire: {table: labs, items: [creatinine], status: VERIFIED}
       mimic:   {table: labevents, items: [50912], status: VERIFY}
-      eicu:    {table: lab, items: [creatinine], status: VERIFY}
+      eicu:    {table: lab, items: [creatinine], status: VERIFIED}
   lab_hb:
     units: g/dL
     bounds: [2, 25]
     sources:
-      inspire: {table: labs, items: [hb, hemoglobin], status: VERIFY}
+      inspire: {table: labs, items: [hb], status: VERIFIED}
       mimic:   {table: labevents, items: [51222], status: VERIFY}
-      eicu:    {table: lab, items: [Hgb], status: VERIFY}
+      eicu:    {table: lab, items: [Hgb], status: VERIFIED}
   lab_wbc:
     units: 10^3/uL
     bounds: [0.05, 300]
     sources:
-      inspire: {table: labs, items: [wbc], status: VERIFY}
+      inspire: {table: labs, items: [wbc], status: VERIFIED}
       mimic:   {table: labevents, items: [51301, 51300], status: VERIFY}
-      eicu:    {table: lab, items: ["WBC x 1000"], status: VERIFY}
+      eicu:    {table: lab, items: ["WBC x 1000"], status: VERIFIED}
   lab_plt:
     units: 10^3/uL
     bounds: [1, 2000]
     sources:
-      inspire: {table: labs, items: [platelet, plt], status: VERIFY}
+      inspire: {table: labs, items: [platelet], status: VERIFIED}
       mimic:   {table: labevents, items: [51265], status: VERIFY}
-      eicu:    {table: lab, items: ["platelets x 1000"], status: VERIFY}
+      eicu:    {table: lab, items: ["platelets x 1000"], status: VERIFIED}
   lab_lactate:
     units: mmol/L
     bounds: [0.1, 30]
     sources:
-      inspire: {table: labs, items: [lactate], status: VERIFY}
+      inspire: {table: labs, items: [lacate, lactate], status: VERIFIED}   # "lacate" (sic) in INSPIRE
       mimic:   {table: labevents, items: [50813], status: VERIFY}
-      eicu:    {table: lab, items: [lactate], status: VERIFY}
+      eicu:    {table: lab, items: [lactate], status: VERIFIED}
   lab_bilirubin:
     units: mg/dL
     bounds: [0.05, 60]
     sources:
-      inspire: {table: labs, items: [total_bilirubin, tbil], status: VERIFY}
+      inspire: {table: labs, items: [total_bilirubin], status: VERIFIED}
       mimic:   {table: labevents, items: [50885], status: VERIFY}
-      eicu:    {table: lab, items: ["total bilirubin"], status: VERIFY}
+      eicu:    {table: lab, items: ["total bilirubin"], status: VERIFIED}
   lab_albumin:
     units: g/dL
     bounds: [0.5, 7]
     sources:
-      inspire: {table: labs, items: [albumin], status: VERIFY}
+      inspire: {table: labs, items: [albumin], status: VERIFIED}
       mimic:   {table: labevents, items: [50862], status: VERIFY}
-      eicu:    {table: lab, items: [albumin], status: VERIFY}
+      eicu:    {table: lab, items: [albumin], status: VERIFIED}
   lab_ph:
     units: pH
     bounds: [6.5, 8.0]
     sources:
-      inspire: {table: labs, items: [ph], status: VERIFY}
+      inspire: {table: labs, items: [ph], status: VERIFIED}
       mimic:   {table: labevents, items: [50820], arterial_only: true, status: VERIFY}
-      eicu:    {table: lab, items: [pH], status: VERIFY}
+      eicu:    {table: lab, items: [pH], status: VERIFIED}
   lab_pco2:
     units: mmHg
     bounds: [5, 200]
     sources:
-      inspire: {table: labs, items: [pco2], status: VERIFY}
+      inspire: {table: labs, items: [paco2], status: VERIFIED}
       mimic:   {table: labevents, items: [50818], arterial_only: true, status: VERIFY}
-      eicu:    {table: lab, items: [paCO2], status: VERIFY}
+      eicu:    {table: lab, items: [paCO2], status: VERIFIED}
   lab_po2:
     units: mmHg
     bounds: [10, 700]
     sources:
-      inspire: {table: labs, items: [po2], status: VERIFY}
+      inspire: {table: labs, items: [pao2], status: VERIFIED}
       mimic:   {table: labevents, items: [50821], arterial_only: true, status: VERIFY}
-      eicu:    {table: lab, items: [paO2], status: VERIFY}
+      eicu:    {table: lab, items: [paO2], status: VERIFIED}
   vital_hr:
     units: bpm
     bounds: [10, 300]
     sources:
-      inspire: {table: ward_vitals, items: [hr], status: VERIFY}
+      inspire: {table: ward_vitals, items: [hr], status: VERIFIED}
       mimic:   {table: chartevents, items: [220045], status: VERIFY}
       eicu:    {table: vitalperiodic, items: [heartrate], status: VERIFY}
   vital_map:
     units: mmHg
     bounds: [10, 250]
     sources:
-      inspire: {table: ward_vitals, items: [mbp, nibp_mbp, art_mbp], status: VERIFY}
+      inspire: {table: ward_vitals, items: [nibp_mbp], status: VERIFIED}   # charted ~1/3 as often as nibp_sbp
       mimic:   {table: chartevents, items: [220052, 220181], status: VERIFY}
       eicu:    {table: vitalperiodic, items: [systemicmean, noninvasivemean], status: VERIFY}
   vital_rr:
     units: breaths/min
     bounds: [2, 80]
     sources:
-      inspire: {table: ward_vitals, items: [rr], status: VERIFY}
+      inspire: {table: ward_vitals, items: [rr], status: VERIFIED}
       mimic:   {table: chartevents, items: [220210], status: VERIFY}
       eicu:    {table: vitalperiodic, items: [respiration], status: VERIFY}
   vital_spo2:
     units: "%"
     bounds: [30, 100]
     sources:
-      inspire: {table: ward_vitals, items: [spo2], status: VERIFY}
+      inspire: {table: ward_vitals, items: [spo2], status: VERIFIED}
       mimic:   {table: chartevents, items: [220277], status: VERIFY}
       eicu:    {table: vitalperiodic, items: [sao2], status: VERIFY}
   vital_temp:
     units: °C
     bounds: [25, 45]
     sources:
-      inspire: {table: ward_vitals, items: [bt], status: VERIFY}
+      inspire: {table: ward_vitals, items: [bt], status: VERIFIED}
       mimic:   {table: chartevents, items: [223762], status: VERIFY}
       eicu:    {table: vitalperiodic, items: [temperature], status: VERIFY}
   vital_temp_f:                    # converted to vital_temp
@@ -353,14 +361,14 @@ variables:
     bounds: [21, 100]
     transform: fraction_to_percent
     sources:
-      inspire: {table: ward_vitals, items: [fio2], status: VERIFY}
+      inspire: {table: ward_vitals, items: [fio2], status: VERIFIED}
       mimic:   {table: chartevents, items: [223835], status: VERIFY}
-      eicu:    {table: respiratorycharting, items: ["FiO2", "FIO2 (%)", "FiO2 (%)"], status: VERIFY}
+      eicu:    {table: respiratorycharting, items: ["FiO2", "FIO2 (%)"], status: VERIFIED}
   vital_gcs:
     units: points
     bounds: [3, 15]
     sources:
-      inspire: {table: ward_vitals, items: [gcs], status: VERIFY}
+      inspire: {table: ward_vitals, items: [gcs_e, gcs_m, gcs_v], aggregate: sum_same_time, status: VERIFIED}
       mimic:   {table: chartevents, items: [220739, 223900, 223901], aggregate: sum_same_time, status: VERIFY}
       eicu:    {table: nursecharting, items: ["GCS Total"], status: VERIFY}
   anthro_weight:

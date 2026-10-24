@@ -37,6 +37,18 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The repository is cloned in the workspace root (`<workspace>/perisim`) and everything is run from the root:
   `bash perisim/run_pod.sh`; the hints in messages and reports follow how the script was called.
 
+## 2026-10-24 — Harmonization from the real INSPIRE and eICU schemas (first discover in the pod)
+
+- INSPIRE `medications` ships one ATC column (`atc_code`); `atc_code2` / `atc_code3` (data dictionary) are optional and
+  used when present. It also has `route` (po / iv / ex): `ex` (external, e.g. topical epinephrine) feeds neither the
+  ATC inputs nor the vasopressor support — the INSPIRE counterpart of excluding local products in MIMIC-IV / eICU
+  (AUDIT D4).
+- INSPIRE item names fixed from the inventory: `lacate` (sic), `paco2`, `pao2`, `nibp_mbp`; GCS is charted by
+  component (`gcs_e`, `gcs_m`, `gcs_v`) and the total is E + M + V charted at the same time, the same rule as in
+  MIMIC-IV (a time point without all three gives no total). Devices `vent`, `crrt`, `ecmo`, `iabp` confirmed.
+- eICU: every configured table and column exists; lab names, FiO2 labels, vasopressor names and discharge locations
+  confirmed against the inventory.
+
 ## 2026-10-22 — Scientific decisions after the full audit (lead)
 
 Decided by the lead on the options of `docs/DECISIONS_PENDING.md` (IDs from `docs/AUDIT.md`).

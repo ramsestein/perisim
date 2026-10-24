@@ -61,7 +61,11 @@ def _latent(n: int, rng: np.random.Generator) -> dict:
 LABS = {"creatinine": ("creat", 1.0), "hb": ("hb", 1.0), "wbc": (None, 9.0), "platelet": (None, 220.0),
         "lactate": ("lact", 1.0), "total_bilirubin": (None, 0.8), "albumin": (None, 3.4), "ph": (None, 7.38),
         "pco2": (None, 40.0), "po2": (None, 95.0)}
-VITALS = {"hr": 85, "mbp": 80, "rr": 17, "spo2": 96, "bt": 36.8, "fio2": 35, "gcs": 15}
+INSPIRE_LAB_NAMES = {"lactate": "lacate", "pco2": "paco2", "po2": "pao2"}   # INSPIRE's own item names ("lacate" sic)
+VITALS = {"hr": 85, "mbp": 80, "rr": 17, "spo2": 96, "bt": 36.8, "fio2": 35}
+# INSPIRE ward_vitals items as INSPIRE names them; GCS charted by component (E4 + M6 + V5 = 15)
+INSPIRE_VITALS = {"hr": 85, "nibp_mbp": 80, "rr": 17, "spo2": 96, "bt": 36.8, "fio2": 35, "gcs_e": 4, "gcs_m": 6,
+                  "gcs_v": 5}
 
 
 def _lab_value(name: str, L: dict, i: int, rng, drift: float = 0.0) -> float:
@@ -131,9 +135,10 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
                             icuin_time=(r_s + 120) if c == "readmission" else None,
                             icuout_time=(r_s + 120 + 1440) if c == "readmission" else None, inhosp_death_time=death))
         for name in LABS:
-            labs.append((sid, adm + 30, name, _lab_value(name, L, i, rng)))
+            iname = INSPIRE_LAB_NAMES.get(name, name)
+            labs.append((sid, adm + 30, iname, _lab_value(name, L, i, rng)))
             for t in np.arange(icu_in + 120, icu_out - 60, 720):
-                labs.append((sid, float(t), name, _lab_value(name, L, i, rng)))
+                labs.append((sid, float(t), iname, _lab_value(name, L, i, rng)))
         aki = (g and c == "aki3") or ((not g) and L["mild"][i] and L["comp_l"][i] == "aki12")
         ratio = 3.2 if (g and c == "aki3") else 1.7
         for d in range(1, int(min(L["los"][i], 12))):
@@ -141,8 +146,8 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
                 drift = (ratio - 1) * min(d / 2, 1) if aki else rng.normal(0, 0.05)
                 labs.append((sid, icu_out + d * 1440, "creatinine", float(L["creat"][i] * (1 + drift))))
         for t in np.arange(icu_in, icu_out, 120.0):
-            for k_, base in VITALS.items():
-                v = base + rng.normal(0, 0.05 * base) + (8 * L["z"][i] if k_ == "hr" else 0)
+            for k_, base in INSPIRE_VITALS.items():
+                v = base if k_.startswith("gcs") else base + rng.normal(0, 0.05 * base) + (8 * L["z"][i] if k_ == "hr" else 0)
                 wv.append((sid, float(t), k_, float(min(v, 100) if k_ in ("spo2", "fio2") else v)))
         if L["vent"][i]:
             for t in np.arange(icu_in, icu_in + rng.uniform(2, 0.6 * L["icu_h"][i] * 60 + 3), 60.0):
@@ -155,23 +160,24 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
             s0 = icu_out + rng.uniform(0.5, 3) * 1440
             for t in np.arange(s0, s0 + 600, 60.0):
                 wv.append((sid, float(t), "vent", 1.0))
-        meds.append((sid, op_s, "CEFAZOLIN", "J01DB04", None, None))
-        meds.append((sid, op_s + 480, "CEFAZOLIN", "J01DB04", None, None))
+        meds.append((sid, icu_in + 17, "EPINEPHRINE", "ex", "C01CA24"))   # topical: neither ATC input nor support
+        meds.append((sid, op_s, "CEFAZOLIN", "iv", "J01DB04"))
+        meds.append((sid, op_s + 480, "CEFAZOLIN", "iv", "J01DB04"))
         for t in np.arange(icu_in, icu_out, 720.0):
-            meds.append((sid, float(t), "PANTOPRAZOLE", "A02BC02", None, None))
-            meds.append((sid, float(t), "FENTANYL", "N02AB03", None, None))
+            meds.append((sid, float(t), "PANTOPRAZOLE", "iv", "A02BC02"))
+            meds.append((sid, float(t), "FENTANYL", "iv", "N02AB03"))
         if L["vaso"][i]:
             for t in np.arange(icu_in, icu_in + 0.5 * L["icu_h"][i] * 60, 60.0):
-                meds.append((sid, float(t), "NOREPINEPHRINE", "C01CA03", None, None))
+                meds.append((sid, float(t), "NOREPINEPHRINE", "iv", "C01CA03"))
         if g and c == "vaso":
             s0 = icu_out + rng.uniform(0.5, 3) * 1440
-            meds.append((sid, s0, "NOREPINEPHRINE", "C01CA03", None, None))
+            meds.append((sid, s0, "NOREPINEPHRINE", "iv", "C01CA03"))
         if (not g) and L["mild"][i] and L["comp_l"][i] == "antibiotic":
             s0 = icu_out + rng.uniform(1.2, 3) * 1440
             for t in np.arange(s0, s0 + 3 * 1440, 480.0):
-                meds.append((sid, float(t), "PIPERACILLIN/TAZOBACTAM", "J01CR05", None, None))
+                meds.append((sid, float(t), "PIPERACILLIN/TAZOBACTAM", "iv", "J01CR05"))
         if (not g) and L["mild"][i] and L["comp_l"][i] == "transfusion":
-            meds.append((sid, icu_out + 1440, "RBC (filtered)", None, None, None))
+            meds.append((sid, icu_out + 1440, "RBC (filtered)", "iv", None))
         for code, p in (("I10", .4), ("E11", .2), ("N18", .1), ("I25", .15), ("J44", .08), ("C18", .1), ("K80", .06)):
             if rng.random() < p * (1 + 0.3 * (L["z"][i] > 0)):
                 dx.append((sid, adm + 15 if rng.random() < 0.8 else disch, code))
@@ -180,7 +186,7 @@ def synth_inspire(root: Path, n: int, rng: np.random.Generator) -> None:
     _w(pl.DataFrame(labs, schema=["subject_id", "chart_time", "item_name", "value"], orient="row"), d / "labs.csv")
     _w(pl.DataFrame(wv, schema=["subject_id", "chart_time", "item_name", "value"], orient="row"), d / "ward_vitals.csv")
     _w(pl.DataFrame(meds, schema={"subject_id": pl.Int64, "chart_time": pl.Float64, "drug_name": pl.Utf8,
-                                  "atc_code": pl.Utf8, "atc_code2": pl.Utf8, "atc_code3": pl.Utf8}, orient="row"),
+                                  "route": pl.Utf8, "atc_code": pl.Utf8}, orient="row"),
        d / "medications.csv")
     _w(pl.DataFrame(dx, schema=["subject_id", "chart_time", "icd10_cm"], orient="row"), d / "diagnosis.csv")
 
@@ -453,9 +459,13 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
     _w(S(cpl, ["patientunitstayid", "cplitemoffset", "cplgroup", "cplitemvalue"]), d / "carePlanGeneral.csv.gz")
 
 
+# Bumped when the synthetic schema changes, so a cached synthetic dataset is regenerated
+SCHEMA_VERSION = 2
+
+
 def write_synthetic(root: Path, harmonization: dict | None = None, n_subjects: int = 700, seed: int = 7) -> Path:
     root = Path(root)
-    marker = root / f"SYNTHETIC_{n_subjects}_{seed}.txt"   # not hidden; discovery ignores .txt
+    marker = root / f"SYNTHETIC_{n_subjects}_{seed}_v{SCHEMA_VERSION}.txt"   # not hidden; discovery ignores .txt
     if marker.exists():
         return root
     rng = np.random.default_rng(seed)

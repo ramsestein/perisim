@@ -90,6 +90,18 @@ as a v0 proposal and what needs to be confirmed. Issues detected in the pod are 
 31. **Relabelled sensitivity variants** assess the results under another outcome definition with the main metric;
     whether the metric itself would differ is not assessed (declared).
 
+## From the first discover in the pod (2026-10-24)
+
+32. **INSPIRE department `OT`** (one of the largest) is not in the surgical-group map and falls in "other"; neither are
+    RAD, IM, AN, PED, RO (few). What is OT at SNUH (ophthalmology? otolaryngology, with OL?)
+33. **INSPIRE `CTS` = cardiothoracic** is mapped to "cardiac", so lung and oesophageal surgery are counted as cardiac.
+    Split it by the ICD-10-PCS body system (02 heart and great vessels → cardiac; 0B respiratory, 0D esophagus →
+    thoracic; 03 / 04 arteries → vascular)?
+34. **INSPIRE MAP:** `nibp_mbp` is charted about a third as often as `nibp_sbp` / `nibp_dbp`; derive MAP =
+    (SBP + 2·DBP) / 3 when it is missing, or keep the charted value only (current)?
+35. **INSPIRE transfusion:** no red-cell product among the most frequent drug names; the completeness audit will show
+    whether `transfusion_rbc` has any events (T1 component).
+
 ## Open decisions from SPECS §10 (v0 values in config)
 
 D1 (INSPIRE readmission), D2 (2 h; 4 h in sensitivity), D3 (≥ 4 h), D4 (AKI 1–2, antibiotic, transfusion),

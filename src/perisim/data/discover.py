@@ -27,8 +27,8 @@ _SKIP_DIRS = {"waveforms", "waves", "matched", "notes", "ecg", "cxr", "mimic-iv-
 
 # Tables whose item inventory is computed (cohort -> [(table, canonical column)])
 INVENTORY = {
-    "inspire": [("labs", "item"), ("ward_vitals", "item"), ("medications", "drug"), ("operations", "department"),
-                ("operations", "anesthesia_type")],
+    "inspire": [("labs", "item"), ("ward_vitals", "item"), ("medications", "drug"), ("medications", "route"),
+                ("operations", "department"), ("operations", "anesthesia_type")],
     "mimic": [("services", "curr_service"), ("admissions", "admission_type"), ("admissions", "discharge_location"),
               ("admissions", "admission_location")],
     "eicu": [("patient", "unit_admit_source"), ("patient", "unit_discharge_location"),
@@ -123,10 +123,10 @@ def schema_report(cfg: Config, cohort: str, base: Path, cache_dir: Path, min_n: 
         if p is not None:
             header = read_header(p)
             wanted = dict(tcfg.get("columns", {}))
-            for i, a in enumerate(tcfg.get("atc_columns", []) or []):
-                wanted[f"atc_{i}"] = a
-            _, missing = resolve_columns(header, wanted)
             opt_wanted = {k: v for k, v in (tcfg.get("optional_columns") or {}).items() if v}
+            for i, a in enumerate(tcfg.get("atc_columns", []) or []):   # the first ATC column is required, the rest optional
+                (wanted if i == 0 else opt_wanted)[f"atc_{i}"] = a
+            _, missing = resolve_columns(header, wanted)
             _, opt_missing = resolve_columns(header, opt_wanted)
             entry.update(path=str(p), columns=header, missing=missing, optional_missing=opt_missing,
                          size_mb=round((p.stat().st_size if p.is_file() else 0) / 1e6, 1))
@@ -135,8 +135,9 @@ def schema_report(cfg: Config, cohort: str, base: Path, cache_dir: Path, min_n: 
         rep["tables"][tname] = entry
     for tname, canon in INVENTORY.get(cohort, []):
         t = rep["tables"].get(tname, {})
-        col = src["tables"].get(tname, {}).get("columns", {}).get(canon)
-        if not t.get("found") or not col or col in t.get("missing", []):
+        tc = src["tables"].get(tname, {})
+        col = (tc.get("columns") or {}).get(canon) or (tc.get("optional_columns") or {}).get(canon)
+        if not t.get("found") or not col or col in t.get("missing", []) + t.get("optional_missing", []):
             continue
         try:
             dc = distinct_counts(Path(t["path"]), col, cache_dir)

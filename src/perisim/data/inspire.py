@@ -129,6 +129,16 @@ class InspireExtractor(BaseExtractor):
                           pl.col("icu_in_min") - 1440, hi)
         inputs.append(v)
         item = pl.col("item").cast(pl.Utf8).str.strip_chars().str.to_lowercase()
+        gcs_items = [str(i).lower() for i in self.src.get("gcs_component_items", [])]
+        if gcs_items:   # GCS total = E + M + V charted at the same time (same rule as MIMIC-IV); partial sets give none
+            g = (wv.filter(item.is_in(gcs_items)).with_columns(item.alias("_c"), as_float("value").alias("v"))
+                 .drop_nulls("v").group_by(["subject_raw", "time_min"])
+                 .agg(pl.col("v").sum().alias("value"), pl.col("_c").n_unique().alias("n"))
+                 .filter(pl.col("n") == len(gcs_items))
+                 .with_columns(apply_bounds(pl.col("value"), (3, 15)).alias("value"), pl.lit("vital_gcs").alias("variable"))
+                 .drop_nulls("value"))
+            inputs.append(windowed_join(g.select("subject_raw", "variable", "value", "time_min"), w, "subject_raw",
+                                        pl.col("icu_in_min") - 1440, hi))
         active = as_float("value").is_null() | (as_float("value") != 0)
         surg = pl.coalesce(pl.col("surgery_start_min"), pl.col("icu_in_min"))
         for kind, items in self.src["devices"]["items"].items():
@@ -141,14 +151,17 @@ class InspireExtractor(BaseExtractor):
                 inputs.append(windowed_join(mk, w, "subject_raw", admit - lookback, surg - 1e-6))
 
         # Medication (ATC) + vasopressors as support + transfusion as outcome
-        atc_cols = self.src["tables"]["medications"].get("atc_columns") or []
+        atc_src = self.src["tables"]["medications"].get("atc_columns") or []
         med = _prep(self.table("medications", filters={"subject_id": subj},
-                               extra={f"atc_{i}": c for i, c in enumerate(atc_cols)}))
-        codes = med.select("subject_raw", "time_min", "drug",
-                           *[as_str(f"atc_{i}").str.to_uppercase().str.replace_all(r"\s", "").alias(f"atc_{i}")
-                             for i in range(len(atc_cols))])
-        long = (codes.unpivot(index=["subject_raw", "time_min", "drug"], on=[f"atc_{i}" for i in range(len(atc_cols))],
-                              value_name="atc")
+                               extra={**{f"atc_{i}": c for i, c in enumerate(atc_src)},
+                                      **self.optional_column_names("medications")}))
+        atc_cols = [f"atc_{i}" for i in range(len(atc_src)) if f"atc_{i}" in med.columns]   # versions ship 1 or 3
+        systemic = med
+        if "route" in med.columns and self.src.get("route_exclude_regex"):   # external / topical products (AUDIT D4)
+            systemic = med.filter(~as_str("route").fill_null("").str.contains(self.src["route_exclude_regex"]))
+        codes = systemic.select("subject_raw", "time_min", "drug",
+                                *[as_str(c).str.to_uppercase().str.replace_all(r"\s", "").alias(c) for c in atc_cols])
+        long = (codes.unpivot(index=["subject_raw", "time_min", "drug"], on=atc_cols, value_name="atc")
                 .filter(pl.col("atc").str.len_chars() >= 3).unique(["subject_raw", "time_min", "atc"]))
         mrows = long.select("subject_raw", (pl.lit("atc:") + pl.col("atc")).alias("variable"),
                             pl.lit(1.0).alias("value"), "time_min")
