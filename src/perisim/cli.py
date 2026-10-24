@@ -129,6 +129,18 @@ def cmd_resources(args) -> int:
     return 0
 
 
+def reset_smoke_workdir(work: Path) -> bool:
+    """A smoke is an end-to-end test from scratch: a previous smoke's work folder holds a freeze and external results,
+    and §6.3 refuses a second freeze after those (first pod relaunch, 2026-10-24). Removed only when `work` is a smoke
+    folder, i.e. its synthetic data sit next to it; the synthetic data themselves are kept."""
+    import shutil
+
+    if any((work / "datasets").glob("SYNTHETIC_*.txt")):
+        shutil.rmtree(work / "workdir", ignore_errors=True)
+        return True
+    return False
+
+
 def cmd_smoke(args) -> int:
     """Synthetic data with the schema of the three cohorts → full pipeline with the `smoke` profile."""
     from perisim.config import REPO_ROOT, load_config
@@ -136,6 +148,7 @@ def cmd_smoke(args) -> int:
 
     work = Path(args.workdir or Path.cwd() / "work_smoke").resolve()
     data_root = work / "datasets"
+    reset_smoke_workdir(work)
     cfg0 = load_config(profile="smoke")
     write_synthetic(data_root, cfg0.harmonization, n_subjects=args.n, seed=args.seed)
     base = [sys.executable, "-m", "perisim"]

@@ -22,3 +22,19 @@ def test_publish_copies_aggregates_only(tmp_path):
                    "experiments/t2/export/perisim_export_2026-10-24.zip", "experiments/t2/reports/results_main.html",
                    "reports/schema_inspire.md"]
     assert n == len(got)
+
+
+def test_smoke_resets_only_its_own_work_folder(tmp_path):
+    """A second smoke in the same folder must not hit the §6.3 re-freeze refusal; a real work folder is never touched."""
+    from perisim.cli import reset_smoke_workdir
+
+    smoke = tmp_path / "smoke"
+    (smoke / "datasets").mkdir(parents=True)
+    (smoke / "datasets" / "SYNTHETIC_700_7_v4.txt").write_text("PERISIM synthetic data")
+    (smoke / "workdir" / "experiments" / "t2" / "artifacts" / "main").mkdir(parents=True)
+    (smoke / "workdir" / "experiments" / "t2" / "artifacts" / "main" / "external.json").write_text("{}")
+    assert reset_smoke_workdir(smoke) and not (smoke / "workdir").exists()
+    assert (smoke / "datasets" / "SYNTHETIC_700_7_v4.txt").exists()          # synthetic data kept
+    real = tmp_path / "perisim_work"
+    (real / "workdir").mkdir(parents=True)
+    assert not reset_smoke_workdir(real) and (real / "workdir").exists()       # no synthetic marker: untouched
