@@ -22,6 +22,17 @@ def _cfg(args):
     return load_config(getattr(args, "config_dir", None), getattr(args, "profile", None), over)
 
 
+def _keep_awake() -> None:
+    """Local runs on Windows: keep the computer from sleeping while the pipeline runs (released when it ends)."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)   # ES_CONTINUOUS | SYSTEM_REQUIRED
+        except Exception:   # never block a run for this
+            pass
+
+
 def cmd_run(args) -> int:
     from perisim.pipeline import MAIN_STAGES, Pipeline
     from perisim.utils import LOG, now_iso, setup_logging
@@ -42,6 +53,7 @@ def cmd_run(args) -> int:
             stages = stages[: stages.index(args.until) + 1]
     LOG.info("PERISIM · experiment=%s · workdir=%s · stages=%s · profile=%s", cfg.experiment_name, cfg.workdir,
              ",".join(stages), cfg.profile)
+    _keep_awake()
     rc = pipe.run(stages)
     if rc == 0:
         LOG.info("Reports: %s · Exportable: %s", pipe.ws.reports, pipe.ws.export)

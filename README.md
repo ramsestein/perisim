@@ -129,6 +129,29 @@ the `external` stage, because §6.3 forbids iterating after looking at external 
 resources (`PERISIM_JOBS`, `PERISIM_THREADS`) and gate acknowledgements are not part of the frozen method, so
 changing them does not break the freeze; a second freeze is refused once external results exist.
 
+## Running locally on Windows
+
+With the lead's own PhysioNet copies on a workstation, `run_local.ps1` (PowerShell) is the counterpart of
+`run_pod.sh`, with the same commands (`start`, `fg`, `status`, `logs`, `stop`, `smoke`, `test`, `freeze`) and the
+same environment variables. Everything stays in the project folder, in folders git ignores (the repository is
+public), and the script refuses a folder that git tracks or that OneDrive synchronises:
+
+```
+<repo>\data\          the datasets, one folder per cohort (inspire\, mimic4\, eicu\)
+<repo>\work\          work and results
+<repo>\perisim_run\   logs, PID and smoke test
+```
+
+```powershell
+.\run_local.ps1            # smoke test for a new code version, then the whole pipeline in the background
+.\run_local.ps1 logs       # follow it; .\run_local.ps1 status / stop
+```
+
+Default parallelism 5 processes × 4 threads (the 5 outer folds in one round; `PERISIM_JOBS`, `PERISIM_THREADS`). The
+pipeline keeps Windows from sleeping while it runs (keep the computer plugged in; closing the lid may still suspend
+it, depending on the power settings). Only logs, reports and aggregates are ever read back: patient-level data never
+leave the computer (PhysioNet data use agreement).
+
 ## Export (KHDP §3.2)
 
 `<workdir>/export/` (copied after every run to `updown/perisim/<user>/results/experiments/<t>/export/`) contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with

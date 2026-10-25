@@ -448,7 +448,8 @@ def _figures(t: str, per: dict, tables: dict, E: dict, rd) -> dict:
             ax.set_title(f"P(Y ≥ {th})")
             ax.set_xlabel("predicted")
             ax.set_ylabel("observed")
-        axes[0][0].legend(fontsize=7)
+        if axes[0][0].get_legend_handles_labels()[0]:          # no curve has enough events in a small cohort
+            axes[0][0].legend(fontsize=7)
         fig.suptitle(f"{c}: calibration by mode")
         figs[f"calibration_{c}"] = _save_fig(fig, rd / f"{t}_fig_calibration_{c}.png")
     return figs
