@@ -164,6 +164,7 @@ def load_config(config_dir: str | Path | None = None, profile: str | None = None
         pp = cdir / "profiles" / f"{profile}.yaml"
         with open(pp, encoding="utf-8") as fh:
             prof = yaml.safe_load(fh) or {}
+        sources[f"profile_{profile}"] = str(pp)          # the freeze snapshot keeps the profile too
         for s in CONFIG_SECTIONS:
             data[s] = deep_merge(data[s], prof.get(s, {}))
     if overrides:

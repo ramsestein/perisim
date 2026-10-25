@@ -548,7 +548,8 @@ class Pipeline:
                                                         + m.get("curve_seconds", 0))
         fam_med = {k: float(np.median(v)) for k, v in fam_cost.items()}
         exclude = []
-        ratio = float(pc.get("family_cost_ratio_exclude", 3.0))
+        r_ = pc.get("family_cost_ratio_exclude", 3.0)
+        ratio = float("inf") if r_ is None else float(r_)      # null = no family excluded for cost (local profile)
         for fam_, cost in fam_med.items():      # a family costing > ratio × the median of the others is excluded
             others = [v for k, v in fam_med.items() if k != fam_]
             if others and cost > ratio * float(np.median(others)):

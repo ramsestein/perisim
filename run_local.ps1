@@ -22,6 +22,7 @@ Defaults, overridable with the same variables as run_pod.sh:
   PERISIM_EXPERIMENT  t2
   PERISIM_JOBS / PERISIM_THREADS  5 / 4       (the 5 outer folds in one round)
   PERISIM_PYTHON      python
+  PERISIM_PROFILE     local                   (config\profiles\local.yaml: what differs from the pod; "" = none)
 #>
 param([string]$Command = "start", [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest = @())
 $ErrorActionPreference = "Stop"
@@ -42,6 +43,9 @@ Set-Default "PERISIM_EXPERIMENT" "t2"
 Set-Default "PERISIM_JOBS" "5"
 Set-Default "PERISIM_THREADS" "4"
 Set-Default "PERISIM_PYTHON" "python"
+if ($null -eq [Environment]::GetEnvironmentVariable("PERISIM_PROFILE", "Process")) { $env:PERISIM_PROFILE = "local" }
+$ProfArgs = @()
+if ($env:PERISIM_PROFILE) { $ProfArgs = @("--profile", $env:PERISIM_PROFILE) }   # run, status and freeze alike
 if ("t1", "t2", "t3" -notcontains $env:PERISIM_EXPERIMENT) { Die "PERISIM_EXPERIMENT must be t1, t2 or t3" }
 
 # git matches directory patterns (/work/, /perisim_run/) only for folders that exist: create them before checking
@@ -105,7 +109,7 @@ switch ($Command) {
         $log = Join-Path $LogDir ("run_" + (Get-Date -Format "yyyyMMdd_HHmmss") + ".log")
         # Python directly, not through cmd.exe: cmd cannot open paths with non-ASCII characters (e.g. C:\Users\Ramses
         # with an accent). stdout = the pipeline log; stderr (tracebacks of a crash, warnings) next to it.
-        $p = Start-Process -FilePath $Py -ArgumentList (@("-m", "perisim", "run") + $Rest) -WindowStyle Hidden `
+        $p = Start-Process -FilePath $Py -ArgumentList (@("-m", "perisim", "run") + $ProfArgs + $Rest) -WindowStyle Hidden `
             -RedirectStandardOutput $log -RedirectStandardError ($log -replace "\.log$", ".err.log") -PassThru
         Set-Content -Path $PidFile -Value $p.Id
         Set-Content -Path (Join-Path $LogDir "latest.txt") -Value $log
@@ -114,10 +118,10 @@ switch ($Command) {
         Say "Pipeline launched in the background (PID $($p.Id)). Log: $log"
         Say "Follow it with: logs   |   stop it with: stop   (closing this window does not stop it)"
     }
-    "fg" { Assert-NotRunning; Invoke-Setup; Invoke-SmokeIfNew; & $Py -m perisim run @Rest; exit $LASTEXITCODE }
+    "fg" { Assert-NotRunning; Invoke-Setup; Invoke-SmokeIfNew; & $Py -m perisim run @ProfArgs @Rest; exit $LASTEXITCODE }
     "status" {
         if (Test-Running) { Say "Running (PID $(Get-Content $PidFile -Raw))" } else { Say "No run in progress" }
-        & $Py -m perisim status
+        & $Py -m perisim status @ProfArgs
     }
     "logs" {
         $latest = Join-Path $LogDir "latest.txt"
@@ -138,7 +142,7 @@ switch ($Command) {
         $env:PERISIM_TEST_BASE = $env:PERISIM_WORKDIR
         Push-Location $RepoDir; & $Py -m pytest -p no:cacheprovider @Rest; $rc = $LASTEXITCODE; Pop-Location; exit $rc
     }
-    "freeze" { Invoke-Setup; & $Py -m perisim freeze @Rest; exit $LASTEXITCODE }
+    "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
     default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | freeze | resources)" }
 }

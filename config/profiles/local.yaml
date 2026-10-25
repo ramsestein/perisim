@@ -1,0 +1,9 @@
+# Local runs on the lead's workstation (run_local.ps1 passes --profile local). Only what differs from the KHDP
+# configuration; the freeze records this file with the rest of the configuration.
+experiment:
+  pilot:
+    # DEVIATION (lead, 2026-10-25), decided on cost only, before any cross-validation result: the pilot's declared
+    # rule (a family costing > 3 × the median of the others is excluded, sized for the pod's budget) excluded random
+    # forest at 3.1 × (median 32 s vs 10 s per model). On this workstation the whole CV is estimated at about 1 h, so
+    # no family is excluded for cost and the consensus keeps all the families of the model space.
+    family_cost_ratio_exclude: null

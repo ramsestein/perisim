@@ -147,7 +147,9 @@ public), and the script refuses a folder that git tracks or that OneDrive synchr
 .\run_local.ps1 logs       # follow it; .\run_local.ps1 status / stop
 ```
 
-Default parallelism 5 processes × 4 threads (the 5 outer folds in one round; `PERISIM_JOBS`, `PERISIM_THREADS`). The
+Default parallelism 5 processes × 4 threads (the 5 outer folds in one round; `PERISIM_JOBS`, `PERISIM_THREADS`).
+The launcher passes the configuration profile `config/profiles/local.yaml` (what differs from the pod: no family
+excluded for cost, a declared deviation) to `run`, `status` and `freeze`; `PERISIM_PROFILE=""` runs without it. The
 pipeline keeps Windows from sleeping while it runs (keep the computer plugged in; closing the lid may still suspend
 it, depending on the power settings). Only logs, reports and aggregates are ever read back: patient-level data never
 leave the computer (PhysioNet data use agreement).

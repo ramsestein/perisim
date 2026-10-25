@@ -60,6 +60,18 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-25 — Local runs on the lead's workstation; deviation from the pilot's cost rule (lead)
+
+- The experiments run on the lead's workstation (Intel Core Ultra 9 275HX, 24 cores, 64 GB RAM, NVMe) with the lead's
+  own PhysioNet copies, through `run_local.ps1` and the configuration profile `config/profiles/local.yaml` (only what
+  differs from the KHDP configuration; recorded by the freeze). Patient-level data stay on the workstation; only logs
+  and aggregates are read back.
+- **Deviation from the declared pilot rule (decided on cost only, before any cross-validation result):** the rule
+  "a family costing > 3 × the median of the others is excluded" (§9.1, sized for the pod's budget) excluded random
+  forest at 3.1 × (32 s vs a median of 10 s per accepted model). With the whole CV estimated at about 1 h here, the
+  local profile disables the cost exclusion (`pilot.family_cost_ratio_exclude: null`) and the pilot is re-run, so the
+  consensus keeps every family of the model space. The pilot's fold-0 performance was not used for this decision.
+
 ## 2026-10-25 — Transport analyses approved and implemented (lead), SPECS §6.2b
 
 - The lead approved the map, the pre-registration amendment and the eight decisions of
