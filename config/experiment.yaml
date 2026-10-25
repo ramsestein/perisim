@@ -28,17 +28,32 @@ resources:            # §9.1: 16 vCPU, 128 GB, 100 GB, no GPU
 cohorts:
   development: inspire
   external: [mimic, eicu]
+  # If a cohort is not mounted, modelling stops (the input intersection would be undefined).
+  allow_missing_cohorts: false
 
-transfer:                       # §6.2b model-transfer validations (lead, 2026-10-24), after the external validation
+# §6.2b transportability and incremental case base (pre-registration amendment of 2026-10-24, approved by the lead):
+# after the external validation, on the frozen pipeline. Includes the model-transfer validations decided earlier.
+transport:
   enabled: true
-  holdout_fraction: 0.2         # patient level, one split per external cohort: 80 % local cases, 20 % held out
-  local_model: true             # PERISIM fitted on the local 80 % (one full fit per external cohort)
-  multisource:                  # "retrained adding eICU": development INSPIRE ∪ eICU, evaluated on MIMIC-IV only
+  test_fraction: 0.2            # patient level, per external cohort (and per eICU hospital in F): fixed test set
+  tuning_max_patients: 500      # D: local tuning set, disjoint from the case bases and the test set
+  tuning_sizes: [100, 250, 500]
+  local_model: true             # A(iii): full PERISIM on the local pool (one full fit per external cohort)
+  multisource:                  # PERISIM refitted on INSPIRE ∪ eICU, evaluated on MIMIC-IV only
     development: [inspire, eicu]
     test: [mimic]
     targets: [t2]               # eICU has no full T1, so T1 / T3 cannot be trained with it
-  # If a cohort is not mounted, modelling stops (the input intersection would be undefined).
-  allow_missing_cohorts: false
+  gamma: [1, 0.5, 0.25, 0]      # site weight of the non-local cases (votes and prior counts)
+  gamma_schedule_n0: 500        # declared schedule γ(n) = n0 / (n0 + n_local)
+  accumulation:
+    n_local: [0, 50, 100, 250, 500, 1000, 2000, all]     # local PATIENTS added to the case base
+    repetitions: 20
+    orders: [blocks, random]    # blocks = calendar blocks (MIMIC-IV anchor-year group, eICU year), random inside
+    ood_repetitions: 5          # the % out of support is computed in the first repetitions only (cost)
+  shapes: {n_models: 40}        # E: reduced consensus per site on INSPIRE's frozen value grid
+  homogeneity_alpha: 0.05       # E: Bonferroni over variables × classes
+  hospitals: {min_index_stays: 300}   # F: eICU hospitals with enough stays
+  margins: {citl: 0.10, slope: 0.10, auroc: 0.02}      # H1, H2, H3 (amendment)
 
 time:
   cutoff_margin_hours: 2        # D2 (sensitivity: 4 h, see sensitivity)

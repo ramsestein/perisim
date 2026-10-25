@@ -31,6 +31,12 @@ experiment:
     audit_acknowledged: true
   evaluation:
     n_bootstrap: 50
+  transport:
+    tuning_max_patients: 40
+    tuning_sizes: [20, 40]
+    accumulation: {n_local: [0, 20, all], repetitions: 2, orders: [blocks, random], ood_repetitions: 1}
+    shapes: {n_models: 4}
+    hospitals: {min_index_stays: 60}
   sensitivity:
     enabled: true
     variants:

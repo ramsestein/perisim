@@ -161,7 +161,7 @@ def cmd_smoke(args) -> int:
                "PYTHONPATH": os.pathsep.join([str(REPO_ROOT / "src")] + [p for p in [os.environ.get("PYTHONPATH")] if p])}
         steps = [base + ["run", "--profile", "smoke"] + (["--force"] if args.force else []),
                  base + ["freeze", "--profile", "smoke", "--no-git", "--registration", "SMOKE-TEST"],
-                 base + ["run", "--profile", "smoke", "--stage", "external,transfer,export"]]
+                 base + ["run", "--profile", "smoke", "--stage", "external,transport,export"]]
         for cmd in steps:  # internal pipeline → freeze → external validation (as in the pod, without the pauses)
             print(f"[perisim] smoke [{exp}]:", " ".join(cmd[2:]))
             rc = subprocess.call(cmd, env=env)

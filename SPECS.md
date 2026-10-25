@@ -376,24 +376,35 @@ so the NCA itself splits the weight within a group (an uninformative missingness
 - The difference between A and B is a central result (Q3).
 - **[v0.4, C4] T2/T3 categories in the external cohorts:** the target cohort's tertiles are **cross-fitted** — two patient-level halves, each labelled with the cut-points of the other half (mode B case bases carry the same labels, and the smoothing prior leaves out the query's patient). Absolute categories (≤3 / 4–7 / >7 days) are a **co-primary** external analysis, with the INSPIRE case base relabelled the same way (same learned metric).
 
-### 6.2b Model-transfer validations [lead, 2026-10-24]
+### 6.2b Transportability, incremental case base and model-transfer validations [amendment, 2026-10-24/25]
 
-After the external validation, on the frozen pipeline. In each external cohort the patients are split once, at
-patient level, into **local cases (80 %)** and **held-out queries (20 %)**; every variant predicts the same held-out
-stays with the same labels (the target cohort's T2/T3 cut-points estimated on the local cases only):
+Pre-registered as an amendment before the external validation and the freeze, approved by the lead:
+[docs/prereg_amendment_transport.md](docs/prereg_amendment_transport.md) (hypotheses H1–H6 and margins) and
+[docs/transport_review.md](docs/transport_review.md) (design). Stage `transport`, after `external`, on the frozen
+pipeline; it contains the model-transfer validations decided on 2026-10-24. Central hypothesis: the **geometry**
+(frozen g_j, w_j) transports between sites and the **calibration** comes from the local case base.
 
-- **A_transport:** the INSPIRE model with the INSPIRE case base (mode A on the held-out patients).
-- **T_local:** INSPIRE weights and shapes, local cases as case base (transfer of the metric).
-- **T_pooled:** INSPIRE weights and shapes, INSPIRE ∪ local cases as case base (local cases added to the system).
-- **L_perisim:** PERISIM fitted on the local cases alone (a kNN learned in that dataset); **L_euclidean**
-  (unsupervised Euclidean kNN) and **L_prevalence** on the local cases.
-- **Multi-source development ("retrained adding eICU"), MIMIC-IV only, T2 only:** PERISIM refitted on
-  INSPIRE ∪ eICU (each with its own cut-points) — **S_transport**, **S_local**, **S_pooled** as above.
+- Per external cohort, patient-level and seeded: a fixed **test** set (20 % of the patients), a **tuning** set (≤ 500
+  patients) and the **local pool** for case bases, disjoint by patient. Target-cohort T2 / T3 tertiles cross-fitted
+  between two patient halves (the same labels for every case base); absolute categories co-primary.
+- **A.** Decomposition of the transport loss on the same case base and test: frozen INSPIRE metric; INSPIRE g_j with
+  w_j refitted locally (NCA with prior at INSPIRE's w_j, INSPIRE's λ); full local PERISIM.
+- **B.** Case-base composition (local; INSPIRE ∪ local; INSPIRE ∪ other external ∪ local; INSPIRE only) with a site
+  weight γ ∈ {1, 0.5, 0.25, 0} on the non-local votes and prior counts and the schedule γ(n) = 500 / (500 + n);
+  Euclidean kNN and prevalence of the local pool; PERISIM refitted on INSPIRE ∪ eICU for MIMIC-IV (T2).
+- **C.** Accumulation curves: local patients added in batches (0 … all), starts empty / INSPIRE / INSPIRE ∪ other,
+  calendar-block order (random inside) and random order, 20 repetitions.
+- **D.** α (and k) tuned on 100 / 250 / 500 local patients; logistic recalibration as a sensitivity; calibration of
+  every cumulative threshold of T2.
+- **E.** Shapes re-estimated in each site with a reduced consensus (40 models) on INSPIRE's frozen value grid;
+  between-site homogeneity (Cochran Q, I²) after one robust site-level scale; range coverage and missingness.
+- **F.** eICU by hospital (≥ 300 index stays): B and C per hospital; between-hospital vs between-country spread.
+- **H1–H6** (confirmatory for T2, descriptive for T1 / T3): calibration in the large of the local mode within
+  ±0.10 and not of mode A; slope ≥ 0.90; AUROC of the frozen vs the local metric non-inferior (margin 0.02); more
+  out-of-support queries in mode A; a crossing point of the accumulation curve; non-transporting shapes mostly
+  practice / coding variables. The hashes of the frozen artefacts are checked at the start and the end.
 
-Paired contrasts at the primary k (Δ log-loss, patient bootstrap): T_local − L_perisim, T_pooled − T_local,
-T_local − A_transport, S_local − T_local, S_pooled − T_pooled, S_transport − A_transport, among others. Absolute
-categories as a co-primary analysis; eICU T1 reduced as in §6.2. The kNN smoothing α of each case base is fitted on
-that case base. Report: `reports/transfer.html`.
+Outputs (inside the pod): `<workdir>/experiments/<t>/results/transport/` (CSV and figures), `reports/transport.html`.
 
 ### 6.3 Freezing
 

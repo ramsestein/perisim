@@ -60,6 +60,22 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-25 — Transport analyses approved and implemented (lead), SPECS §6.2b
+
+- The lead approved the map, the pre-registration amendment and the eight decisions of
+  [transport_review.md](transport_review.md) §8 as proposed, margins included (H1 ±0.10, H2 0.90, H3 0.02). The stage
+  `transport` replaces `transfer` (its variants are contained in A and B).
+- Implementation choices (declared in the amendment): the site scale of E is the **median** over variables of the
+  per-variable WLS slope (a global WLS fit was biased by a single non-transporting variable: unit test); E runs the
+  reduced consensus in all three sites, INSPIRE included, so the three are estimated the same way; A, C and D use the
+  primary labelling (cross-fitted tertiles), B both; in A the frozen metric keeps INSPIRE's α, the locally refitted
+  metrics fit their α on the local pool; the % out of support of C is computed in the first 5 repetitions; H1's
+  "beyond the margin" means a CI entirely outside ±0.10; F uses the same γ values with random order only.
+- The eICU hospital is read from the raw `patient` table inside the module (not added to the extraction, which would
+  re-key the extraction and the development stages).
+- Also fixed: `cohorts.allow_missing_cohorts` had been left under the `transfer` block of experiment.yaml when that
+  block was inserted (read only when a cohort is missing, so it had not failed).
+
 ## 2026-10-24 — Model-transfer validations (lead), SPECS §6.2b
 
 - New stage `transfer`, after `external` (so on the frozen pipeline). In MIMIC-IV and eICU: one patient-level split,

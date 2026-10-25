@@ -14,7 +14,8 @@ from perisim.knn.index import search_excluding
 
 class KNNModel:
     def __init__(self, E_ref: np.ndarray, sqrt_w_dims: np.ndarray, y_ref: np.ndarray, n_classes: int,
-                 subjects_ref: np.ndarray, k_grid: list[int], ids_ref: np.ndarray | None = None):
+                 subjects_ref: np.ndarray, k_grid: list[int], ids_ref: np.ndarray | None = None,
+                 ref_weight: np.ndarray | None = None):
         self.Ew = np.ascontiguousarray(E_ref * sqrt_w_dims, dtype=np.float32)
         self.sw = sqrt_w_dims
         self.y = np.asarray(y_ref, dtype=np.int64)
@@ -22,11 +23,24 @@ class KNNModel:
         self.subj = np.asarray(subjects_ref)
         self.k_grid = sorted(int(k) for k in k_grid)
         self.k_max = min(self.k_grid[-1], self.Ew.shape[0] - 1)
-        self.prior = np.bincount(self.y, minlength=self.C) / len(self.y)
         self.ids = ids_ref
         self.alpha: dict[int, float] = {k: 1.0 for k in self.k_grid}
         self.ood_thr: dict[int, float] = {}
         self.loo_kth: dict[int, np.ndarray] = {}
+        self.set_ref_weight(ref_weight)
+
+    def set_ref_weight(self, ref_weight: np.ndarray | None) -> None:
+        """Weight of each reference case in the votes and in the smoothing prior (transport §6.2c: site weight γ of
+        the non-local cases). None = every case counts 1, exactly the unweighted kNN. The neighbours do not change."""
+        self.rw = None if ref_weight is None else np.asarray(ref_weight, dtype=np.float64)
+        self.prior = self._class_share(self.y)
+
+    def _class_share(self, lab: np.ndarray) -> np.ndarray:
+        ok = lab >= 0
+        if self.rw is None:
+            return np.bincount(lab[ok], minlength=self.C) / max(int(ok.sum()), 1)
+        cnt = np.bincount(lab[ok], weights=self.rw[ok], minlength=self.C)
+        return cnt / cnt.sum() if cnt.sum() > 0 else np.bincount(lab[ok], minlength=self.C) / max(int(ok.sum()), 1)
 
     def neighbors(self, E_query: np.ndarray | None, subjects_query: np.ndarray | None = None, loo: bool = False):
         Q = self.Ew if loo else np.ascontiguousarray(E_query * self.sw, dtype=np.float32)
@@ -54,6 +68,8 @@ class KNNModel:
         L = lab[Ik]
         wts = np.exp(-D[:, :k].astype(np.float64)) if kernel and D is not None else np.ones(Ik.shape)
         wts = wts * vk * (L >= 0)
+        if self.rw is not None:
+            wts = wts * self.rw[Ik]
         out = np.zeros((I.shape[0], C))
         for c in range(C):
             out[:, c] = (wts * (L == c)).sum(1)
@@ -66,8 +82,7 @@ class KNNModel:
         a = self.alpha.get(k, 1.0) if alpha is None else alpha
         n = self.counts(I, valid, k, labels=labels, D=D, kernel=kernel)
         if prior is None and labels is not None:
-            lab = np.asarray(labels)
-            prior = np.bincount(lab[lab >= 0], minlength=self.C) / max(int((lab >= 0).sum()), 1)
+            prior = self._class_share(np.asarray(labels))
         prior = np.broadcast_to(self.prior if prior is None else prior, n.shape)
         tot = n.sum(1, keepdims=True)
         p = (n + a * prior * self.C) / (tot + a * self.C)

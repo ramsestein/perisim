@@ -406,9 +406,9 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
         pat.append((uid, hsid, upid, "Male" if L["sex"][i] else "Female", "> 89" if L["age"][i] > 89 else str(int(L["age"][i])),
                     round(rng.normal(168, 9), 1), round(rng.normal(80, 15), 1), hoff,
                     "Emergency Department" if L["emerg"][i] else "Direct Admit", hdis, "Expired" if dead else "Alive",
-                    "Death" if dead else "Home", 2015, src, 1, icu_los,
+                    "Death" if dead else "Home", 2014 + i % 2, src, 1, icu_los,
                     "Expired" if st == "icu_death" else "Alive",
-                    "Home" if st == "home_from_icu" else ("Death" if st == "icu_death" else "Floor")))
+                    "Home" if st == "home_from_icu" else ("Death" if st == "icu_death" else "Floor"), 70 + i % 3))
         adx.append((uid, ("admission diagnosis|Operative|Diagnosis|" + grp[L["group"][i]]) if not L["medical"][i]
                     else "admission diagnosis|Non-operative|Diagnosis|Sepsis"))
         apr.append((uid, "IVa", round(float(L["los"][i] + L["icu_h"][i] / 24 + rng.normal(0, 2)), 2)))
@@ -417,8 +417,8 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
             uid += 1
             r = icu_los + rng.uniform(1, 3) * 1440
             pat.append((uid, hsid, upid, "Male" if L["sex"][i] else "Female", str(int(L["age"][i])), None, None,
-                        hoff - r, "Emergency Department", hdis - r, "Alive", "Home", 2015, "Floor", 2, 1440.0, "Alive",
-                        "Floor"))
+                        hoff - r, "Emergency Department", hdis - r, "Alive", "Home", 2014 + i % 2, "Floor", 2, 1440.0,
+                        "Alive", "Floor", 70 + i % 3))
         u0 = uid if not (g and c == "readmission") else uid - 1
         for name, ln in elabs.items():
             for t in np.arange(60, icu_los - 60, 720):
@@ -455,7 +455,7 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
     _w(S(pat, ["patientunitstayid", "patienthealthsystemstayid", "uniquepid", "gender", "age", "admissionheight",
                "admissionweight", "hospitaladmitoffset", "hospitaladmitsource", "hospitaldischargeoffset",
                "hospitaldischargestatus", "hospitaldischargelocation", "hospitaldischargeyear", "unitadmitsource",
-               "unitvisitnumber", "unitdischargeoffset", "unitdischargestatus", "unitdischargelocation"]),
+               "unitvisitnumber", "unitdischargeoffset", "unitdischargestatus", "unitdischargelocation", "hospitalid"]),
        d / "patient.csv.gz")
     _w(S(adx, ["patientunitstayid", "admitdxpath"]), d / "admissionDx.csv.gz")
     _w(S(apr, ["patientunitstayid", "apacheversion", "predictedhospitallos"]), d / "apachePatientResult.csv.gz")
@@ -477,7 +477,7 @@ def synth_eicu(root: Path, n: int, rng: np.random.Generator) -> None:
 
 
 # Bumped when the synthetic schema changes, so a cached synthetic dataset is regenerated
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 def write_synthetic(root: Path, harmonization: dict | None = None, n_subjects: int = 700, seed: int = 7) -> Path:

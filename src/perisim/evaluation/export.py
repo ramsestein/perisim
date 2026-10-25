@@ -17,7 +17,7 @@ from perisim.utils import now_iso
 
 LOG = logging.getLogger("perisim.export")
 ID_RE = re.compile(r"\b(INSPIRE|MIMIC|EICU)-\d")   # internal identifiers: cohort prefix + numeric id
-ALLOWED_SUFFIX = {".html", ".md", ".json", ".png", ".svg"}
+ALLOWED_SUFFIX = {".html", ".md", ".json", ".png", ".svg", ".csv"}
 
 
 def _sha(p: Path) -> str:
@@ -30,7 +30,7 @@ def publish(ws, dest: Path) -> int:
     predictions/, common/, derived/ or cache/. Returns the number of files copied."""
     exp = Path(dest) / "experiments" / ws.experiment
     pairs = [(ws.data_reports, Path(dest) / "reports"), (ws.reports, exp / "reports"), (ws.docs, exp / "docs"),
-             (ws.export, exp / "export")]
+             (ws.root / "results", exp / "results"), (ws.export, exp / "export")]
     n = 0
     for src, dst in pairs:
         if not src.is_dir():
@@ -58,6 +58,10 @@ def build_export(ws, cfg) -> Path:
         cands.append((p, f"reports/{p.name}"))
     for p in ws.docs.glob("*.md"):
         cands.append((p, f"docs/{p.name}"))
+    res = ws.root / "results"
+    if res.exists():                                      # transport tables and figures (aggregates)
+        for p in res.rglob("*"):
+            cands.append((p, "results/" + p.relative_to(res).as_posix()))
     art = ws.root / "artifacts"
     if art.exists():
         for p in art.rglob("*.json"):

@@ -53,8 +53,13 @@ def stable_hash(obj: Any, n: int = 12) -> str:
     return hashlib.sha256(blob).hexdigest()[:n]
 
 
+#: Generators of synthetic test data: not part of any stage's key (a change there must re-run the smoke test, which
+#: uses the full hash, but never the extraction of the real cohorts).
+_NOT_STAGE_CODE = {"data/synthetic.py"}
+
+
 def code_hash(subpackages: list[str] | None = None, n: int = 12) -> str:
-    """Hash of the source code (all of src/perisim, or only the given subpackages)."""
+    """Hash of the source code (all of src/perisim, or only the given subpackages, i.e. a stage's key)."""
     h = hashlib.sha256()
     roots = [SRC_ROOT] if not subpackages else [SRC_ROOT / s for s in subpackages]
     files: list[Path] = []
@@ -65,6 +70,8 @@ def code_hash(subpackages: list[str] | None = None, n: int = 12) -> str:
             files.append(r.with_suffix(".py"))
         elif r.is_dir():
             files.extend(sorted(r.rglob("*.py")))
+    if subpackages:
+        files = [f for f in files if f.relative_to(SRC_ROOT).as_posix() not in _NOT_STAGE_CODE]
     for f in sorted(set(files)):
         h.update(f.relative_to(SRC_ROOT).as_posix().encode())   # same hash on Windows and Linux
         h.update(f.read_bytes().replace(b"\r\n", b"\n"))

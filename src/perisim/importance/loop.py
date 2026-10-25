@@ -228,6 +228,8 @@ def run_importance_loop(*, X_model: np.ndarray, owner: np.ndarray, col_group: np
         "plateau_above_tol": bool(np.isfinite(plateau) and plateau > float(st["tol_delta"])),
         "seconds": time.perf_counter() - t_start, "group_names": group_names,
         "shapes": shapes, "shape_diag": state["shape_diag"],
+        # per-model curves of the competitive models (transport E: shapes compared between sites)
+        "curves_kept": _kept(curves, keep) if shapeable and imps else {},
     }
     _save(checkpoint, {"signature": signature, "done": True, "result": result})
     return result
