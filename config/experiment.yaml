@@ -137,6 +137,13 @@ knn:                            # §5.5
   alpha_grid: [0, 0.1, 0.5, 1, 2, 5, 10]
   ood_percentile: 99
 
+# Secondary, descriptive k sweep of the finished CV (DECISIONS 2026-10-25): `python -m perisim ksweep`. Not a stage
+# and in no stage's key: it re-queries the fold models saved by the CV; the primary k above is unchanged.
+k_sweep:
+  k_grid: [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 75, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000]
+  max_fraction: 0.2             # largest k = this fraction of the smallest training case base
+  methods: [perisim, euclidean, hvdm, nca_diag, power_prior, shap_lgbm, rf_importance, relieff, rf_gap]
+
 targets_to_model: auto          # auto = [experiment_name]
 patient_output_target: auto     # auto = the experiment's target (its neighbours feed the §5.6 output)
 

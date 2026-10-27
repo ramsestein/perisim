@@ -10,6 +10,7 @@
 #   bash perisim/run_pod.sh stop       # stop the run in progress
 #   bash perisim/run_pod.sh smoke      # end-to-end test on synthetic data
 #   bash perisim/run_pod.sh test       # pytest (includes the anti-leakage tests on the real data)
+#   bash perisim/run_pod.sh ksweep     # secondary k sweep of the finished cross-validation (aggregates)
 #   bash perisim/run_pod.sh freeze --registration <OSF_ID>   # §6.3 freeze (enables the external validation)
 #   bash perisim/run_pod.sh resources  # real CPU/memory limits of the container and the jobs × threads plan
 #   bash perisim/run_pod.sh setup      # only install / check the environment
@@ -329,8 +330,10 @@ case "$CMD" in
     if is_running; then
       pid="$(cat "$PIDFILE")"; kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid"; rm -f "$PIDFILE"; say "Stopped (PID $pid)"
     else rm -f "$PIDFILE"; say "No run in progress"; fi ;;
+  ksweep)
+    setup_env; exec "$VPY" -m perisim ksweep "$@" ;;
   freeze)
     setup_env; exec "$VPY" -m perisim freeze "$@" ;;
   *)
-    die "Unknown command: $CMD (start | fg | status | logs | stop | smoke | test | freeze | resources | setup)" ;;
+    die "Unknown command: $CMD (start | fg | status | logs | stop | smoke | test | ksweep | freeze | resources | setup)" ;;
 esac

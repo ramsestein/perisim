@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|freeze|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -10,6 +10,7 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
   stop       stop the run in progress (the whole process tree)
   smoke      end-to-end test on synthetic data
   test       pytest
+  ksweep     secondary k sweep of the finished cross-validation (minutes; aggregates in results\ksweep)
   freeze     S6.3 freeze (e.g. freeze --registration <OSF_ID>)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
@@ -142,7 +143,8 @@ switch ($Command) {
         $env:PERISIM_TEST_BASE = $env:PERISIM_WORKDIR
         Push-Location $RepoDir; & $Py -m pytest -p no:cacheprovider @Rest; $rc = $LASTEXITCODE; Pop-Location; exit $rc
     }
+    "ksweep" { Invoke-Setup; & $Py -m perisim ksweep @ProfArgs @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | freeze | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | resources)" }
 }

@@ -60,6 +60,29 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-25 — Secondary k sweep of the internal CV (lead)
+
+- The lead asked how much the choice of k contributes. The CV evaluates k ∈ {10, 20, 50, 100, 200}; on the
+  provisional folds the macro and death AUROC of every kNN method were still rising at k = 200, so the grid does not
+  show where the curves turn.
+- **Secondary and descriptive, added after the provisional results of the first CV folds had been seen** (stated in
+  the report). The primary k (D11, k = 50) and the confirmatory comparisons are unchanged.
+- Each outer fold's metric, saved by the CV, is queried again over k = 1…2000 (at most 20 % of the smallest training
+  case base), with α refitted per k by the same patient-level LOO and nothing else refitted. Reported: the curve of
+  every kNN method (log-loss, Brier, RPS, AUROC, calibration slope), the paired log-loss difference of each k against
+  k = 50, every comparator against PERISIM at the same k, PERISIM against LightGBM and logistic regression, and k
+  chosen inside the training fold (argmin of the LOO log-loss that fits α) against k = 50. The best k pooled on the
+  test folds is shown as optimistic.
+- Comparators: re-queried with the weights the CV stored (w/Σw, 6 decimals, floor 1e-9); the HVDM encoder refitted as
+  in `fit_perisim`; RF-GAP refitted with the fold seed. A reproduction check compares the sweep with the CV's own
+  predictions on the CV grid.
+- **Not a pipeline stage:** a new stage changes `pipeline.py`, which is in the key of `harmonize` and `pilot`; through
+  the upstream keys that would re-run the pilot, the CV and the sensitivity variants (about 9 h here) to reproduce the
+  same results. Command `ksweep` (`run_local.ps1 ksweep`, `run_pod.sh ksweep`), keyed by the CV it was computed from;
+  `experiment.k_sweep` is in no stage's key (tested). Outputs: `results/ksweep/`, `reports/ksweep.html`,
+  `artifacts/<variant>/ksweep_<t>.json` (aggregates, exported); patient-level predictions in
+  `predictions/<variant>/ksweep/` (never exported).
+
 ## 2026-10-25 — Local runs on the lead's workstation; deviation from the pilot's cost rule (lead)
 
 - The experiments run on the lead's workstation (Intel Core Ultra 9 275HX, 24 cores, 64 GB RAM, NVMe) with the lead's

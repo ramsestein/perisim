@@ -94,6 +94,19 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_ksweep(args) -> int:
+    """Secondary k sweep of the finished CV (perisim.ksweep): not a stage, so it does not re-key the pilot or the CV."""
+    from perisim.ksweep import run_ksweep
+    from perisim.pipeline import Pipeline
+    from perisim.utils import now_iso, setup_logging
+
+    cfg = _cfg(args)
+    pipe = Pipeline(cfg)
+    setup_logging(pipe.ws.logs / f"ksweep_{now_iso().replace(':', '')}.log")
+    _keep_awake()
+    return run_ksweep(pipe, force=args.force)
+
+
 def cmd_env_check(args) -> int:
     import importlib
 
@@ -172,9 +185,10 @@ def cmd_smoke(args) -> int:
                "PERISIM_ACK_AUDIT": "true", "PERISIM_EXPERIMENT": exp, "PERISIM_PUBLISH_DIR": "",
                "PYTHONPATH": os.pathsep.join([str(REPO_ROOT / "src")] + [p for p in [os.environ.get("PYTHONPATH")] if p])}
         steps = [base + ["run", "--profile", "smoke"] + (["--force"] if args.force else []),
+                 base + ["ksweep", "--profile", "smoke"],
                  base + ["freeze", "--profile", "smoke", "--no-git", "--registration", "SMOKE-TEST"],
                  base + ["run", "--profile", "smoke", "--stage", "external,transport,export"]]
-        for cmd in steps:  # internal pipeline → freeze → external validation (as in the pod, without the pauses)
+        for cmd in steps:  # internal pipeline → k sweep → freeze → external validation (as in the pod, without the pauses)
             print(f"[perisim] smoke [{exp}]:", " ".join(cmd[2:]))
             rc = subprocess.call(cmd, env=env)
             if rc != 0:
@@ -271,6 +285,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--profile", default=None)
     s.add_argument("--workdir", default=None)
     s.set_defaults(fn=cmd_status)
+
+    ks = sub.add_parser("ksweep", help="secondary k sweep of the finished cross-validation (aggregates)")
+    ks.add_argument("--profile", default=None)
+    ks.add_argument("--workdir", default=None)
+    ks.add_argument("--force", action="store_true", help="recompute even if up to date")
+    ks.set_defaults(fn=cmd_ksweep)
 
     sub.add_parser("env-check", help="check that the required packages import").set_defaults(fn=cmd_env_check)
     sub.add_parser("code-hash", help="hash of the source code").set_defaults(fn=cmd_code_hash)

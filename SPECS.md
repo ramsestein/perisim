@@ -335,6 +335,7 @@ so the NCA itself splits the weight within a group (an uninformative missingness
 3. Take the k neighbours. **k is an execution parameter, not a learning parameter:** the metric is the same for any k.
    - Performance is evaluated over the grid k ∈ {10, 20, 50, 100, 200} and the full curve is reported.
    - The main analysis uses a **pre-specified primary k** (proposal: k = 50) `[open decision]`.
+   - **[2026-10-25, secondary, added after the first CV folds had been seen]** k sweep: each outer fold's metric is queried again over k = 1…2000 (at most 20 % of the case base), with α refitted per k by the same patient-level LOO and nothing else refitted. It reports the full curve of every kNN method, each k against the primary k, the comparators against PERISIM at the same k, and k chosen by the LOO log-loss of the training fold against the primary k. Descriptive: the primary k and the confirmatory comparisons are unchanged (`python -m perisim ksweep`).
 4. Class probability: `(n_c + α · P(c) · C) / (k + α · C)`, with α chosen in the inner cross-validation. **[v0.4, C6, declared deviation]** α (and the OOD threshold) are chosen by patient-level leave-one-out on the training fold; with large categories the optimism is negligible (revisit if the audit shows many small nominal categories). Kernel-weighted variant exp(−d²) as a sensitivity analysis.
 5. **Out of support:** if the distance to the k-th neighbour exceeds the 99th percentile of that same distance in training (computed leave-one-out), flag `ood = True`.
 

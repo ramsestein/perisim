@@ -25,6 +25,9 @@ experiment:
     k_grid: [5, 10, 20]
     k_primary: 10
     alpha_grid: [0, 1]
+  k_sweep:
+    k_grid: [1, 3, 5, 10, 20, 40, 80]
+    max_fraction: 0.3
   pilot:
     n_models: 6
   gates:

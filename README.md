@@ -132,7 +132,7 @@ changing them does not break the freeze; a second freeze is refused once externa
 ## Running locally on Windows
 
 With the lead's own PhysioNet copies on a workstation, `run_local.ps1` (PowerShell) is the counterpart of
-`run_pod.sh`, with the same commands (`start`, `fg`, `status`, `logs`, `stop`, `smoke`, `test`, `freeze`) and the
+`run_pod.sh`, with the same commands (`start`, `fg`, `status`, `logs`, `stop`, `smoke`, `test`, `ksweep`, `freeze`) and the
 same environment variables. Everything stays in the project folder, in folders git ignores (the repository is
 public), and the script refuses a folder that git tracks or that OneDrive synchronises:
 
@@ -153,6 +153,10 @@ excluded for cost, a declared deviation) to `run`, `status` and `freeze`; `PERIS
 pipeline keeps Windows from sleeping while it runs (keep the computer plugged in; closing the lid may still suspend
 it, depending on the power settings). Only logs, reports and aggregates are ever read back: patient-level data never
 leave the computer (PhysioNet data use agreement).
+
+**k sweep (secondary):** once the CV is done, `.\run_local.ps1 ksweep` (`bash perisim/run_pod.sh ksweep` in the pod)
+queries each fold's saved metric again over k = 1…2000 (`experiment.k_sweep`) and writes `reports/ksweep.html` and
+`results/ksweep/`. It takes minutes and is not a stage, so it never re-runs the pipeline.
 
 ## Export (KHDP §3.2)
 
