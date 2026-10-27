@@ -60,8 +60,8 @@ def main() -> int:
         if FORBIDDEN_NAMES.search(f):
             problems.append(f"{f}: file not allowed in a public repository")
             continue
-        if p.suffix.lower() in FORBIDDEN_EXT:
-            problems.append(f"{f}: data file type ({p.suffix})")
+        if p.suffix.lower() in FORBIDDEN_EXT and not (f.startswith("results/") and p.suffix.lower() == ".csv"):
+            problems.append(f"{f}: data file type ({p.suffix})")   # results/: aggregate tables (publish_results.py)
             continue
         if not p.is_file():
             continue

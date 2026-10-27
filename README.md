@@ -158,6 +158,10 @@ leave the computer (PhysioNet data use agreement).
 queries each fold's saved metric again over k = 1…2000 (`experiment.k_sweep`) and writes `reports/ksweep.html` and
 `results/ksweep/`. It takes minutes and is not a stage, so it never re-runs the pipeline.
 
+**Publishing results:** `python scripts/publish_results.py t2` copies the experiment's aggregate results (the export
+package: reports, tables, figures, aggregate JSON, plus the experiment's docs) into the repository's `results/t2/` for
+version control. Patient-level data (`data\` and the rest of `work\`) are never copied; see `results/README.md`.
+
 ## Export (KHDP §3.2)
 
 `<workdir>/export/` (copied after every run to `updown/perisim/<user>/results/experiments/<t>/export/`) contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with
@@ -195,9 +199,12 @@ src/perisim/
   external.py      external validation, modes A / B (final models fitted in parallel)
   transport/       transportability and incremental case base (§6.2b, pre-registration amendment)
   sensitivity.py   outcome-definition variants by relabelling the main metric's case base
+  ksweep.py        secondary k sweep of the finished CV (a command, not a stage)
   compare.py       similarity of two experiments' metrics (neighbour overlap, weight ranks, shapes)
   resources.py     real container limits (cgroup CPU quota, affinity, memory) → jobs × threads plan
   pipeline.py      stages, gates and parallelism (at most 4 processes × 4 threads)
 tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets
 docs/              OPEN_QUESTIONS.md and DECISIONS.md
+results/           published aggregate results per experiment (reports, tables, figures, aggregate JSON)
+scripts/           public-safety check (pre-commit hook) and publish_results.py
 ```

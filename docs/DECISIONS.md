@@ -60,6 +60,18 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-27 — T2 frozen; aggregate results versioned in the repository (lead)
+
+- T2 frozen on the lead's workstation: tag `perisim-freeze-t2-2026-10-27-141040` (commit `c4cc8b7`, pushed to
+  GitHub before the external stage ran), code hash `77b25fe8f629`, scientific configuration hash `1f6d4f5b89d4`. The
+  OSF registration was not filed yet: the freeze records the local ID `LOCAL-PREREG-T2-20261027` (not an OSF ID);
+  the OSF ID will be added next to it. The public commit and tag are the verifiable timestamp.
+- The "no outputs in the repository" rule came from the KHDP pod. On the lead's own computer, aggregate results are
+  versioned in `results/<experiment>/` (`scripts/publish_results.py`: the export package minus the zip and the bulky
+  per-fold CV artifacts, scanned again for identifiers). Never in the repository: `data/` and the rest of `work/`
+  (extractions, features, per-patient predictions), which are restricted patient-level data. `.gitignore` and
+  `scripts/check_public_safety.py` allow CSV tables under `results/` only.
+
 ## 2026-10-25 — Secondary k sweep of the internal CV (lead)
 
 - The lead asked how much the choice of k contributes. The CV evaluates k ∈ {10, 20, 50, 100, 200}; on the

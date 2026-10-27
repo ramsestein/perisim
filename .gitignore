@@ -50,3 +50,9 @@ wheelhouse/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Published AGGREGATE results (scripts/publish_results.py; see results/README.md): reports, tables, figures and
+# aggregate JSON only. Patient-level data never come here: data/ and the rest of work/ stay ignored.
+!/results/**/reports/
+!/results/**/reports/*
+!/results/**/*.csv

@@ -1,0 +1,7673 @@
+{
+  "cohort": "inspire",
+  "n_index": 12663,
+  "flow": [
+    {
+      "step": "ICU stays with valid admission and discharge times",
+      "n_stays": 18280,
+      "n_subjects": 14134,
+      "excluded": null,
+      "rounded": false
+    },
+    {
+      "step": "Age ≥ 18 years",
+      "n_stays": 18280,
+      "n_subjects": 14134,
+      "excluded": 0,
+      "rounded": false
+    },
+    {
+      "step": "Postoperative ICU admission",
+      "n_stays": 13132,
+      "n_subjects": 12002,
+      "excluded": 5148,
+      "rounded": false
+    },
+    {
+      "step": "First postoperative stay of the hospitalization",
+      "n_stays": 12893,
+      "n_subjects": 12002,
+      "excluded": 239,
+      "rounded": false
+    },
+    {
+      "step": "Discharged alive from the ICU (ICU deaths excluded)",
+      "n_stays": 12791,
+      "n_subjects": 11914,
+      "excluded": 102,
+      "rounded": false
+    },
+    {
+      "step": "ICU stay ≥ 4 h",
+      "n_stays": 12686,
+      "n_subjects": 11830,
+      "excluded": 105,
+      "rounded": false
+    },
+    {
+      "step": "ICU discharge within the hospital (ward follow-up)",
+      "n_stays": 12680,
+      "n_subjects": 11820,
+      "excluded": "<10",
+      "rounded": true
+    },
+    {
+      "step": "No OR / PACU / IR / ICU entry within 6 h of the ICU exit",
+      "n_stays": 12660,
+      "n_subjects": 11810,
+      "excluded": 15,
+      "rounded": true
+    },
+    {
+      "step": "Organ donors excluded",
+      "n_stays": 12660,
+      "n_subjects": 11810,
+      "excluded": "<10",
+      "rounded": true
+    },
+    {
+      "step": "Known limitation of life-sustaining treatment before the cutoff excluded",
+      "n_stays": 12660,
+      "n_subjects": 11810,
+      "excluded": "<10",
+      "rounded": true
+    }
+  ],
+  "issues": [],
+  "inputs": [
+    {
+      "feature": "age",
+      "type": "continuous",
+      "block": "demographics",
+      "missing_pct": 0.0,
+      "units": null,
+      "p5": 30.0,
+      "p25": 50.0,
+      "p50": 60.0,
+      "p75": 70.0,
+      "p95": 80.0
+    },
+    {
+      "feature": "sex_male",
+      "type": "binary",
+      "block": "demographics",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 7241,
+      "prev_pct": 57.18
+    },
+    {
+      "feature": "asa",
+      "type": "ordinal",
+      "block": "baseline",
+      "missing_pct": 4.2,
+      "units": null,
+      "p5": 1.0,
+      "p25": 2.0,
+      "p50": 2.0,
+      "p75": 3.0,
+      "p95": 3.0
+    },
+    {
+      "feature": "emergency",
+      "type": "binary",
+      "block": "baseline",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2004,
+      "prev_pct": 15.83
+    },
+    {
+      "feature": "anesthesia_type",
+      "type": "nominal",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "GENERAL (12477); NEURAXIAL (153); MAC (24)"
+    },
+    {
+      "feature": "surgical_group",
+      "type": "nominal",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "neuro (3821); general_gi (2936); thoracic (2308); cardiac (2078); ortho (516); uro_gyn (357); ent_head_neck (286); vascular (205)"
+    },
+    {
+      "feature": "admit_source",
+      "type": "nominal",
+      "block": "surgery",
+      "missing_pct": 100.0,
+      "units": null,
+      "top": ""
+    },
+    {
+      "feature": "surgery_duration_min",
+      "type": "continuous",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "p5": 75.0,
+      "p25": 155.0,
+      "p50": 245.0,
+      "p75": 350.0,
+      "p95": 525.0
+    },
+    {
+      "feature": "icu_los_h",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "p5": 11.333333333333334,
+      "p25": 17.75,
+      "p50": 22.083333333333332,
+      "p75": 44.25,
+      "p95": 139.9083333333333
+    },
+    {
+      "feature": "pcs_l1",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "0 (12607); 1 (56)"
+    },
+    {
+      "feature": "pcs_l2",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "02 (2407); 00 (1972); 0B (1788); 0D (1539); 0F (765); 03 (623); 0H (542); 09 (505)"
+    },
+    {
+      "feature": "pcs_l3",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "00B (1573); 0BT (1104); 02R (994); 021 (696); 0DB (633); 0BB (591); 0FY (509); 031 (376)"
+    },
+    {
+      "feature": "pcs_l4",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "00B0 (1548); 02RF (556); 0FY0 (494); 0211 (483); 0D16 (331); 0DB6 (330); 02RG (310); 0HQ0 (299)"
+    },
+    {
+      "feature": "pcs_l5",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 0.0,
+      "units": null,
+      "top": "00B00 (1543); 02RF0 (556); 0FY00 (492); 02110 (482); 0D160 (314); 02RG0 (310); 02VP0 (292); 0HQ0X (291)"
+    },
+    {
+      "feature": "bmi",
+      "type": "continuous",
+      "block": "demographics",
+      "missing_pct": 1.9,
+      "units": null,
+      "p5": 17.578124999999996,
+      "p25": 20.811654526534856,
+      "p50": 23.148148148148145,
+      "p75": 25.711662075298435,
+      "p95": 29.411764705882355
+    },
+    {
+      "feature": "last_po2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 1.7,
+      "units": "mmHg",
+      "p5": 68.0,
+      "p25": 95.0,
+      "p50": 130.0,
+      "p75": 165.0,
+      "p95": 255.0
+    },
+    {
+      "feature": "last_creatinine",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.2,
+      "units": "mg/dL",
+      "p5": 0.47,
+      "p25": 0.58,
+      "p50": 0.71,
+      "p75": 0.88,
+      "p95": 1.68
+    },
+    {
+      "feature": "last_wbc",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.2,
+      "units": "10^3/uL",
+      "p5": 5.58,
+      "p25": 8.37,
+      "p50": 11.1,
+      "p75": 13.78,
+      "p95": 19.44
+    },
+    {
+      "feature": "last_bilirubin",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 2.3,
+      "units": "mg/dL",
+      "p5": 0.3,
+      "p25": 0.5,
+      "p50": 0.8,
+      "p75": 1.2,
+      "p95": 3.2
+    },
+    {
+      "feature": "last_hb",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.2,
+      "units": "g/dL",
+      "p5": 8.1,
+      "p25": 9.8,
+      "p50": 11.0,
+      "p75": 12.2,
+      "p95": 14.2
+    },
+    {
+      "feature": "last_pco2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 1.7,
+      "units": "mmHg",
+      "p5": 31.5,
+      "p25": 35.0,
+      "p50": 38.0,
+      "p75": 42.3,
+      "p95": 49.4
+    },
+    {
+      "feature": "last_plt",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.5,
+      "units": "10^3/uL",
+      "p5": 63.0,
+      "p25": 117.0,
+      "p50": 166.0,
+      "p75": 222.0,
+      "p95": 314.0
+    },
+    {
+      "feature": "last_albumin",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.4,
+      "units": "g/dL",
+      "p5": 2.5,
+      "p25": 3.0,
+      "p50": 3.2,
+      "p75": 3.6,
+      "p95": 4.0
+    },
+    {
+      "feature": "last_ph",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 1.7,
+      "units": "pH",
+      "p5": 7.32,
+      "p25": 7.38,
+      "p50": 7.41,
+      "p75": 7.449,
+      "p95": 7.49
+    },
+    {
+      "feature": "last_lactate",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.0,
+      "units": "mmol/L",
+      "p5": 0.5,
+      "p25": 0.9,
+      "p50": 1.4,
+      "p75": 2.1,
+      "p95": 3.8
+    },
+    {
+      "feature": "preop_wbc",
+      "type": "continuous",
+      "block": "baseline",
+      "missing_pct": 0.3,
+      "units": "10^3/uL",
+      "p5": 3.42,
+      "p25": 5.2,
+      "p50": 6.3,
+      "p75": 8.37,
+      "p95": 12.2
+    },
+    {
+      "feature": "preop_albumin",
+      "type": "continuous",
+      "block": "baseline",
+      "missing_pct": 0.7,
+      "units": "g/dL",
+      "p5": 2.7,
+      "p25": 3.7,
+      "p50": 4.0,
+      "p75": 4.2,
+      "p95": 4.6
+    },
+    {
+      "feature": "preop_creatinine",
+      "type": "continuous",
+      "block": "baseline",
+      "missing_pct": 0.4,
+      "units": "mg/dL",
+      "p5": 0.53,
+      "p25": 0.68,
+      "p50": 0.8,
+      "p75": 0.98,
+      "p95": 1.68
+    },
+    {
+      "feature": "preop_hb",
+      "type": "continuous",
+      "block": "baseline",
+      "missing_pct": 0.2,
+      "units": "g/dL",
+      "p5": 9.1,
+      "p25": 11.3,
+      "p50": 12.9,
+      "p75": 14.2,
+      "p95": 15.6
+    },
+    {
+      "feature": "preop_bilirubin",
+      "type": "continuous",
+      "block": "baseline",
+      "missing_pct": 1.0,
+      "units": "mg/dL",
+      "p5": 0.3,
+      "p25": 0.5,
+      "p50": 0.5,
+      "p75": 0.8,
+      "p95": 1.9
+    },
+    {
+      "feature": "preop_plt",
+      "type": "continuous",
+      "block": "baseline",
+      "missing_pct": 0.4,
+      "units": "10^3/uL",
+      "p5": 93.0,
+      "p25": 178.0,
+      "p50": 222.0,
+      "p75": 273.0,
+      "p95": 347.0
+    },
+    {
+      "feature": "last_spo2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.4,
+      "units": "%",
+      "p5": 94.0,
+      "p25": 96.0,
+      "p50": 99.0,
+      "p75": 99.0,
+      "p95": 99.0
+    },
+    {
+      "feature": "last_rr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 2.9,
+      "units": "breaths/min",
+      "p5": 12.0,
+      "p25": 14.0,
+      "p50": 17.0,
+      "p75": 20.0,
+      "p95": 26.0
+    },
+    {
+      "feature": "last_hr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.0,
+      "units": "bpm",
+      "p5": 56.0,
+      "p25": 68.0,
+      "p50": 80.0,
+      "p75": 88.0,
+      "p95": 110.0
+    },
+    {
+      "feature": "last_temp",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.2,
+      "units": "°C",
+      "p5": 36.0,
+      "p25": 36.5,
+      "p50": 37.0,
+      "p75": 37.3,
+      "p95": 37.8
+    },
+    {
+      "feature": "last_map",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 2.9,
+      "units": "mmHg",
+      "p5": 67.0,
+      "p25": 78.0,
+      "p50": 88.0,
+      "p75": 101.0,
+      "p95": 112.0
+    },
+    {
+      "feature": "last_gcs",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 40.3,
+      "units": "points",
+      "p5": 13.0,
+      "p25": 14.0,
+      "p50": 15.0,
+      "p75": 15.0,
+      "p95": 15.0
+    },
+    {
+      "feature": "last_fio2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 65.8,
+      "units": "%",
+      "p5": 27.0,
+      "p25": 36.0,
+      "p50": 40.0,
+      "p75": 40.0,
+      "p95": 63.0
+    },
+    {
+      "feature": "slope_rr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.1,
+      "units": "breaths/min",
+      "p5": -0.4658600019409253,
+      "p25": -0.15792341917162614,
+      "p50": -0.014696160334291058,
+      "p75": 0.1309570325405317,
+      "p95": 0.4338596897057151
+    },
+    {
+      "feature": "slope_map",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.1,
+      "units": "mmHg",
+      "p5": -2.119117868741314,
+      "p25": -0.8129134818569701,
+      "p50": -0.18524215576305741,
+      "p75": 0.3565998807569467,
+      "p95": 1.3792055607980425
+    },
+    {
+      "feature": "slope_temp",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 5.3,
+      "units": "°C",
+      "p5": -0.050000000000018655,
+      "p25": -0.011120777806048428,
+      "p50": 0.011461960831348386,
+      "p75": 0.03999999999999204,
+      "p95": 0.09558253090964214
+    },
+    {
+      "feature": "slope_spo2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.7,
+      "units": "%",
+      "p5": -0.21313251645743678,
+      "p25": -0.062296688564166064,
+      "p50": -0.00035222306780403813,
+      "p75": 0.011971091846563149,
+      "p95": 0.1502524606195493
+    },
+    {
+      "feature": "slope_hr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 3.2,
+      "units": "bpm",
+      "p5": -1.8709888220028232,
+      "p25": -0.6540348241123213,
+      "p50": -0.11992197611588452,
+      "p75": 0.3659924827694575,
+      "p95": 1.573264310309976
+    },
+    {
+      "feature": "used_vent",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 4669,
+      "prev_pct": 36.87
+    },
+    {
+      "feature": "used_rrt",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 270,
+      "prev_pct": 2.13
+    },
+    {
+      "feature": "used_vaso",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1084,
+      "prev_pct": 8.56
+    },
+    {
+      "feature": "used_iabp",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 90,
+      "prev_pct": 0.71
+    },
+    {
+      "feature": "used_ecmo",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 48,
+      "prev_pct": 0.38
+    },
+    {
+      "feature": "hours_since_vent_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 63.1,
+      "units": null,
+      "p5": 2.0,
+      "p25": 14.0,
+      "p50": 21.75,
+      "p75": 43.583333333333336,
+      "p95": 104.0
+    },
+    {
+      "feature": "hours_since_rrt_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 97.9,
+      "units": null,
+      "p5": 0.5,
+      "p25": 8.166666666666668,
+      "p50": 34.16666666666667,
+      "p75": 83.3125,
+      "p95": 406.8333333333332
+    },
+    {
+      "feature": "hours_since_vaso_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 91.4,
+      "units": null,
+      "p5": 4.608333333333334,
+      "p25": 16.416666666666668,
+      "p50": 34.166666666666664,
+      "p75": 74.58333333333333,
+      "p95": 246.90833333333248
+    },
+    {
+      "feature": "hours_since_iabp_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 99.3,
+      "units": null,
+      "p5": 18.416666666666668,
+      "p25": 39.3125,
+      "p50": 72.58333333333333,
+      "p75": 145.41666666666666,
+      "p95": 527.6624999999998
+    },
+    {
+      "feature": "hours_since_ecmo_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 99.6,
+      "units": null,
+      "p5": 0.5875,
+      "p25": 79.4375,
+      "p50": 164.41666666666666,
+      "p75": 268.0208333333333,
+      "p95": 970.0416666666663
+    },
+    {
+      "feature": "med_C08C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 3057,
+      "prev_pct": 24.14
+    },
+    {
+      "feature": "med_J01D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 8590,
+      "prev_pct": 67.84
+    },
+    {
+      "feature": "med_C07A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1034,
+      "prev_pct": 8.17
+    },
+    {
+      "feature": "med_A02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11525,
+      "prev_pct": 91.01
+    },
+    {
+      "feature": "med_C03D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 921,
+      "prev_pct": 7.27
+    },
+    {
+      "feature": "med_N02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 5376,
+      "prev_pct": 42.45
+    },
+    {
+      "feature": "med_C03C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1688,
+      "prev_pct": 13.33
+    },
+    {
+      "feature": "med_C01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1601,
+      "prev_pct": 12.64
+    },
+    {
+      "feature": "med_N02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 3445,
+      "prev_pct": 27.21
+    },
+    {
+      "feature": "med_J06B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 313,
+      "prev_pct": 2.47
+    },
+    {
+      "feature": "med_A06A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2472,
+      "prev_pct": 19.52
+    },
+    {
+      "feature": "med_N04B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 73,
+      "prev_pct": 0.58
+    },
+    {
+      "feature": "med_B01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 4145,
+      "prev_pct": 32.73
+    },
+    {
+      "feature": "med_A04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2961,
+      "prev_pct": 23.38
+    },
+    {
+      "feature": "med_R05C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11818,
+      "prev_pct": 93.33
+    },
+    {
+      "feature": "med_N03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2892,
+      "prev_pct": 22.84
+    },
+    {
+      "feature": "med_C08D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 793,
+      "prev_pct": 6.26
+    },
+    {
+      "feature": "med_C01E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 622,
+      "prev_pct": 4.91
+    },
+    {
+      "feature": "med_A03F",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1364,
+      "prev_pct": 10.77
+    },
+    {
+      "feature": "med_A12B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2533,
+      "prev_pct": 20.0
+    },
+    {
+      "feature": "med_A07F",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 44,
+      "prev_pct": 0.35
+    },
+    {
+      "feature": "med_C09C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 552,
+      "prev_pct": 4.36
+    },
+    {
+      "feature": "med_L04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 799,
+      "prev_pct": 6.31
+    },
+    {
+      "feature": "med_A02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2794,
+      "prev_pct": 22.06
+    },
+    {
+      "feature": "med_A12C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2053,
+      "prev_pct": 16.21
+    },
+    {
+      "feature": "med_N01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2075,
+      "prev_pct": 16.39
+    },
+    {
+      "feature": "med_A05A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 593,
+      "prev_pct": 4.68
+    },
+    {
+      "feature": "med_M01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 2949,
+      "prev_pct": 23.29
+    },
+    {
+      "feature": "med_C10A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 885,
+      "prev_pct": 6.99
+    },
+    {
+      "feature": "med_H03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 419,
+      "prev_pct": 3.31
+    },
+    {
+      "feature": "med_N05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 262,
+      "prev_pct": 2.07
+    },
+    {
+      "feature": "med_J01X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 733,
+      "prev_pct": 5.79
+    },
+    {
+      "feature": "med_R03D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 317,
+      "prev_pct": 2.5
+    },
+    {
+      "feature": "med_B05X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 915,
+      "prev_pct": 7.23
+    },
+    {
+      "feature": "med_A07A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1197,
+      "prev_pct": 9.45
+    },
+    {
+      "feature": "med_A10A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1192,
+      "prev_pct": 9.41
+    },
+    {
+      "feature": "med_H02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1540,
+      "prev_pct": 12.16
+    },
+    {
+      "feature": "med_V06D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 306,
+      "prev_pct": 2.42
+    },
+    {
+      "feature": "med_J01M",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 778,
+      "prev_pct": 6.14
+    },
+    {
+      "feature": "med_N05C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 739,
+      "prev_pct": 5.84
+    },
+    {
+      "feature": "med_N01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1727,
+      "prev_pct": 13.64
+    },
+    {
+      "feature": "med_C01D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1026,
+      "prev_pct": 8.1
+    },
+    {
+      "feature": "med_J02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 473,
+      "prev_pct": 3.74
+    },
+    {
+      "feature": "med_A03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 107,
+      "prev_pct": 0.84
+    },
+    {
+      "feature": "med_D01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 672,
+      "prev_pct": 5.31
+    },
+    {
+      "feature": "med_J01E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 191,
+      "prev_pct": 1.51
+    },
+    {
+      "feature": "med_C01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 496,
+      "prev_pct": 3.92
+    },
+    {
+      "feature": "med_R03C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "med_H01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 235,
+      "prev_pct": 1.86
+    },
+    {
+      "feature": "med_J01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1085,
+      "prev_pct": 8.57
+    },
+    {
+      "feature": "med_J05A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 450,
+      "prev_pct": 3.55
+    },
+    {
+      "feature": "med_N05A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 437,
+      "prev_pct": 3.45
+    },
+    {
+      "feature": "med_M03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 76,
+      "prev_pct": 0.6
+    },
+    {
+      "feature": "med_A11G",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 597,
+      "prev_pct": 4.71
+    },
+    {
+      "feature": "med_B05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 350,
+      "prev_pct": 2.76
+    },
+    {
+      "feature": "med_N06A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 169,
+      "prev_pct": 1.33
+    },
+    {
+      "feature": "med_N06D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 202,
+      "prev_pct": 1.6
+    },
+    {
+      "feature": "med_N07A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 280,
+      "prev_pct": 2.21
+    },
+    {
+      "feature": "med_V03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 191,
+      "prev_pct": 1.51
+    },
+    {
+      "feature": "med_A05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 258,
+      "prev_pct": 2.04
+    },
+    {
+      "feature": "med_A16A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 50,
+      "prev_pct": 0.39
+    },
+    {
+      "feature": "med_V04C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 123,
+      "prev_pct": 0.97
+    },
+    {
+      "feature": "med_J01G",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 227,
+      "prev_pct": 1.79
+    },
+    {
+      "feature": "med_B02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 468,
+      "prev_pct": 3.7
+    },
+    {
+      "feature": "med_J01F",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 339,
+      "prev_pct": 2.68
+    },
+    {
+      "feature": "med_S01E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 25,
+      "prev_pct": 0.2
+    },
+    {
+      "feature": "med_C09A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 171,
+      "prev_pct": 1.35
+    },
+    {
+      "feature": "med_C01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 267,
+      "prev_pct": 2.11
+    },
+    {
+      "feature": "med_N06B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 98,
+      "prev_pct": 0.77
+    },
+    {
+      "feature": "med_B02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 395,
+      "prev_pct": 3.12
+    },
+    {
+      "feature": "med_J01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "med_C03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 317,
+      "prev_pct": 2.5
+    },
+    {
+      "feature": "med_A11C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 131,
+      "prev_pct": 1.03
+    },
+    {
+      "feature": "med_R06A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 380,
+      "prev_pct": 3.0
+    },
+    {
+      "feature": "med_B03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 46,
+      "prev_pct": 0.36
+    },
+    {
+      "feature": "med_A10B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 375,
+      "prev_pct": 2.96
+    },
+    {
+      "feature": "med_B03B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 66,
+      "prev_pct": 0.52
+    },
+    {
+      "feature": "med_H03B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 28,
+      "prev_pct": 0.22
+    },
+    {
+      "feature": "med_J04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 77,
+      "prev_pct": 0.61
+    },
+    {
+      "feature": "med_A11D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 111,
+      "prev_pct": 0.88
+    },
+    {
+      "feature": "med_G04C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 225,
+      "prev_pct": 1.78
+    },
+    {
+      "feature": "med_M04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 87,
+      "prev_pct": 0.69
+    },
+    {
+      "feature": "med_B06A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "med_B03X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 71,
+      "prev_pct": 0.56
+    },
+    {
+      "feature": "med_L02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "med_H01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 207,
+      "prev_pct": 1.63
+    },
+    {
+      "feature": "med_C04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 22,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "med_N07C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "med_A12A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 97,
+      "prev_pct": 0.77
+    },
+    {
+      "feature": "med_G02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "med_M03B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 40,
+      "prev_pct": 0.32
+    },
+    {
+      "feature": "med_R01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A11H",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 51,
+      "prev_pct": 0.4
+    },
+    {
+      "feature": "med_N04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "med_L03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 19,
+      "prev_pct": 0.15
+    },
+    {
+      "feature": "med_G04B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 59,
+      "prev_pct": 0.47
+    },
+    {
+      "feature": "med_A09A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A03B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 30,
+      "prev_pct": 0.24
+    },
+    {
+      "feature": "med_C03B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_C02C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 19,
+      "prev_pct": 0.15
+    },
+    {
+      "feature": "med_R05D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 27,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "med_G02C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 40,
+      "prev_pct": 0.32
+    },
+    {
+      "feature": "med_A07B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "med_H05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_L02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "med_D07A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "med_A07D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_G03X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_C02D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_L01D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_N07B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_C02K",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_P01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "med_G03B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "med_B05Z",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_L01X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_C05C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_M05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_05DB",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_S01K",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_J04B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_C03X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_D11A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A07E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_L01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_M03C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_G03C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_C05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_L01E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_N07X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A07X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_P02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_G03D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_H01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_P01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_B05C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A11E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_D01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_R03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "med_A03C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I71",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 528,
+      "prev_pct": 4.17
+    },
+    {
+      "feature": "dx_I44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C41",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 58,
+      "prev_pct": 0.46
+    },
+    {
+      "feature": "dx_I34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 350,
+      "prev_pct": 2.76
+    },
+    {
+      "feature": "dx_K63",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 131,
+      "prev_pct": 1.03
+    },
+    {
+      "feature": "dx_L03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_K05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_I25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 296,
+      "prev_pct": 2.34
+    },
+    {
+      "feature": "dx_J44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 237,
+      "prev_pct": 1.87
+    },
+    {
+      "feature": "dx_C34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 1533,
+      "prev_pct": 12.11
+    },
+    {
+      "feature": "dx_I70",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 136,
+      "prev_pct": 1.07
+    },
+    {
+      "feature": "dx_I48",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 268,
+      "prev_pct": 2.12
+    },
+    {
+      "feature": "dx_C79",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 320,
+      "prev_pct": 2.53
+    },
+    {
+      "feature": "dx_I72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 61,
+      "prev_pct": 0.48
+    },
+    {
+      "feature": "dx_C20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 93,
+      "prev_pct": 0.73
+    },
+    {
+      "feature": "dx_I66",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 51,
+      "prev_pct": 0.4
+    },
+    {
+      "feature": "dx_R50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 30,
+      "prev_pct": 0.24
+    },
+    {
+      "feature": "dx_C25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 180,
+      "prev_pct": 1.42
+    },
+    {
+      "feature": "dx_K70",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 94,
+      "prev_pct": 0.74
+    },
+    {
+      "feature": "dx_K29",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 36,
+      "prev_pct": 0.28
+    },
+    {
+      "feature": "dx_D36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 29,
+      "prev_pct": 0.23
+    },
+    {
+      "feature": "dx_C15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 255,
+      "prev_pct": 2.01
+    },
+    {
+      "feature": "dx_K86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 47,
+      "prev_pct": 0.37
+    },
+    {
+      "feature": "dx_N18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 546,
+      "prev_pct": 4.31
+    },
+    {
+      "feature": "dx_I51",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 21,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_C22",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 474,
+      "prev_pct": 3.74
+    },
+    {
+      "feature": "dx_H81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_I35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 540,
+      "prev_pct": 4.26
+    },
+    {
+      "feature": "dx_D43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 517,
+      "prev_pct": 4.08
+    },
+    {
+      "feature": "dx_C16",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 526,
+      "prev_pct": 4.15
+    },
+    {
+      "feature": "dx_C18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 176,
+      "prev_pct": 1.39
+    },
+    {
+      "feature": "dx_I63",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 197,
+      "prev_pct": 1.56
+    },
+    {
+      "feature": "dx_C24",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 180,
+      "prev_pct": 1.42
+    },
+    {
+      "feature": "dx_C74",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_K51",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 33,
+      "prev_pct": 0.26
+    },
+    {
+      "feature": "dx_C49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 77,
+      "prev_pct": 0.61
+    },
+    {
+      "feature": "dx_E11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 59,
+      "prev_pct": 0.47
+    },
+    {
+      "feature": "dx_D35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 377,
+      "prev_pct": 2.98
+    },
+    {
+      "feature": "dx_D48",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 94,
+      "prev_pct": 0.74
+    },
+    {
+      "feature": "dx_I10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 198,
+      "prev_pct": 1.56
+    },
+    {
+      "feature": "dx_J86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_J32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_Z49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 23,
+      "prev_pct": 0.18
+    },
+    {
+      "feature": "dx_I20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 647,
+      "prev_pct": 5.11
+    },
+    {
+      "feature": "dx_Z94",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 129,
+      "prev_pct": 1.02
+    },
+    {
+      "feature": "dx_K80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 56,
+      "prev_pct": 0.44
+    },
+    {
+      "feature": "dx_S06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 88,
+      "prev_pct": 0.69
+    },
+    {
+      "feature": "dx_C56",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 84,
+      "prev_pct": 0.66
+    },
+    {
+      "feature": "dx_I65",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 131,
+      "prev_pct": 1.03
+    },
+    {
+      "feature": "dx_I61",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 111,
+      "prev_pct": 0.88
+    },
+    {
+      "feature": "dx_J98",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 291,
+      "prev_pct": 2.3
+    },
+    {
+      "feature": "dx_C78",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 191,
+      "prev_pct": 1.51
+    },
+    {
+      "feature": "dx_C43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_R19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 36,
+      "prev_pct": 0.28
+    },
+    {
+      "feature": "dx_C83",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_T09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R91",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 173,
+      "prev_pct": 1.37
+    },
+    {
+      "feature": "dx_J45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 22,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_I60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 183,
+      "prev_pct": 1.45
+    },
+    {
+      "feature": "dx_C37",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 56,
+      "prev_pct": 0.44
+    },
+    {
+      "feature": "dx_Z11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 138,
+      "prev_pct": 1.09
+    },
+    {
+      "feature": "dx_E14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 178,
+      "prev_pct": 1.41
+    },
+    {
+      "feature": "dx_A49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_R06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 52,
+      "prev_pct": 0.41
+    },
+    {
+      "feature": "dx_M13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 34,
+      "prev_pct": 0.27
+    },
+    {
+      "feature": "dx_K07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_C53",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 39,
+      "prev_pct": 0.31
+    },
+    {
+      "feature": "dx_I50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 147,
+      "prev_pct": 1.16
+    },
+    {
+      "feature": "dx_C71",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 385,
+      "prev_pct": 3.04
+    },
+    {
+      "feature": "dx_K56",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 104,
+      "prev_pct": 0.82
+    },
+    {
+      "feature": "dx_M48",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 118,
+      "prev_pct": 0.93
+    },
+    {
+      "feature": "dx_D32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 580,
+      "prev_pct": 4.58
+    },
+    {
+      "feature": "dx_N32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_G20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 59,
+      "prev_pct": 0.47
+    },
+    {
+      "feature": "dx_I05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 68,
+      "prev_pct": 0.54
+    },
+    {
+      "feature": "dx_D33",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 161,
+      "prev_pct": 1.27
+    },
+    {
+      "feature": "dx_R56",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 50,
+      "prev_pct": 0.39
+    },
+    {
+      "feature": "dx_K12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 43,
+      "prev_pct": 0.34
+    },
+    {
+      "feature": "dx_M51",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_L04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 20,
+      "prev_pct": 0.16
+    },
+    {
+      "feature": "dx_I21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 112,
+      "prev_pct": 0.88
+    },
+    {
+      "feature": "dx_Z52",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I64",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 51,
+      "prev_pct": 0.4
+    },
+    {
+      "feature": "dx_R47",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 57,
+      "prev_pct": 0.45
+    },
+    {
+      "feature": "dx_K92",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 39,
+      "prev_pct": 0.31
+    },
+    {
+      "feature": "dx_I33",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 47,
+      "prev_pct": 0.37
+    },
+    {
+      "feature": "dx_I38",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 71,
+      "prev_pct": 0.56
+    },
+    {
+      "feature": "dx_S36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_I62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 77,
+      "prev_pct": 0.61
+    },
+    {
+      "feature": "dx_N10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B59",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_I07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 41,
+      "prev_pct": 0.32
+    },
+    {
+      "feature": "dx_K26",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 44,
+      "prev_pct": 0.35
+    },
+    {
+      "feature": "dx_Z35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 29,
+      "prev_pct": 0.23
+    },
+    {
+      "feature": "dx_I77",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_T82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 84,
+      "prev_pct": 0.66
+    },
+    {
+      "feature": "dx_D13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 44,
+      "prev_pct": 0.35
+    },
+    {
+      "feature": "dx_R94",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 49,
+      "prev_pct": 0.39
+    },
+    {
+      "feature": "dx_J80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 66,
+      "prev_pct": 0.52
+    },
+    {
+      "feature": "dx_O30",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_I06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_J18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 57,
+      "prev_pct": 0.45
+    },
+    {
+      "feature": "dx_M84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 31,
+      "prev_pct": 0.24
+    },
+    {
+      "feature": "dx_I36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 135,
+      "prev_pct": 1.07
+    },
+    {
+      "feature": "dx_N81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R68",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z99",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J47",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 37,
+      "prev_pct": 0.29
+    },
+    {
+      "feature": "dx_B45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C75",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_K02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_R17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_D37",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 50,
+      "prev_pct": 0.39
+    },
+    {
+      "feature": "dx_R42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_R04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 32,
+      "prev_pct": 0.25
+    },
+    {
+      "feature": "dx_G45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 21,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_R07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 109,
+      "prev_pct": 0.86
+    },
+    {
+      "feature": "dx_K04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K76",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 34,
+      "prev_pct": 0.27
+    },
+    {
+      "feature": "dx_K65",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 73,
+      "prev_pct": 0.58
+    },
+    {
+      "feature": "dx_B18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 58,
+      "prev_pct": 0.46
+    },
+    {
+      "feature": "dx_R60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R22",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_C80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_S42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 20,
+      "prev_pct": 0.16
+    },
+    {
+      "feature": "dx_C06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 33,
+      "prev_pct": 0.26
+    },
+    {
+      "feature": "dx_K22",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 23,
+      "prev_pct": 0.18
+    },
+    {
+      "feature": "dx_C02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 35,
+      "prev_pct": 0.28
+    },
+    {
+      "feature": "dx_C44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_C85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 27,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_A41",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_M95",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_J11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 102,
+      "prev_pct": 0.81
+    },
+    {
+      "feature": "dx_R31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T08",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_K57",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C61",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_C38",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 37,
+      "prev_pct": 0.29
+    },
+    {
+      "feature": "dx_C86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 56,
+      "prev_pct": 0.44
+    },
+    {
+      "feature": "dx_C23",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_R57",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 24,
+      "prev_pct": 0.19
+    },
+    {
+      "feature": "dx_R79",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C30",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 28,
+      "prev_pct": 0.22
+    },
+    {
+      "feature": "dx_Z34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 19,
+      "prev_pct": 0.15
+    },
+    {
+      "feature": "dx_U07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 69,
+      "prev_pct": 0.54
+    },
+    {
+      "feature": "dx_G82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 33,
+      "prev_pct": 0.26
+    },
+    {
+      "feature": "dx_G91",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 50,
+      "prev_pct": 0.39
+    },
+    {
+      "feature": "dx_N19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 24,
+      "prev_pct": 0.19
+    },
+    {
+      "feature": "dx_T07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_C90",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_R52",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 125,
+      "prev_pct": 0.99
+    },
+    {
+      "feature": "dx_K66",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_D38",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 48,
+      "prev_pct": 0.38
+    },
+    {
+      "feature": "dx_T88",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_B44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_T85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_C05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_E13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J38",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_J36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R51",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_M86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_D21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 29,
+      "prev_pct": 0.23
+    },
+    {
+      "feature": "dx_I86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I74",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 45,
+      "prev_pct": 0.36
+    },
+    {
+      "feature": "dx_D42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 28,
+      "prev_pct": 0.22
+    },
+    {
+      "feature": "dx_M40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 23,
+      "prev_pct": 0.18
+    },
+    {
+      "feature": "dx_C67",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 40,
+      "prev_pct": 0.32
+    },
+    {
+      "feature": "dx_M72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_O42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_K62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_N83",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 22,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_O82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 35,
+      "prev_pct": 0.28
+    },
+    {
+      "feature": "dx_U82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 21,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_R89",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_S14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_O43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_A16",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_H50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_J43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_K31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 22,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_R73",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_A18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_T18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_R69",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 38,
+      "prev_pct": 0.3
+    },
+    {
+      "feature": "dx_M45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 24,
+      "prev_pct": 0.19
+    },
+    {
+      "feature": "dx_C64",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 58,
+      "prev_pct": 0.46
+    },
+    {
+      "feature": "dx_N02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_N95",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R26",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 21,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_O34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_C92",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_K81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 38,
+      "prev_pct": 0.3
+    },
+    {
+      "feature": "dx_J95",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 29,
+      "prev_pct": 0.23
+    },
+    {
+      "feature": "dx_S58",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_C40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_I98",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M54",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 23,
+      "prev_pct": 0.18
+    },
+    {
+      "feature": "dx_C73",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 31,
+      "prev_pct": 0.24
+    },
+    {
+      "feature": "dx_C26",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 29,
+      "prev_pct": 0.23
+    },
+    {
+      "feature": "dx_I31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 41,
+      "prev_pct": 0.32
+    },
+    {
+      "feature": "dx_A84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K91",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_C72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I37",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 19,
+      "prev_pct": 0.15
+    },
+    {
+      "feature": "dx_N70",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_H53",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I83",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C88",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 26,
+      "prev_pct": 0.21
+    },
+    {
+      "feature": "dx_E87",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_C55",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_C91",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_L29",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S22",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 23,
+      "prev_pct": 0.18
+    },
+    {
+      "feature": "dx_M19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_S13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_B00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N28",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 45,
+      "prev_pct": 0.36
+    },
+    {
+      "feature": "dx_K71",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_I08",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_R85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 35,
+      "prev_pct": 0.28
+    },
+    {
+      "feature": "dx_B49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_L23",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K55",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 35,
+      "prev_pct": 0.28
+    },
+    {
+      "feature": "dx_R14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K30",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_L02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G37",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_A15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_M00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_H93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_D18",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 40,
+      "prev_pct": 0.32
+    },
+    {
+      "feature": "dx_N86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M87",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C70",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M41",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_D31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I26",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 14,
+      "prev_pct": 0.11
+    },
+    {
+      "feature": "dx_N36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J33",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C54",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 23,
+      "prev_pct": 0.18
+    },
+    {
+      "feature": "dx_K10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C33",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_H26",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N73",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_N76",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T86",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_R55",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M47",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_R05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_J90",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 20,
+      "prev_pct": 0.16
+    },
+    {
+      "feature": "dx_L50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K27",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_N43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A48",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B90",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_S32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 22,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_C13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 21,
+      "prev_pct": 0.17
+    },
+    {
+      "feature": "dx_C45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10,
+      "prev_pct": 0.08
+    },
+    {
+      "feature": "dx_B94",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_I87",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C31",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 18,
+      "prev_pct": 0.14
+    },
+    {
+      "feature": "dx_B02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R59",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_M50",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_V98",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_C32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 11,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_G96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O24",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_U99",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H91",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K08",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_K61",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C47",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B37",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K59",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_J69",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 12,
+      "prev_pct": 0.09
+    },
+    {
+      "feature": "dx_G53",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D63",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S52",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 20,
+      "prev_pct": 0.16
+    },
+    {
+      "feature": "dx_G97",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N64",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M65",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N39",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_K52",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R29",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 16,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_I99",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R41",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I89",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D27",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G30",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D29",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S26",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B99",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C76",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H66",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15,
+      "prev_pct": 0.12
+    },
+    {
+      "feature": "dx_C08",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C65",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M79",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_L89",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G94",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I28",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S24",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13,
+      "prev_pct": 0.1
+    },
+    {
+      "feature": "dx_B96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z75",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_K46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N08",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S30",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T66",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H71",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E66",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C77",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H33",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R87",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S37",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C69",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G63",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 19,
+      "prev_pct": 0.15
+    },
+    {
+      "feature": "dx_S68",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z95",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D16",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J94",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L08",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T79",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 17,
+      "prev_pct": 0.13
+    },
+    {
+      "feature": "dx_G54",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L97",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C66",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S70",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S27",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I24",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A83",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G99",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M24",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L90",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M53",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O68",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B98",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N90",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C95",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C48",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L98",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R02",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R58",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N94",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K58",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S20",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R33",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D45",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M75",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D47",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S92",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T78",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D65",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S69",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S83",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_X96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D14",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G13",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z39",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T27",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N63",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G22",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S15",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G83",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N62",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_U88",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S29",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C07",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L27",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N12",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O71",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S23",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C93",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L30",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K28",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D39",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I43",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N91",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O72",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R65",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_U84",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T29",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R63",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R80",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C96",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G98",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I39",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G81",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I69",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D24",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K90",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N92",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M16",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K36",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_M21",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D01",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K64",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S34",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z71",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L40",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O28",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R53",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I23",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z46",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O88",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J70",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_G58",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H04",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S25",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_A42",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z97",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N48",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_V49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J03",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B16",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H06",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H54",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_O11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L85",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N97",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B35",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_E10",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_C68",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K38",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S09",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_B17",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_N82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_L51",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_I95",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_Z32",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J05",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_H11",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_D73",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S89",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S60",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_K41",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_V19",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_R49",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_J82",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_T00",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    },
+    {
+      "feature": "dx_S44",
+      "type": "binary",
+      "block": "diagnoses",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": "<10",
+      "prev_pct": null
+    }
+  ],
+  "ward_frequency": [
+    {
+      "measure": "creatinine",
+      "stays_with_any": 11833,
+      "pct_stays": 93.4,
+      "median_per_day": 0.48
+    },
+    {
+      "measure": "hemoglobin",
+      "stays_with_any": 12294,
+      "pct_stays": 97.1,
+      "median_per_day": 0.5322081463817592
+    },
+    {
+      "measure": "J01 antibiotic",
+      "stays_with_any": 9311,
+      "pct_stays": 73.5,
+      "median_per_day": 1.121557719054242
+    },
+    {
+      "measure": "ward SpO2",
+      "stays_with_any": 11697,
+      "pct_stays": 92.4,
+      "median_per_day": 3.0916597853014034
+    }
+  ],
+  "components": [
+    {
+      "component": "icu_readmission",
+      "observable": true,
+      "n": 528,
+      "prev_pct": 4.17,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "death",
+      "observable": true,
+      "n": 116,
+      "prev_pct": 0.92,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "reoperation",
+      "observable": true,
+      "n": 547,
+      "prev_pct": 4.32,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "vent_start",
+      "observable": true,
+      "n": 340,
+      "prev_pct": 2.68,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "vaso_start",
+      "observable": true,
+      "n": 948,
+      "prev_pct": 7.49,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "rrt_start",
+      "observable": true,
+      "n": 98,
+      "prev_pct": 0.77,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "aki_3",
+      "observable": true,
+      "n": 150,
+      "prev_pct": 1.18,
+      "missing_pct": 7.7
+    },
+    {
+      "component": "aki_12",
+      "observable": true,
+      "n": 2243,
+      "prev_pct": 17.71,
+      "missing_pct": 7.7
+    },
+    {
+      "component": "antibiotic_course",
+      "observable": true,
+      "n": 1556,
+      "prev_pct": 12.29,
+      "missing_pct": 0.3
+    },
+    {
+      "component": "transfusion",
+      "observable": true,
+      "n": 0,
+      "prev_pct": 0.0,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "hypoxemia_ward",
+      "observable": true,
+      "n": 0,
+      "prev_pct": 0.0,
+      "missing_pct": "not assessable"
+    }
+  ],
+  "t1_classes": [
+    {
+      "class": "none",
+      "n": 8746
+    },
+    {
+      "class": "mild",
+      "n": 2371
+    },
+    {
+      "class": "severe",
+      "n": 1546
+    }
+  ],
+  "t1_severe": {
+    "n": 1546,
+    "pct": 12.21
+  },
+  "t2": {
+    "n_survivors": 12547,
+    "quantiles": {
+      "p10": 3.4270833333333335,
+      "p25": 4.548611111111112,
+      "p50": 7.440972222222222,
+      "p75": 13.399305555555555,
+      "p90": 26.540277777777774
+    },
+    "tertiles_descriptive": [
+      5.482638888888889,
+      10.520833333333334
+    ],
+    "truncated_pct": 8.38
+  },
+  "icu_readmission_inspire": {
+    "n_detected": 528,
+    "pct": 4.17,
+    "by_source": {
+      "ICU entry after another surgery only": 135,
+      "new organ-support run only (proxy)": 274,
+      "both": 119
+    },
+    "note": "SPECS D1 proxy (AUDIT D10): a new ICU entry after another surgery OR a new invasive-ventilation / RRT / ECMO / IABP run after t0 in ward_vitals. Validate this prevalence (vs MIMIC-IV / eICU readmission rates) before acknowledging the audit."
+  },
+  "chronic_rrt": {
+    "n": 142,
+    "pct": 1.12,
+    "note": "RRT before the index surgery (D5): AKI and new RRT are not applicable."
+  }
+}

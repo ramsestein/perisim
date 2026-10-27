@@ -1,0 +1,2423 @@
+{
+  "cohort": "inspire",
+  "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\inspire",
+  "tables": {
+    "operations": {
+      "file": "operations",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\inspire\\operations.csv.gz",
+      "columns": [
+        "op_id",
+        "subject_id",
+        "hadm_id",
+        "case_id",
+        "opdate",
+        "age",
+        "sex",
+        "weight",
+        "height",
+        "race",
+        "asa",
+        "emop",
+        "department",
+        "antype",
+        "icd10_pcs",
+        "orin_time",
+        "orout_time",
+        "opstart_time",
+        "opend_time",
+        "admission_time",
+        "discharge_time",
+        "anstart_time",
+        "anend_time",
+        "cpbon_time",
+        "cpboff_time",
+        "icuin_time",
+        "icuout_time",
+        "inhosp_death_time",
+        "allcause_death_time"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 5.6
+    },
+    "labs": {
+      "file": "labs",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\inspire\\labs.csv.gz",
+      "columns": [
+        "subject_id",
+        "chart_time",
+        "item_name",
+        "value"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 87.6
+    },
+    "ward_vitals": {
+      "file": "ward_vitals",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\inspire\\ward_vitals.csv.gz",
+      "columns": [
+        "subject_id",
+        "chart_time",
+        "item_name",
+        "value"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 152.5
+    },
+    "medications": {
+      "file": "medications",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\inspire\\medications.csv.gz",
+      "columns": [
+        "subject_id",
+        "chart_time",
+        "route",
+        "drug_name",
+        "atc_code"
+      ],
+      "missing": [],
+      "optional_missing": [
+        "atc_code2",
+        "atc_code3"
+      ],
+      "size_mb": 51.0
+    },
+    "diagnosis": {
+      "file": "diagnosis",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\inspire\\diagnosis.csv.gz",
+      "columns": [
+        "subject_id",
+        "chart_time",
+        "icd10_cm"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 12.5
+    }
+  },
+  "inventory": {
+    "labs.item_name": [
+      {
+        "value": "glucose",
+        "n": 1375911
+      },
+      {
+        "value": "creatinine",
+        "n": 1001373
+      },
+      {
+        "value": "hct",
+        "n": 976162
+      },
+      {
+        "value": "potassium",
+        "n": 942971
+      },
+      {
+        "value": "sodium",
+        "n": 939461
+      },
+      {
+        "value": "hb",
+        "n": 811208
+      },
+      {
+        "value": "wbc",
+        "n": 755973
+      },
+      {
+        "value": "platelet",
+        "n": 744486
+      },
+      {
+        "value": "chloride",
+        "n": 719216
+      },
+      {
+        "value": "lymphocyte",
+        "n": 703989
+      },
+      {
+        "value": "seg",
+        "n": 691085
+      },
+      {
+        "value": "bun",
+        "n": 677271
+      },
+      {
+        "value": "calcium",
+        "n": 672812
+      },
+      {
+        "value": "phosphorus",
+        "n": 665814
+      },
+      {
+        "value": "albumin",
+        "n": 646157
+      },
+      {
+        "value": "total_bilirubin",
+        "n": 622237
+      },
+      {
+        "value": "alt",
+        "n": 618219
+      },
+      {
+        "value": "ast",
+        "n": 618125
+      },
+      {
+        "value": "total_protein",
+        "n": 610151
+      },
+      {
+        "value": "alp",
+        "n": 605213
+      },
+      {
+        "value": "crp",
+        "n": 435815
+      },
+      {
+        "value": "sao2",
+        "n": 381279
+      },
+      {
+        "value": "hco3",
+        "n": 380897
+      },
+      {
+        "value": "ptinr",
+        "n": 360337
+      },
+      {
+        "value": "ph",
+        "n": 326572
+      },
+      {
+        "value": "pao2",
+        "n": 325703
+      },
+      {
+        "value": "paco2",
+        "n": 325499
+      },
+      {
+        "value": "aptt",
+        "n": 316969
+      },
+      {
+        "value": "ica",
+        "n": 281731
+      },
+      {
+        "value": "fibrinogen",
+        "n": 261458
+      },
+      {
+        "value": "be",
+        "n": 237386
+      },
+      {
+        "value": "lacate",
+        "n": 220198
+      },
+      {
+        "value": "ckmb",
+        "n": 61705
+      },
+      {
+        "value": "ck",
+        "n": 60746
+      },
+      {
+        "value": "troponin_i",
+        "n": 48958
+      },
+      {
+        "value": "hba1c",
+        "n": 40434
+      },
+      {
+        "value": "troponin_t",
+        "n": 445
+      },
+      {
+        "value": "d_dimer",
+        "n": 317
+      }
+    ],
+    "ward_vitals.item_name": [
+      {
+        "value": "hr",
+        "n": 9870814
+      },
+      {
+        "value": "nibp_sbp",
+        "n": 6778087
+      },
+      {
+        "value": "nibp_dbp",
+        "n": 6777533
+      },
+      {
+        "value": "rr",
+        "n": 6112706
+      },
+      {
+        "value": "bt",
+        "n": 5045574
+      },
+      {
+        "value": "spo2",
+        "n": 4473175
+      },
+      {
+        "value": "nibp_mbp",
+        "n": 1957817
+      },
+      {
+        "value": "fio2",
+        "n": 1153774
+      },
+      {
+        "value": "uo",
+        "n": 1097580
+      },
+      {
+        "value": "vent",
+        "n": 504794
+      },
+      {
+        "value": "gcs_e",
+        "n": 503516
+      },
+      {
+        "value": "gcs_m",
+        "n": 503347
+      },
+      {
+        "value": "gcs_v",
+        "n": 198650
+      },
+      {
+        "value": "crrt",
+        "n": 187377
+      },
+      {
+        "value": "ecmo",
+        "n": 67921
+      },
+      {
+        "value": "iabp",
+        "n": 6595
+      }
+    ],
+    "medications.drug_name": [
+      {
+        "value": "ambroxol",
+        "n": 771723
+      },
+      {
+        "value": "acetaminophen",
+        "n": 404094
+      },
+      {
+        "value": "famotidine",
+        "n": 396050
+      },
+      {
+        "value": "tramadol",
+        "n": 378106
+      },
+      {
+        "value": "magnesium oxide",
+        "n": 314696
+      },
+      {
+        "value": "cefazolin",
+        "n": 237498
+      },
+      {
+        "value": "acetylcysteine",
+        "n": 204606
+      },
+      {
+        "value": "mosapride",
+        "n": 157099
+      },
+      {
+        "value": "udca",
+        "n": 152842
+      },
+      {
+        "value": "piperacillin",
+        "n": 151922
+      },
+      {
+        "value": "tazobactam",
+        "n": 151458
+      },
+      {
+        "value": "flomoxef",
+        "n": 128157
+      },
+      {
+        "value": "erdosteine",
+        "n": 127093
+      },
+      {
+        "value": "ipratropium",
+        "n": 112677
+      },
+      {
+        "value": "pantoprazole",
+        "n": 107004
+      },
+      {
+        "value": "potassium chloride",
+        "n": 102493
+      },
+      {
+        "value": "levetiracetam",
+        "n": 100989
+      },
+      {
+        "value": "oxycodone",
+        "n": 100027
+      },
+      {
+        "value": "ibuprofen",
+        "n": 97115
+      },
+      {
+        "value": "itopride",
+        "n": 96387
+      },
+      {
+        "value": "sucralfate",
+        "n": 93625
+      },
+      {
+        "value": "vancomycin",
+        "n": 92891
+      },
+      {
+        "value": "lactulose",
+        "n": 92874
+      },
+      {
+        "value": "metronidazole",
+        "n": 90147
+      },
+      {
+        "value": "furosemide",
+        "n": 89677
+      },
+      {
+        "value": "salbutamol",
+        "n": 88651
+      },
+      {
+        "value": "amlodipine",
+        "n": 86537
+      },
+      {
+        "value": "metoclopramide",
+        "n": 83372
+      },
+      {
+        "value": "arginine",
+        "n": 82844
+      },
+      {
+        "value": "moxifloxacin",
+        "n": 81857
+      },
+      {
+        "value": "ramosetron",
+        "n": 80478
+      },
+      {
+        "value": "cefotetan",
+        "n": 75002
+      },
+      {
+        "value": "acetyl cysteine",
+        "n": 74605
+      },
+      {
+        "value": "rebamipide",
+        "n": 70953
+      },
+      {
+        "value": "ranitidine",
+        "n": 65828
+      },
+      {
+        "value": "protease",
+        "n": 65541
+      },
+      {
+        "value": "amylase",
+        "n": 65541
+      },
+      {
+        "value": "lipase",
+        "n": 65541
+      },
+      {
+        "value": "bisacodyl",
+        "n": 65219
+      },
+      {
+        "value": "dexamethasone disodium phosphate",
+        "n": 63399
+      },
+      {
+        "value": "zaltoprofen",
+        "n": 59895
+      },
+      {
+        "value": "prednisolon",
+        "n": 58876
+      },
+      {
+        "value": "diltiazem",
+        "n": 54668
+      },
+      {
+        "value": "ketorolac",
+        "n": 54349
+      },
+      {
+        "value": "aspirin enteric coated",
+        "n": 53868
+      },
+      {
+        "value": "tacrolimus",
+        "n": 53241
+      },
+      {
+        "value": "metformin",
+        "n": 49636
+      },
+      {
+        "value": "ceftriaxone",
+        "n": 49216
+      },
+      {
+        "value": "spironolactone",
+        "n": 47962
+      },
+      {
+        "value": "hyaluronate",
+        "n": 47202
+      },
+      {
+        "value": "tamsulosin",
+        "n": 45772
+      },
+      {
+        "value": "meropenem",
+        "n": 45673
+      },
+      {
+        "value": "fentanyl",
+        "n": 45648
+      },
+      {
+        "value": "levothyroxine sodium",
+        "n": 45579
+      },
+      {
+        "value": "celecoxib",
+        "n": 45176
+      },
+      {
+        "value": "lansoprazole lfdt",
+        "n": 43870
+      },
+      {
+        "value": "aceclofenac",
+        "n": 43692
+      },
+      {
+        "value": "domperidone maleate",
+        "n": 43137
+      },
+      {
+        "value": "gabapentin",
+        "n": 42886
+      },
+      {
+        "value": "calcium carbonate",
+        "n": 41853
+      },
+      {
+        "value": "silymarin",
+        "n": 40900
+      },
+      {
+        "value": "atorvastatin",
+        "n": 40520
+      },
+      {
+        "value": "enoxaparine",
+        "n": 40181
+      },
+      {
+        "value": "ascorbic acid",
+        "n": 38473
+      },
+      {
+        "value": "nystatin",
+        "n": 36719
+      },
+      {
+        "value": "pregabalin",
+        "n": 35354
+      },
+      {
+        "value": "carvedilol",
+        "n": 35016
+      },
+      {
+        "value": "hydrocortisone",
+        "n": 34008
+      },
+      {
+        "value": "ramnos",
+        "n": 33930
+      },
+      {
+        "value": "methylprednisolone succinate",
+        "n": 33543
+      },
+      {
+        "value": "lidocaine",
+        "n": 32895
+      },
+      {
+        "value": "pethidine",
+        "n": 32839
+      },
+      {
+        "value": "ampicillin",
+        "n": 32639
+      },
+      {
+        "value": "palonosetron",
+        "n": 31712
+      },
+      {
+        "value": "insulin human",
+        "n": 31157
+      },
+      {
+        "value": "mycophenolate mofetil",
+        "n": 31022
+      },
+      {
+        "value": "magnesium sulfate",
+        "n": 30713
+      },
+      {
+        "value": "phenylephrine",
+        "n": 30503
+      },
+      {
+        "value": "bisoprolol",
+        "n": 30288
+      },
+      {
+        "value": "clopidogrel",
+        "n": 29642
+      },
+      {
+        "value": "epinephrine",
+        "n": 29374
+      },
+      {
+        "value": "potassium phophate",
+        "n": 29196
+      },
+      {
+        "value": "naloxone",
+        "n": 29061
+      },
+      {
+        "value": "cholecalciferol",
+        "n": 28867
+      },
+      {
+        "value": "tropicamide",
+        "n": 28741
+      },
+      {
+        "value": "esomeprazole",
+        "n": 28721
+      },
+      {
+        "value": "propacetamol",
+        "n": 28714
+      },
+      {
+        "value": "quetiapine",
+        "n": 28214
+      },
+      {
+        "value": "ofloxacin",
+        "n": 28045
+      },
+      {
+        "value": "valproate",
+        "n": 27672
+      },
+      {
+        "value": "bethanechol",
+        "n": 27437
+      },
+      {
+        "value": "theobromine",
+        "n": 27054
+      },
+      {
+        "value": "saccharomyces",
+        "n": 26832
+      },
+      {
+        "value": "cefotaxime",
+        "n": 25577
+      },
+      {
+        "value": "aspirin",
+        "n": 25446
+      },
+      {
+        "value": "ciprofloxacin",
+        "n": 25419
+      },
+      {
+        "value": "molsidomine",
+        "n": 25279
+      },
+      {
+        "value": "ceftezole",
+        "n": 25255
+      },
+      {
+        "value": "rosuvastatin",
+        "n": 24893
+      },
+      {
+        "value": "nimodipine",
+        "n": 24643
+      },
+      {
+        "value": "calcium",
+        "n": 24437
+      },
+      {
+        "value": "trimethoprim",
+        "n": 23941
+      },
+      {
+        "value": "sulfamethoxazole",
+        "n": 23941
+      },
+      {
+        "value": "potassium chloride powder",
+        "n": 23783
+      },
+      {
+        "value": "choline alfoscerate",
+        "n": 23177
+      },
+      {
+        "value": "sulbactam",
+        "n": 23092
+      },
+      {
+        "value": "clindamycin",
+        "n": 22977
+      },
+      {
+        "value": "amiodarone",
+        "n": 22942
+      },
+      {
+        "value": "baclofen",
+        "n": 22832
+      },
+      {
+        "value": "warfarin",
+        "n": 22771
+      },
+      {
+        "value": "lanolin",
+        "n": 22432
+      },
+      {
+        "value": "hydrochlorothiazide",
+        "n": 21599
+      },
+      {
+        "value": "lansoprazole",
+        "n": 21511
+      },
+      {
+        "value": "levofloxacin hydrate",
+        "n": 21500
+      },
+      {
+        "value": "glimepiride",
+        "n": 21389
+      },
+      {
+        "value": "l-dopa",
+        "n": 21334
+      },
+      {
+        "value": "joulie's soln",
+        "n": 21078
+      },
+      {
+        "value": "clonazepam",
+        "n": 20435
+      },
+      {
+        "value": "thioglycolic acid",
+        "n": 19561
+      },
+      {
+        "value": "cefoxitin",
+        "n": 19441
+      },
+      {
+        "value": "tranexamic acid",
+        "n": 19318
+      },
+      {
+        "value": "ceftazidime",
+        "n": 18814
+      },
+      {
+        "value": "cefepime",
+        "n": 18812
+      },
+      {
+        "value": "carbidopa",
+        "n": 18719
+      },
+      {
+        "value": "polymyxin b",
+        "n": 18282
+      },
+      {
+        "value": "oxytetracycline",
+        "n": 18282
+      },
+      {
+        "value": "nicorandil",
+        "n": 18139
+      },
+      {
+        "value": "apixaban",
+        "n": 18064
+      },
+      {
+        "value": "lactobacilus acidophilus",
+        "n": 17890
+      },
+      {
+        "value": "sodium bicarbonate",
+        "n": 17669
+      },
+      {
+        "value": "lorazepam",
+        "n": 17620
+      },
+      {
+        "value": "morphine sulfate",
+        "n": 17430
+      },
+      {
+        "value": "insulin glulisine",
+        "n": 17131
+      },
+      {
+        "value": "bromhexine",
+        "n": 16947
+      },
+      {
+        "value": "remifentanil",
+        "n": 16884
+      },
+      {
+        "value": "midazolam",
+        "n": 16547
+      },
+      {
+        "value": "desmopressin acetate",
+        "n": 16536
+      },
+      {
+        "value": "losartan potassium",
+        "n": 16414
+      },
+      {
+        "value": "digoxin",
+        "n": 16230
+      },
+      {
+        "value": "nicardipine",
+        "n": 15990
+      },
+      {
+        "value": "megestrol",
+        "n": 15687
+      },
+      {
+        "value": "fluconazole",
+        "n": 15655
+      },
+      {
+        "value": "trimetazidine",
+        "n": 15629
+      },
+      {
+        "value": "normal saline",
+        "n": 15522
+      },
+      {
+        "value": "chlorpheniramine",
+        "n": 15192
+      },
+      {
+        "value": "heparin sodium",
+        "n": 15164
+      },
+      {
+        "value": "rifaximin",
+        "n": 15149
+      },
+      {
+        "value": "dioctahedral smectite",
+        "n": 15125
+      },
+      {
+        "value": "methylergometrin maleate",
+        "n": 14921
+      },
+      {
+        "value": "gentamicin",
+        "n": 14524
+      },
+      {
+        "value": "levofloxacin",
+        "n": 14463
+      },
+      {
+        "value": "propranolol",
+        "n": 14407
+      },
+      {
+        "value": "dalteparin",
+        "n": 14367
+      },
+      {
+        "value": "nifedipine",
+        "n": 14149
+      },
+      {
+        "value": "topiramate",
+        "n": 13877
+      },
+      {
+        "value": "pyridoxine",
+        "n": 13837
+      },
+      {
+        "value": "chlorhexidine gluconate",
+        "n": 13813
+      },
+      {
+        "value": "octreotide",
+        "n": 13219
+      },
+      {
+        "value": "amantadine",
+        "n": 13109
+      },
+      {
+        "value": "diazepam",
+        "n": 13014
+      },
+      {
+        "value": "omeprazole",
+        "n": 12835
+      },
+      {
+        "value": "antithrombin iii",
+        "n": 12634
+      },
+      {
+        "value": "alprostadil",
+        "n": 12602
+      },
+      {
+        "value": "nadroparine",
+        "n": 12442
+      },
+      {
+        "value": "escitalopram",
+        "n": 12408
+      },
+      {
+        "value": "insulin glargine",
+        "n": 12376
+      },
+      {
+        "value": "midodrine",
+        "n": 12364
+      },
+      {
+        "value": "mannitol",
+        "n": 12230
+      },
+      {
+        "value": "codeine",
+        "n": 12223
+      },
+      {
+        "value": "levosulpiride",
+        "n": 12222
+      },
+      {
+        "value": "sitagliptin",
+        "n": 12126
+      },
+      {
+        "value": "zolpidem",
+        "n": 12069
+      },
+      {
+        "value": "lacosamide",
+        "n": 12014
+      },
+      {
+        "value": "ezetimibe",
+        "n": 11970
+      },
+      {
+        "value": "diclofenac",
+        "n": 11774
+      },
+      {
+        "value": "proparacaine",
+        "n": 11700
+      },
+      {
+        "value": "oxcarbazepine",
+        "n": 11663
+      },
+      {
+        "value": "entecavir",
+        "n": 11612
+      },
+      {
+        "value": "isosorbide dinitrate",
+        "n": 11489
+      },
+      {
+        "value": "acyclovir",
+        "n": 11317
+      },
+      {
+        "value": "granisetron",
+        "n": 11006
+      },
+      {
+        "value": "simvastatin",
+        "n": 10973
+      },
+      {
+        "value": "olanzapine",
+        "n": 10941
+      },
+      {
+        "value": "linagliptin",
+        "n": 10682
+      },
+      {
+        "value": "nafamostat",
+        "n": 10624
+      },
+      {
+        "value": "haloperidol",
+        "n": 10609
+      },
+      {
+        "value": "loperamide",
+        "n": 10582
+      },
+      {
+        "value": "hemocoagulase",
+        "n": 10559
+      },
+      {
+        "value": "valsartan",
+        "n": 10558
+      },
+      {
+        "value": "chondroitin",
+        "n": 10436
+      },
+      {
+        "value": "nafcillin",
+        "n": 10411
+      },
+      {
+        "value": "polaprezinc",
+        "n": 10363
+      },
+      {
+        "value": "clarithromycin",
+        "n": 10350
+      },
+      {
+        "value": "prednisolone acetate",
+        "n": 10286
+      },
+      {
+        "value": "cilostazol",
+        "n": 10046
+      },
+      {
+        "value": "hydroxyzine",
+        "n": 10027
+      },
+      {
+        "value": "alprazolam",
+        "n": 9609
+      },
+      {
+        "value": "linezolid",
+        "n": 9579
+      },
+      {
+        "value": "colistin",
+        "n": 9552
+      },
+      {
+        "value": "calcium polycarbophil",
+        "n": 9456
+      },
+      {
+        "value": "fluorometholone acetate",
+        "n": 9337
+      },
+      {
+        "value": "rifampicin",
+        "n": 9269
+      },
+      {
+        "value": "acetyl l-carnitine",
+        "n": 9267
+      },
+      {
+        "value": "hederae helicis",
+        "n": 9257
+      },
+      {
+        "value": "levocetirizine",
+        "n": 9155
+      },
+      {
+        "value": "mycophenolate sodium",
+        "n": 9096
+      },
+      {
+        "value": "acetaminophen inj",
+        "n": 9076
+      },
+      {
+        "value": "folic acid",
+        "n": 9042
+      },
+      {
+        "value": "pseudoephedrine",
+        "n": 8893
+      },
+      {
+        "value": "alfacalcidol",
+        "n": 8812
+      },
+      {
+        "value": "bromocriptine",
+        "n": 8737
+      },
+      {
+        "value": "vitis vinifera extract",
+        "n": 8115
+      },
+      {
+        "value": "polystyrene sulfonate calcium granule",
+        "n": 8060
+      },
+      {
+        "value": "budesonide",
+        "n": 8038
+      },
+      {
+        "value": "risperidone",
+        "n": 7832
+      },
+      {
+        "value": "cilastatin",
+        "n": 7822
+      },
+      {
+        "value": "imipenem",
+        "n": 7763
+      },
+      {
+        "value": "cephradine",
+        "n": 7651
+      },
+      {
+        "value": "methylphenidate",
+        "n": 7596
+      },
+      {
+        "value": "nalbuphine",
+        "n": 7593
+      },
+      {
+        "value": "magnesium lactate",
+        "n": 7573
+      },
+      {
+        "value": "nortriptyline",
+        "n": 7541
+      },
+      {
+        "value": "nefopam",
+        "n": 7492
+      },
+      {
+        "value": "ceftizoxime",
+        "n": 7461
+      },
+      {
+        "value": "naproxen",
+        "n": 7306
+      },
+      {
+        "value": "pyridostigmine",
+        "n": 7245
+      },
+      {
+        "value": "benzydamine",
+        "n": 7238
+      },
+      {
+        "value": "tobramycin",
+        "n": 7140
+      },
+      {
+        "value": "telmisartan",
+        "n": 7125
+      },
+      {
+        "value": "piracetam",
+        "n": 7111
+      },
+      {
+        "value": "methylergometrine maleate",
+        "n": 7098
+      },
+      {
+        "value": "voriconazole",
+        "n": 7082
+      },
+      {
+        "value": "allopurinol",
+        "n": 6930
+      },
+      {
+        "value": "mupirocin",
+        "n": 6624
+      },
+      {
+        "value": "simethicone",
+        "n": 6561
+      },
+      {
+        "value": "olmesartan",
+        "n": 6493
+      },
+      {
+        "value": "almagate",
+        "n": 6413
+      },
+      {
+        "value": "sevelamer carbonate",
+        "n": 6400
+      },
+      {
+        "value": "candesartan cilexitil",
+        "n": 6376
+      },
+      {
+        "value": "dextrose",
+        "n": 6332
+      },
+      {
+        "value": "gliclazide",
+        "n": 6279
+      },
+      {
+        "value": "bupivacaine",
+        "n": 6231
+      },
+      {
+        "value": "donepezil",
+        "n": 6223
+      },
+      {
+        "value": "povidone iodine",
+        "n": 6185
+      },
+      {
+        "value": "ebastine",
+        "n": 6148
+      },
+      {
+        "value": "pramipexole  monohydrate",
+        "n": 6104
+      },
+      {
+        "value": "beraprost",
+        "n": 6036
+      },
+      {
+        "value": "rivaroxaban",
+        "n": 5965
+      },
+      {
+        "value": "tigecycline",
+        "n": 5925
+      },
+      {
+        "value": "atenolol",
+        "n": 5921
+      },
+      {
+        "value": "ketoprofen",
+        "n": 5879
+      },
+      {
+        "value": "tenofovir disoproxil fumarate",
+        "n": 5748
+      },
+      {
+        "value": "isoconazole",
+        "n": 5742
+      },
+      {
+        "value": "pitavastatin calcium",
+        "n": 5691
+      },
+      {
+        "value": "cefuroxime",
+        "n": 5532
+      },
+      {
+        "value": "azelastine",
+        "n": 5459
+      },
+      {
+        "value": "triamcinolone acetonide",
+        "n": 5436
+      },
+      {
+        "value": "cefpodoxime",
+        "n": 5420
+      },
+      {
+        "value": "sildenafil",
+        "n": 5414
+      },
+      {
+        "value": "ganciclovir",
+        "n": 5370
+      },
+      {
+        "value": "thioctic acid",
+        "n": 5295
+      },
+      {
+        "value": "alginate sodium",
+        "n": 5205
+      },
+      {
+        "value": "calcium acetate",
+        "n": 5195
+      },
+      {
+        "value": "indigocarmine",
+        "n": 5188
+      },
+      {
+        "value": "benserazide",
+        "n": 5144
+      },
+      {
+        "value": "monobasic sodium phosphate",
+        "n": 5143
+      },
+      {
+        "value": "sodium phosphate dibasic,",
+        "n": 5143
+      },
+      {
+        "value": "divalproex na",
+        "n": 5083
+      },
+      {
+        "value": "rabeprazole",
+        "n": 5072
+      },
+      {
+        "value": "bepotastine besilate",
+        "n": 5026
+      },
+      {
+        "value": "ertapenem",
+        "n": 5022
+      },
+      {
+        "value": "eperisone",
+        "n": 5019
+      },
+      {
+        "value": "isoniazide",
+        "n": 4954
+      },
+      {
+        "value": "norepinephrine",
+        "n": 4951
+      },
+      {
+        "value": "piroxicam",
+        "n": 4926
+      },
+      {
+        "value": "sodium chloride powder",
+        "n": 4900
+      },
+      {
+        "value": "fimasartan",
+        "n": 4891
+      },
+      {
+        "value": "nitroglycerin",
+        "n": 4879
+      },
+      {
+        "value": "finasteride",
+        "n": 4873
+      },
+      {
+        "value": "fenopron",
+        "n": 4831
+      },
+      {
+        "value": "theophylline",
+        "n": 4812
+      },
+      {
+        "value": "carbamazepine",
+        "n": 4807
+      },
+      {
+        "value": "glycopyrrolate",
+        "n": 4774
+      },
+      {
+        "value": "dopamine",
+        "n": 4764
+      },
+      {
+        "value": "febuxostat",
+        "n": 4759
+      },
+      {
+        "value": "carboxymethyl cysteine",
+        "n": 4704
+      },
+      {
+        "value": "morphine",
+        "n": 4675
+      },
+      {
+        "value": "limaprost alfa-cyclodextrin clathrate",
+        "n": 4644
+      },
+      {
+        "value": "calcium citrate",
+        "n": 4608
+      },
+      {
+        "value": "fexofenadine",
+        "n": 4607
+      },
+      {
+        "value": "amitriptyline",
+        "n": 4575
+      },
+      {
+        "value": "nebivolol",
+        "n": 4557
+      },
+      {
+        "value": "nicergoline",
+        "n": 4502
+      },
+      {
+        "value": "phytonadione",
+        "n": 4487
+      },
+      {
+        "value": "torasemide",
+        "n": 4473
+      },
+      {
+        "value": "solifenacin",
+        "n": 4447
+      },
+      {
+        "value": "isosorbide mononitrate",
+        "n": 4436
+      },
+      {
+        "value": "ramipril",
+        "n": 4378
+      },
+      {
+        "value": "montelukast",
+        "n": 4274
+      },
+      {
+        "value": "streptokinase",
+        "n": 4226
+      },
+      {
+        "value": "streptodornase",
+        "n": 4226
+      },
+      {
+        "value": "nizatidine",
+        "n": 4216
+      },
+      {
+        "value": "tripotassium",
+        "n": 4198
+      },
+      {
+        "value": "insulin",
+        "n": 4186
+      },
+      {
+        "value": "dexamethasone",
+        "n": 4137
+      },
+      {
+        "value": "ethambutol",
+        "n": 4125
+      },
+      {
+        "value": "vit b",
+        "n": 4125
+      },
+      {
+        "value": "ondansetron",
+        "n": 4075
+      },
+      {
+        "value": "atropine",
+        "n": 3993
+      },
+      {
+        "value": "meloxicam",
+        "n": 3987
+      },
+      {
+        "value": "prednicarbate",
+        "n": 3965
+      },
+      {
+        "value": "ropivacaine",
+        "n": 3947
+      },
+      {
+        "value": "cyclosporin",
+        "n": 3897
+      },
+      {
+        "value": "tiropramide",
+        "n": 3889
+      },
+      {
+        "value": "valproic acid",
+        "n": 3855
+      },
+      {
+        "value": "oxiracetam",
+        "n": 3845
+      },
+      {
+        "value": "clobazam",
+        "n": 3837
+      },
+      {
+        "value": "iron acetyl transferrin",
+        "n": 3778
+      },
+      {
+        "value": "naftazone",
+        "n": 3775
+      },
+      {
+        "value": "tianeptine",
+        "n": 3728
+      },
+      {
+        "value": "calcium carbonate power",
+        "n": 3705
+      },
+      {
+        "value": "tizanidine",
+        "n": 3697
+      },
+      {
+        "value": "tranexamic",
+        "n": 3674
+      },
+      {
+        "value": "timolol",
+        "n": 3647
+      },
+      {
+        "value": "calcitriol",
+        "n": 3642
+      },
+      {
+        "value": "duloxetine",
+        "n": 3635
+      },
+      {
+        "value": "melatonin",
+        "n": 3589
+      },
+      {
+        "value": "insulin lispro",
+        "n": 3581
+      },
+      {
+        "value": "irbesartan",
+        "n": 3580
+      },
+      {
+        "value": "pyrazinamide",
+        "n": 3543
+      },
+      {
+        "value": "carbachol",
+        "n": 3526
+      },
+      {
+        "value": "ivh-dm",
+        "n": 3505
+      },
+      {
+        "value": "levodropropizine",
+        "n": 3483
+      },
+      {
+        "value": "mecobalamin",
+        "n": 3475
+      },
+      {
+        "value": "thiamine",
+        "n": 3427
+      },
+      {
+        "value": "ginkgo biloba extract",
+        "n": 3422
+      },
+      {
+        "value": "terazosin",
+        "n": 3412
+      },
+      {
+        "value": "silodosin",
+        "n": 3382
+      },
+      {
+        "value": "trazodone",
+        "n": 3289
+      },
+      {
+        "value": "fluticasone",
+        "n": 3286
+      },
+      {
+        "value": "salmeterol",
+        "n": 3286
+      },
+      {
+        "value": "hydroxychloroquine",
+        "n": 3261
+      },
+      {
+        "value": "acetazolamide",
+        "n": 3259
+      },
+      {
+        "value": "amikacin",
+        "n": 3245
+      },
+      {
+        "value": "smofa",
+        "n": 3242
+      },
+      {
+        "value": "phenobarbital",
+        "n": 3230
+      },
+      {
+        "value": "flumazenil",
+        "n": 3227
+      },
+      {
+        "value": "mirtazapine",
+        "n": 3207
+      },
+      {
+        "value": "cefixime",
+        "n": 3187
+      },
+      {
+        "value": "losartan",
+        "n": 3175
+      },
+      {
+        "value": "etizolam",
+        "n": 3054
+      },
+      {
+        "value": "teicoplanin",
+        "n": 3053
+      },
+      {
+        "value": "phenytoin",
+        "n": 3050
+      },
+      {
+        "value": "filgrastim",
+        "n": 3027
+      },
+      {
+        "value": "lamotrigine",
+        "n": 3003
+      },
+      {
+        "value": "microfibrillar collagen hemostatic",
+        "n": 3002
+      },
+      {
+        "value": "iron sucrose",
+        "n": 3001
+      },
+      {
+        "value": "doxazosin",
+        "n": 2974
+      },
+      {
+        "value": "gemigliptin",
+        "n": 2951
+      },
+      {
+        "value": "s-amlodipine",
+        "n": 2941
+      },
+      {
+        "value": "dorzolamide",
+        "n": 2922
+      },
+      {
+        "value": "epoetin alpha",
+        "n": 2866
+      },
+      {
+        "value": "buspirone",
+        "n": 2861
+      },
+      {
+        "value": "hepatitis b immunoglobulin",
+        "n": 2857
+      },
+      {
+        "value": "propofol",
+        "n": 2851
+      },
+      {
+        "value": "enalapril",
+        "n": 2844
+      },
+      {
+        "value": "pravastatin",
+        "n": 2832
+      },
+      {
+        "value": "apraclonidine",
+        "n": 2805
+      },
+      {
+        "value": "mirabegron",
+        "n": 2787
+      },
+      {
+        "value": "ticlopidine",
+        "n": 2773
+      },
+      {
+        "value": "dobutamine",
+        "n": 2763
+      },
+      {
+        "value": "camostat mesylate",
+        "n": 2752
+      },
+      {
+        "value": "sodium bicarbonate powder",
+        "n": 2751
+      },
+      {
+        "value": "ivabradine",
+        "n": 2738
+      },
+      {
+        "value": "dimenhydrinate",
+        "n": 2725
+      },
+      {
+        "value": "rivastigmine",
+        "n": 2725
+      },
+      {
+        "value": "propafenone",
+        "n": 2718
+      },
+      {
+        "value": "pentoxifylline",
+        "n": 2703
+      },
+      {
+        "value": "hydralazine",
+        "n": 2678
+      },
+      {
+        "value": "fenofibrate",
+        "n": 2668
+      },
+      {
+        "value": "mequitazine",
+        "n": 2610
+      },
+      {
+        "value": "terlipressin",
+        "n": 2595
+      },
+      {
+        "value": "hyaluronidase",
+        "n": 2576
+      },
+      {
+        "value": "lct",
+        "n": 2568
+      },
+      {
+        "value": "medium chain tg",
+        "n": 2568
+      },
+      {
+        "value": "cbfc",
+        "n": 2558
+      },
+      {
+        "value": "levodopa",
+        "n": 2529
+      },
+      {
+        "value": "hydromorphone",
+        "n": 2500
+      },
+      {
+        "value": "ginkgo",
+        "n": 2463
+      },
+      {
+        "value": "prasugrel",
+        "n": 2463
+      },
+      {
+        "value": "flecainide",
+        "n": 2452
+      },
+      {
+        "value": "penicillin g potassium",
+        "n": 2440
+      },
+      {
+        "value": "ropinirole",
+        "n": 2437
+      },
+      {
+        "value": "neomycin",
+        "n": 2435
+      },
+      {
+        "value": "polymixin b",
+        "n": 2435
+      },
+      {
+        "value": "vildagliptin",
+        "n": 2424
+      },
+      {
+        "value": "prucalopride",
+        "n": 2406
+      },
+      {
+        "value": "cefdinir",
+        "n": 2404
+      },
+      {
+        "value": "cinnarizine",
+        "n": 2358
+      },
+      {
+        "value": "perampanel",
+        "n": 2350
+      },
+      {
+        "value": "immunoglobulin g",
+        "n": 2330
+      },
+      {
+        "value": "sertraline",
+        "n": 2326
+      },
+      {
+        "value": "cimetropium bromide",
+        "n": 2305
+      },
+      {
+        "value": "psyllium",
+        "n": 2244
+      },
+      {
+        "value": "vasopressin",
+        "n": 2228
+      },
+      {
+        "value": "doxofylline",
+        "n": 2226
+      },
+      {
+        "value": "amoxicillin",
+        "n": 2213
+      },
+      {
+        "value": "ecabet",
+        "n": 2202
+      },
+      {
+        "value": "polystyrene sulfonate calcium suspension",
+        "n": 2170
+      },
+      {
+        "value": "formoterol",
+        "n": 2168
+      },
+      {
+        "value": "smofkabiven peripheral",
+        "n": 2145
+      },
+      {
+        "value": "zonisamide",
+        "n": 2139
+      },
+      {
+        "value": "everolimus",
+        "n": 2133
+      },
+      {
+        "value": "amphotericin-b liposomal",
+        "n": 2128
+      },
+      {
+        "value": "hyoscine",
+        "n": 2113
+      },
+      {
+        "value": "ev",
+        "n": 2107
+      },
+      {
+        "value": "triprolidine",
+        "n": 2107
+      },
+      {
+        "value": "dantrolene",
+        "n": 2101
+      },
+      {
+        "value": "colchicine",
+        "n": 2093
+      },
+      {
+        "value": "lercanidipine",
+        "n": 2082
+      },
+      {
+        "value": "l-aspartate-l-ornithine",
+        "n": 2080
+      },
+      {
+        "value": "doxycycline",
+        "n": 2063
+      },
+      {
+        "value": "pinaverium",
+        "n": 2040
+      },
+      {
+        "value": "morniflumate",
+        "n": 2033
+      },
+      {
+        "value": "cycloserine",
+        "n": 2025
+      },
+      {
+        "value": "wnfa",
+        "n": 2021
+      },
+      {
+        "value": "pioglitazone",
+        "n": 2013
+      },
+      {
+        "value": "pilocarpine",
+        "n": 2009
+      },
+      {
+        "value": "entacapone",
+        "n": 1999
+      },
+      {
+        "value": "methimazole",
+        "n": 1942
+      },
+      {
+        "value": "ritodrine",
+        "n": 1915
+      },
+      {
+        "value": "ibudilast",
+        "n": 1915
+      },
+      {
+        "value": "voglibose",
+        "n": 1886
+      },
+      {
+        "value": "insulin aspart",
+        "n": 1884
+      },
+      {
+        "value": "desoxymethasone",
+        "n": 1879
+      },
+      {
+        "value": "dexmedetomidine",
+        "n": 1869
+      },
+      {
+        "value": "alverine citrate",
+        "n": 1867
+      },
+      {
+        "value": "calcium dobesilate",
+        "n": 1860
+      },
+      {
+        "value": "aesculus hippocastanum l. leaves extract",
+        "n": 1841
+      },
+      {
+        "value": "cefditoren",
+        "n": 1833
+      },
+      {
+        "value": "misoprostol",
+        "n": 1831
+      },
+      {
+        "value": "memantine",
+        "n": 1800
+      },
+      {
+        "value": "sarpogrelate",
+        "n": 1795
+      },
+      {
+        "value": "indapamide",
+        "n": 1783
+      },
+      {
+        "value": "trihexyphenidyl",
+        "n": 1777
+      },
+      {
+        "value": "erythromycin",
+        "n": 1777
+      },
+      {
+        "value": "oxolamine",
+        "n": 1747
+      },
+      {
+        "value": "captopril",
+        "n": 1746
+      },
+      {
+        "value": "lamivudine",
+        "n": 1746
+      },
+      {
+        "value": "aripiprazole",
+        "n": 1716
+      },
+      {
+        "value": "glucoseorange",
+        "n": 1706
+      },
+      {
+        "value": "itraconazole",
+        "n": 1696
+      },
+      {
+        "value": "losartan k",
+        "n": 1678
+      },
+      {
+        "value": "darbepoetin alpha",
+        "n": 1672
+      },
+      {
+        "value": "ol",
+        "n": 1639
+      },
+      {
+        "value": "acarbose",
+        "n": 1626
+      },
+      {
+        "value": "valaciclovir",
+        "n": 1614
+      },
+      {
+        "value": "alfuzosin",
+        "n": 1604
+      },
+      {
+        "value": "soybean oil",
+        "n": 1594
+      },
+      {
+        "value": "basiliximab",
+        "n": 1567
+      },
+      {
+        "value": "citicoline",
+        "n": 1560
+      },
+      {
+        "value": "tn",
+        "n": 1543
+      },
+      {
+        "value": "cerebrolysin",
+        "n": 1543
+      },
+      {
+        "value": "hydrocodone",
+        "n": 1508
+      },
+      {
+        "value": "methylprednisolone",
+        "n": 1492
+      },
+      {
+        "value": "amoxicillin clavulanate",
+        "n": 1477
+      },
+      {
+        "value": "indocyanine green",
+        "n": 1474
+      },
+      {
+        "value": "fluoxetine",
+        "n": 1466
+      },
+      {
+        "value": "sterile isotonic sea water",
+        "n": 1465
+      },
+      {
+        "value": "loteprednol",
+        "n": 1459
+      },
+      {
+        "value": "clavulanate",
+        "n": 1455
+      },
+      {
+        "value": "polystyrene sulfonate calcium jelly",
+        "n": 1436
+      },
+      {
+        "value": "labetalol",
+        "n": 1417
+      },
+      {
+        "value": "amisulpride",
+        "n": 1400
+      },
+      {
+        "value": "mesalazine",
+        "n": 1392
+      },
+      {
+        "value": "perindopril t-butylamine",
+        "n": 1390
+      },
+      {
+        "value": "dexketoprofen",
+        "n": 1379
+      },
+      {
+        "value": "propiverine",
+        "n": 1354
+      },
+      {
+        "value": "oxytocin",
+        "n": 1352
+      },
+      {
+        "value": "doripenem",
+        "n": 1333
+      },
+      {
+        "value": "garlic oil",
+        "n": 1313
+      },
+      {
+        "value": "biphenyl dimethyl dicarboxylate ",
+        "n": 1313
+      },
+      {
+        "value": "verapamil",
+        "n": 1305
+      },
+      {
+        "value": "adefovir",
+        "n": 1303
+      },
+      {
+        "value": "sodium chloride",
+        "n": 1296
+      },
+      {
+        "value": "ntfl",
+        "n": 1294
+      },
+      {
+        "value": "fluticasone furoate",
+        "n": 1273
+      },
+      {
+        "value": "caspofungin",
+        "n": 1272
+      },
+      {
+        "value": "methylprednisolone aceponate",
+        "n": 1250
+      },
+      {
+        "value": "sevelamer",
+        "n": 1191
+      },
+      {
+        "value": "kremezin",
+        "n": 1184
+      },
+      {
+        "value": "magnesium citrate powder",
+        "n": 1180
+      },
+      {
+        "value": "metoprolol",
+        "n": 1179
+      },
+      {
+        "value": "salbutamol sulfate",
+        "n": 1166
+      },
+      {
+        "value": "azathioprine",
+        "n": 1166
+      },
+      {
+        "value": "calcium gluconate powder",
+        "n": 1165
+      },
+      {
+        "value": "buprenorphine",
+        "n": 1162
+      },
+      {
+        "value": "bosentan",
+        "n": 1154
+      },
+      {
+        "value": "cimetidine",
+        "n": 1153
+      },
+      {
+        "value": "vigabatrin",
+        "n": 1140
+      }
+    ],
+    "medications.route": [
+      {
+        "value": "po",
+        "n": 6449851
+      },
+      {
+        "value": "iv",
+        "n": 3535134
+      },
+      {
+        "value": "ex",
+        "n": 869353
+      }
+    ],
+    "operations.department": [
+      {
+        "value": "GS",
+        "n": 34725
+      },
+      {
+        "value": "OS",
+        "n": 17433
+      },
+      {
+        "value": "OT",
+        "n": 17249
+      },
+      {
+        "value": "OG",
+        "n": 12946
+      },
+      {
+        "value": "UR",
+        "n": 12230
+      },
+      {
+        "value": "OL",
+        "n": 11702
+      },
+      {
+        "value": "NS",
+        "n": 10172
+      },
+      {
+        "value": "CTS",
+        "n": 8754
+      },
+      {
+        "value": "PS",
+        "n": 5157
+      },
+      {
+        "value": "RAD",
+        "n": 379
+      },
+      {
+        "value": "IM",
+        "n": 89
+      },
+      {
+        "value": "AN",
+        "n": 68
+      },
+      {
+        "value": "PED",
+        "n": 38
+      },
+      {
+        "value": "RO",
+        "n": 15
+      },
+      {
+        "value": "(2 other values with n < 10)",
+        "n": null
+      }
+    ],
+    "operations.antype": [
+      {
+        "value": "General",
+        "n": 102790
+      },
+      {
+        "value": "MAC",
+        "n": 15013
+      },
+      {
+        "value": "Neuraxial",
+        "n": 12995
+      },
+      {
+        "value": "Regional",
+        "n": 162
+      }
+    ]
+  },
+  "ok": true
+}
