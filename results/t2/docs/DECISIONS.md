@@ -32,3 +32,19 @@ The relative dates do not allow reconstructing the year.
 
 λ per fold: [0.001, 0.01, 0.01, 0.001, 0.0] (a result in itself, §5.4)
 
+## 2026-10-27T14:27:53 — [dx_before_cutoff] Selected λ (t2)
+
+λ per fold: [0.001, 0.01, 0.01, 0.001, 0.0] (a result in itself, §5.4)
+
+## 2026-10-27T17:06:23 — [main] Temporal validation skipped
+
+The relative dates do not allow reconstructing the year.
+
+## 2026-10-27T17:08:46 — [margin_4h] Selected λ (t2)
+
+λ per fold: [0.001, 0.01, 0.01, 0.001, 0.0] (a result in itself, §5.4)
+
+## 2026-10-27T17:10:58 — [dx_before_cutoff] Selected λ (t2)
+
+λ per fold: [0.001, 0.01, 0.01, 0.001, 0.0] (a result in itself, §5.4)
+
