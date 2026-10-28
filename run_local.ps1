@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -16,6 +16,10 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              refitted locally, and the shape functions by site (scripts\posthoc_transport.py; --force refits)
   drift      exploratory, after transport: ICE and re-deformation of every variable of the frozen INSPIRE metric
              with each site's case base (scripts\posthoc_drift.py; about 2 h, resumable; --force refits)
+  drift-missing  exploratory, after drift: only the points of the missing values re-deformed, all at once
+             (scripts\posthoc_drift_missing.py; resumable; --force refits)
+  case-base  exploratory: how many local patients the frozen metric needs (dense accumulation), and whether the
+             eICU neighbours of the same hospital carry relations the other hospitals' do not (scripts\posthoc_case_base.py)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
@@ -150,7 +154,9 @@ switch ($Command) {
     "ksweep" { Invoke-Setup; & $Py -m perisim ksweep @ProfArgs @Rest; exit $LASTEXITCODE }
     "posthoc" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_transport.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "drift" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_drift.py") @ProfArgs @Rest; exit $LASTEXITCODE }
+    "drift-missing" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_drift_missing.py") @ProfArgs @Rest; exit $LASTEXITCODE }
+    "case-base" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_case_base.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | resources)" }
 }

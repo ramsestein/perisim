@@ -60,6 +60,50 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-28 — Post-hoc case-base analyses: patients needed, and hospital-specific relations in eICU (lead)
+
+- Two questions of the lead after the drift analysis. (1) With the frozen INSPIRE metric (the "scaffold"), how many
+  local patients, added at random, does it need to recover what the whole local pool gives? The pre-registered
+  accumulation curves (analysis C) jump from 2,000 patients to the whole pool (~18,000) and are still far from it at
+  2,000. (2) The lead's hypothesis: the case base carries physiology and local relations, not just a recalibration,
+  and eICU transports worse because it is several hospitals; are the relations hospital-specific?
+- **Exploratory, post hoc, not pre-registered, no decision rule.** Frozen metric, transport stage's split, labels, test
+  sets, k and α.
+- (1) Dense accumulation: n ∈ {50, …, 16,000} patients drawn at random from the pool, 20 draws per n; INSPIRE (its
+  own pool) as the reference. Reported: log-loss, macro AUROC, distance to the whole pool, share of its gain over the
+  local prevalence, change per doubling of n, the n that comes within 0.02 / 0.01 of the whole pool and the n that
+  matches the transported, recalibrated comparators of the post-hoc comparison. A first scratch run reproduced
+  analysis C (n = 500: 1.116 / 1.116; 2,000: 1.086 / 1.086, MIMIC-IV).
+- (2) eICU hospitals with ≥ 300 labelled index stays (analysis F's set and labels H1, H2, …), their test stays of the
+  transport test set. Same case-base size: A = the hospital's own pool; B = as many patients drawn from the other
+  eICU hospitals (10 draws); B' = B with its probabilities moved to the hospital's class shares (label-shift
+  correction), so that A − B' measures relations beyond base rates. Control: the same with random groups of patients
+  of the same sizes. Also the enrichment of own-hospital neighbours in the whole eICU pool and the k-th neighbour
+  distance. Patient bootstrap of the paired per-stay differences.
+- `scripts/posthoc_case_base.py` (`run_local.ps1 case-base`), outside `src/perisim`; frozen artefacts' SHA-256 checked
+  at the start and the end. Outputs: `results/posthoc_case_base/`, `reports/posthoc_case_base.html`,
+  `artifacts/<variant>/posthoc_case_base.json`; hospitals only by their size rank, never by eICU identifier.
+
+## 2026-10-28 — Post-hoc drift follow-up: only the missing values re-deformed (lead)
+
+- The drift analysis suggested that much of eICU's drift is in what a missing value means (blood gases, GCS). The
+  lead asked for the direct test: with the frozen INSPIRE metric and each site's case base, free ONLY the points of
+  the missing-data values, all at once, and see how much of the drift (all points re-deformed) and of the gap to the
+  local refit A(iii) that recovers.
+- **Exploratory, post hoc, not pre-registered, no decision rule.** Same lookup, split, labels, k, smoothed kNN,
+  ridge and evaluation as the drift analysis; INSPIRE again the (in-sample) control.
+- Freed: the "missing" value of every continuous variable and missingness indicator (it starts at the median's
+  point) and the "unobserved" value of every binary (at INSPIRE's prevalence); nothing else moves. A 10⁻³ jitter
+  starts each freed point off the observed point it coincides with (there the gradient of those pairs is zero).
+- Read in three groups, each evaluated with only its own adapted points (no refit): **measurement** (a value not
+  recorded), **structural** (hours since a support that was never used: a clinical state, not a gap) and **source**
+  (a binary whose source was not recorded, e.g. the medication tables). Each move is also fitted on the drift
+  analysis' two patient halves (agreement in direction).
+- `scripts/posthoc_drift_missing.py` (`run_local.ps1 drift-missing`), outside `src/perisim`; frozen artefacts'
+  SHA-256 checked at the start and the end. Outputs: `results/posthoc_drift_missing/`,
+  `reports/posthoc_drift_missing.html`, `artifacts/<variant>/posthoc_drift_missing.json`; fits cached in
+  `predictions/<variant>/posthoc/` (never exported); moves of values with < 10 stays at a site are not exported.
+
 ## 2026-10-28 — Post-hoc drift analysis: ICE and re-deformation of the frozen metric (lead)
 
 - The lead stated the purpose of the transport work: PERISIM is meant as a tool to study drift, not to beat the ML

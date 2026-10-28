@@ -6,7 +6,7 @@ One folder per experiment (`t2/`, then `t1/`, `t3/`), copied from the pipeline's
 | folder | content |
 |---|---|
 | `reports/` | HTML reports: internal validation (`results_main.html`), sensitivity variants, k sweep (`ksweep.html`), pilot, completeness audits, cohort schemas; later the external validation and transport reports |
-| `results/` | tables (CSV) and figures (PNG) of the k sweep, the transport analyses and the exploratory post-hoc comparison (`posthoc/`, with one shape figure per variable in `posthoc/shapes/`) and drift analysis (`posthoc_drift/`, one figure per shaped variable in `posthoc_drift/shapes/`) |
+| `results/` | tables (CSV) and figures (PNG) of the k sweep, the transport analyses and the exploratory post-hoc comparison (`posthoc/`, with one shape figure per variable in `posthoc/shapes/`) and drift analysis (`posthoc_drift/`, one figure per shaped variable in `posthoc_drift/shapes/`; missing values only in `posthoc_drift_missing/`) and the case-base analyses (`posthoc_case_base/`: patients needed, hospital-specific relations in eICU) |
 | `artifacts/` | aggregate JSON behind the reports (pooled metrics with bootstrap CIs, per-fold summaries, weights, shapes, D7 stopping parameters) |
 | `docs/` | decisions logged automatically by the pipeline and the freeze record for the registration (`OSF_registration.md`) |
 

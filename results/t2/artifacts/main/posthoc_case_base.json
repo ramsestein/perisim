@@ -1,0 +1,197 @@
+{
+  "note": "Exploratory, post hoc (2026-10-28): not pre-registered.",
+  "targets": {
+    "t2": {
+      "accumulation": {
+        "inspire": {
+          "site": "inspire",
+          "pool_patients": 8946,
+          "full_logloss": 0.933448031355451,
+          "prevalence_logloss": 1.1488225036493396,
+          "per_doubling": -0.021745579152346158,
+          "n_full_within_0.02": 4678.3793463170605,
+          "n_full_within_0.01": 6396.053426374038
+        },
+        "mimic": {
+          "site": "mimic",
+          "pool_patients": 18030,
+          "full_logloss": 1.049375308172897,
+          "prevalence_logloss": 1.166759373527331,
+          "per_doubling": -0.012419014739993841,
+          "n_full_within_0.02": 5861.790209906922,
+          "n_full_within_0.01": 10189.905979589856,
+          "ref_lgbm_recal_100": 1.11081061497968,
+          "n_to_match_lgbm_recal_100": 709.1360941535889,
+          "ref_lgbm_recal_500": 1.091355446560755,
+          "n_to_match_lgbm_recal_500": 1616.5909965613068,
+          "ref_logreg_recal_100": 1.1088307842120573,
+          "n_to_match_logreg_recal_100": 775.1085178439175,
+          "ref_logreg_recal_500": 1.0970868626891914,
+          "n_to_match_logreg_recal_500": 1270.0871999333765,
+          "ref_lgbm_local_refit": 0.9823925099038832,
+          "n_to_match_lgbm_local_refit": null,
+          "ref_perisim_local_refit": 1.02831203742823,
+          "n_to_match_perisim_local_refit": null
+        },
+        "eicu": {
+          "site": "eicu",
+          "pool_patients": 17870,
+          "full_logloss": 1.0453083340413556,
+          "prevalence_logloss": 1.145041371089081,
+          "per_doubling": -0.011400327322593067,
+          "n_full_within_0.02": 5056.411734698528,
+          "n_full_within_0.01": 9236.639245550443,
+          "ref_lgbm_recal_100": 1.1239324013299206,
+          "n_to_match_lgbm_recal_100": 249.8549421840349,
+          "ref_lgbm_recal_500": 1.1071310529910845,
+          "n_to_match_lgbm_recal_500": 658.1504243012427,
+          "ref_logreg_recal_100": 1.098998920750316,
+          "n_to_match_logreg_recal_100": 744.273819191732,
+          "ref_logreg_recal_500": 1.1005955970502876,
+          "n_to_match_logreg_recal_500": 726.5183875494944,
+          "ref_lgbm_local_refit": 1.0020161129108436,
+          "n_to_match_lgbm_local_refit": null,
+          "ref_perisim_local_refit": 1.029239168259738,
+          "n_to_match_perisim_local_refit": null
+        }
+      },
+      "hospitals": {
+        "summary": {
+          "A": {
+            "logloss": 1.0541203925854803,
+            "ci_low": 1.0312795627753106,
+            "ci_high": 1.0773556038977834
+          },
+          "B": {
+            "logloss": 1.1124981780912904,
+            "ci_low": 1.0891125695223383,
+            "ci_high": 1.1368053521285368
+          },
+          "Bc": {
+            "logloss": 1.0951193996995952,
+            "ci_low": 1.0704078948111453,
+            "ci_high": 1.1203328781635125
+          },
+          "pooled": {
+            "logloss": 1.025949280361342,
+            "ci_low": 1.0038006506673653,
+            "ci_high": 1.047477036503597
+          },
+          "others": {
+            "logloss": 1.044907674170869,
+            "ci_low": 1.02301928972539,
+            "ci_high": 1.0662900473928116
+          },
+          "own_minus_other": {
+            "mean": -0.058377785505810076,
+            "ci_low": -0.07369032487381694,
+            "ci_high": -0.04249039285697438,
+            "p_two_sided": 0.0
+          },
+          "own_minus_other_corrected": {
+            "mean": -0.04099900711411486,
+            "ci_low": -0.05428702032580792,
+            "ci_high": -0.027895807760571847,
+            "p_two_sided": 0.0
+          },
+          "other_corrected_minus_other": {
+            "mean": -0.017378778391695215,
+            "ci_low": -0.025728390605852386,
+            "ci_high": -0.008438591700769606,
+            "p_two_sided": 0.0
+          },
+          "pooled_minus_without_own": {
+            "mean": -0.01895839380952702,
+            "ci_low": -0.025299517175159648,
+            "ci_high": -0.012490651837552364,
+            "p_two_sided": 0.0
+          },
+          "test_stays": 2952,
+          "hospitals": 27,
+          "enrichment_weighted": 7.350433169595881,
+          "kth_distance_own": 6.2677472677980335,
+          "kth_distance_other": 7.476473531425807
+        },
+        "control": {
+          "A": {
+            "logloss": 1.1180366988737696,
+            "ci_low": 1.0962552330191646,
+            "ci_high": 1.1424601117493127
+          },
+          "B": {
+            "logloss": 1.123819577827759,
+            "ci_low": 1.1024815380020458,
+            "ci_high": 1.1482039950613008
+          },
+          "Bc": {
+            "logloss": 1.1235658889016966,
+            "ci_low": 1.1020649183257722,
+            "ci_high": 1.1480688203303877
+          },
+          "pooled": {
+            "logloss": 1.053627133451492,
+            "ci_low": 1.0309307240816092,
+            "ci_high": 1.077531513161822
+          },
+          "others": {
+            "logloss": 1.0535352283773929,
+            "ci_low": 1.0307717862378296,
+            "ci_high": 1.0774737895661037
+          },
+          "own_minus_other": {
+            "mean": -0.005782878953989545,
+            "ci_low": -0.015545921867820861,
+            "ci_high": 0.004296151057538778,
+            "p_two_sided": 0.265
+          },
+          "own_minus_other_corrected": {
+            "mean": -0.005529190027927067,
+            "ci_low": -0.014806409802576397,
+            "ci_high": 0.003896275863435411,
+            "p_two_sided": 0.282
+          },
+          "other_corrected_minus_other": {
+            "mean": -0.0002536889260624786,
+            "ci_low": -0.002998345519679857,
+            "ci_high": 0.0024945471102177917,
+            "p_two_sided": 0.866
+          },
+          "pooled_minus_without_own": {
+            "mean": 9.190507409906346e-05,
+            "ci_low": -0.001608192694310101,
+            "ci_high": 0.00172245888291041,
+            "p_two_sided": 0.876
+          },
+          "test_stays": 2882,
+          "hospitals": 27,
+          "enrichment_weighted": 0.9995972510008869,
+          "kth_distance_own": 7.66003460920494,
+          "kth_distance_other": 7.6309229253812605
+        }
+      }
+    }
+  },
+  "frozen_hashes": {
+    "start": {
+      "experiments/t2/state/freeze.json": "0e286e4282fdce3baa602f50d99e939c6bb7285d10e0d3054c8326478e94f019",
+      "experiments/t2/state/frozen_config/cohorts.yaml": "af3c9558e630939c8d4817ee2e652a7b83315f01adfe8ad8a7958b5bf07ff5b8",
+      "experiments/t2/state/frozen_config/experiment.yaml": "847792d0f68f7e91058230fdb9f2a4b4a8e5bca36cbdd6691e4326537eb377f0",
+      "experiments/t2/state/frozen_config/harmonization.yaml": "94ba81a09374eb41ca16be6e0a8872b8df0fbd24530277986880a258ec781694",
+      "experiments/t2/state/frozen_config/local.yaml": "20432b74561d6cdda322ecb749e55445612aa544f3c1b621a063d2fd501e1f6c",
+      "experiments/t2/state/frozen_config/model_space.yaml": "a811c4cc7311884287e555ab66701ca4c47a374460ce2871b18e6fdcffa28e3b",
+      "experiments/t2/state/frozen_config/targets.yaml": "dd885066659b12f0826d574433589d351d433a527f9a687e8776bb3d9c2241ae",
+      "experiments/t2/predictions/main/external/t2/final_model.pkl": "053654c00406a05f9ee87962aec28d869ebef4151f672f2eb693e9396d25ca52"
+    },
+    "end": {
+      "experiments/t2/state/freeze.json": "0e286e4282fdce3baa602f50d99e939c6bb7285d10e0d3054c8326478e94f019",
+      "experiments/t2/state/frozen_config/cohorts.yaml": "af3c9558e630939c8d4817ee2e652a7b83315f01adfe8ad8a7958b5bf07ff5b8",
+      "experiments/t2/state/frozen_config/experiment.yaml": "847792d0f68f7e91058230fdb9f2a4b4a8e5bca36cbdd6691e4326537eb377f0",
+      "experiments/t2/state/frozen_config/harmonization.yaml": "94ba81a09374eb41ca16be6e0a8872b8df0fbd24530277986880a258ec781694",
+      "experiments/t2/state/frozen_config/local.yaml": "20432b74561d6cdda322ecb749e55445612aa544f3c1b621a063d2fd501e1f6c",
+      "experiments/t2/state/frozen_config/model_space.yaml": "a811c4cc7311884287e555ab66701ca4c47a374460ce2871b18e6fdcffa28e3b",
+      "experiments/t2/state/frozen_config/targets.yaml": "dd885066659b12f0826d574433589d351d433a527f9a687e8776bb3d9c2241ae",
+      "experiments/t2/predictions/main/external/t2/final_model.pkl": "053654c00406a05f9ee87962aec28d869ebef4151f672f2eb693e9396d25ca52"
+    },
+    "unchanged": true
+  }
+}

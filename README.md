@@ -169,7 +169,16 @@ frozen code hash, and only reads the frozen artefacts (checked at the start and 
 about two hours, resumable) keeps the frozen INSPIRE metric, swaps its case base for each site's own patients, and
 asks how each variable's shape function would have to change to fit the site: ICE curves through the frozen
 geometry, then each variable's points re-fitted alone (everything else frozen) and all at once, with INSPIRE as the
-control (`reports/posthoc_drift.html`, `results/posthoc_drift/`).
+control (`reports/posthoc_drift.html`, `results/posthoc_drift/`). Its follow-up `.\run_local.ps1 drift-missing`
+(`scripts/posthoc_drift_missing.py`) frees only the points of the missing values (not recorded, support never used,
+source not recorded), all at once, to measure how much of the drift is in what a missing value means
+(`reports/posthoc_drift_missing.html`, `results/posthoc_drift_missing/`).
+
+**Post-hoc case-base analyses (exploratory, not pre-registered):** `.\run_local.ps1 case-base`
+(`scripts/posthoc_case_base.py`, minutes) keeps the frozen INSPIRE metric and asks how many local patients, added at
+random, it needs to recover what the whole local pool gives (a dense accumulation curve), and whether in eICU the
+neighbours of the same hospital carry relations the other hospitals' do not, at the same case-base size and with the
+base rates corrected (`reports/posthoc_case_base.html`, `results/posthoc_case_base/`).
 
 **Publishing results:** `python scripts/publish_results.py t2` copies the experiment's aggregate results (the export
 package: reports, tables, figures, aggregate JSON, plus the experiment's docs) into the repository's `results/t2/` for
@@ -219,5 +228,5 @@ src/perisim/
 tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets
 docs/              OPEN_QUESTIONS.md and DECISIONS.md
 results/           published aggregate results per experiment (reports, tables, figures, aggregate JSON)
-scripts/           public-safety check (pre-commit hook), publish_results.py, posthoc_transport.py and posthoc_drift.py
+scripts/           public-safety check (pre-commit hook), publish_results.py and the post-hoc posthoc_*.py
 ```
