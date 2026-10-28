@@ -60,6 +60,54 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-28 — Post-hoc drift analysis: ICE and re-deformation of the frozen metric (lead)
+
+- The lead stated the purpose of the transport work: PERISIM is meant as a tool to study drift, not to beat the ML
+  comparators (its loss against them was expected). With the frozen INSPIRE metric and each site's own case base
+  (analysis A(i)), which variables would have to change their shape function g_j, or their importance, to fit the
+  site, and how?
+- **Exploratory, post hoc, not pre-registered, no decision rule.** Same split, labels and k as the transport stage.
+- The metric is read as a lookup: each variable's values (INSPIRE's bins, categories, 0 / 1) are points
+  √w_j·g_j/s_j; continuous variables get an extra "missing" value at the median bin's point (INSPIRE imputes the
+  median), so informative missingness can appear. The lookup reproduces the frozen embedding exactly (checked per
+  site; MIMIC-IV test log-loss 1.0494, as in the post-hoc comparison).
+- ICE: 1000 test stays moved along every value through the frozen geometry, hard kNN with the site's case base
+  (blind where g_j is flat). Re-deformation: one variable's points freed for the case base and the queries, fitted by
+  L-BFGS on a smoothed version of the same kNN (votes σ((r_a − d²)/τ_a) around each anchor's k-th distance, frozen α),
+  patient-level leave-one-out over the case base, ridge 20 towards INSPIRE's points; evaluated with the real kNN on
+  the test set (paired patient bootstrap). Per variable: Δ log-loss, effective weight at the site with INSPIRE's and
+  with the adapted points, shape change (weighted Procrustes residual), split-half reliability. Then all variables
+  at once, against the local refit A(iii).
+- INSPIRE is run as the control with the same split rule and fits (in-sample: the metric was read from all of it).
+- Outside `src/perisim` (`scripts/posthoc_drift.py`, `run_local.ps1 drift`); frozen artefacts' SHA-256 checked at
+  the start and the end. Outputs: `results/posthoc_drift/`, `reports/posthoc_drift.html`,
+  `artifacts/<variant>/posthoc_drift.json`; fitted points cached in `predictions/<variant>/posthoc/` (resumable,
+  never exported); adapted points of values with < 10 stays at a site are not exported.
+
+## 2026-10-28 — Post-hoc transport comparison with the parametric comparators (lead)
+
+- After the T2 external validation and transport analyses, the lead asked how much PERISIM loses when transported
+  compared with the ML comparators of the CV, with and without recalibration, and where the sites differ (the shape
+  of g_j between sites, against the distribution of each variable). The external stage had transported only the
+  logistic regression, so LightGBM had never been evaluated outside INSPIRE.
+- **Exploratory, post hoc: added after the external and transport results had been seen; not part of the
+  pre-registration and without a decision rule** (stated in the report). Nothing confirmatory changes.
+- Same split (fixed test set, nested tuning subsets of analysis D, local pool), labels (cross-fitted tertiles) and k
+  as the transport stage. Each method — PERISIM, LightGBM (temperature), logistic regression, Euclidean kNN,
+  prevalence — trained on INSPIRE and applied as it is; recalibrated with 100 / 250 / 500 local patients (multinomial
+  p'_c ∝ exp(a_c + b·log p_c), intercepts only or intercepts + slope, penalised ML with a N(0, 2²) prior on a and
+  log b); refitted on the local pool (the ceiling; PERISIM = A(iii) of the transport stage). PERISIM also with
+  INSPIRE's case base plus the same n local patients (γ(n)). LightGBM and logistic regression nested as in the CV.
+  Paired patient-bootstrap CIs (2000).
+- Shapes: the per-site consensus of analysis E on INSPIRE's grid, divided by the site scale, drawn per variable and
+  class above the share of each site's stays in INSPIRE's bins (bins with < 10 stays suppressed; the outer bin edges,
+  single patients' extreme values, are not shown). Per variable: PSI over INSPIRE's bins, % outside INSPIRE's range
+  and missingness (a different population) next to the shape deviation (a different relationship) and w_j.
+- **Outside `src/perisim`** (`scripts/posthoc_transport.py`, `run_local.ps1 posthoc`): the frozen code hash covers
+  all of `src/perisim`. It only reads the frozen artefacts and checks their SHA-256 at the start and the end. Outputs:
+  `results/posthoc/`, `reports/posthoc_transport.html`, `artifacts/<variant>/posthoc_transport.json` (aggregates);
+  per-patient predictions cached in `predictions/<variant>/posthoc/` (never exported).
+
 ## 2026-10-27 — T2 frozen; aggregate results versioned in the repository (lead)
 
 - T2 frozen on the lead's workstation: tag `perisim-freeze-t2-2026-10-27-141040` (commit `c4cc8b7`, pushed to

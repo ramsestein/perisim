@@ -158,6 +158,19 @@ leave the computer (PhysioNet data use agreement).
 queries each fold's saved metric again over k = 1…2000 (`experiment.k_sweep`) and writes `reports/ksweep.html` and
 `results/ksweep/`. It takes minutes and is not a stage, so it never re-runs the pipeline.
 
+**Post-hoc transport comparison (exploratory, not pre-registered):** after the transport stage,
+`.\run_local.ps1 posthoc` (`scripts/posthoc_transport.py`) compares PERISIM with LightGBM and the logistic regression
+transported from INSPIRE, recalibrated with 100 / 250 / 500 local patients and refitted on the local pool, and draws
+every variable's shape function by site above where each site's stays fall on INSPIRE's grid
+(`reports/posthoc_transport.html`, `results/posthoc/`). It lives outside `src/perisim`, so it does not change the
+frozen code hash, and only reads the frozen artefacts (checked at the start and the end).
+
+**Post-hoc drift analysis (exploratory, not pre-registered):** `.\run_local.ps1 drift` (`scripts/posthoc_drift.py`,
+about two hours, resumable) keeps the frozen INSPIRE metric, swaps its case base for each site's own patients, and
+asks how each variable's shape function would have to change to fit the site: ICE curves through the frozen
+geometry, then each variable's points re-fitted alone (everything else frozen) and all at once, with INSPIRE as the
+control (`reports/posthoc_drift.html`, `results/posthoc_drift/`).
+
 **Publishing results:** `python scripts/publish_results.py t2` copies the experiment's aggregate results (the export
 package: reports, tables, figures, aggregate JSON, plus the experiment's docs) into the repository's `results/t2/` for
 version control. Patient-level data (`data\` and the rest of `work\`) are never copied; see `results/README.md`.
@@ -206,5 +219,5 @@ src/perisim/
 tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets
 docs/              OPEN_QUESTIONS.md and DECISIONS.md
 results/           published aggregate results per experiment (reports, tables, figures, aggregate JSON)
-scripts/           public-safety check (pre-commit hook) and publish_results.py
+scripts/           public-safety check (pre-commit hook), publish_results.py, posthoc_transport.py and posthoc_drift.py
 ```

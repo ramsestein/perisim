@@ -4,7 +4,8 @@ Usage:  python scripts/publish_results.py [t2 t1 t3] [--workdir <work folder>]  
         experiment that has an export package)
 
 Source: the experiment's export package (<work>/experiments/<t>/export/: aggregates only, already scanned for
-identifiers by the pipeline) and the experiment's docs (OSF note, generated DECISIONS / OPEN_QUESTIONS). Copied:
+identifiers by the pipeline), the experiment's docs (OSF note, generated DECISIONS / OPEN_QUESTIONS) and the
+exploratory post-hoc analyses when they exist (results/posthoc*/, their reports and JSON). Copied:
 HTML reports, tables (CSV) and figures, aggregate JSON and docs. Left out: the zip (a duplicate) and the per-fold CV
 artifacts (bulky intermediates, summarised in results*.json). Never touched: data/ and the rest of work/ (common/,
 derived/, predictions/, cache/: patient-level data, restricted by the PhysioNet data use agreements).
@@ -35,8 +36,14 @@ def publish(work: Path, exp: str) -> list[str]:
     if not src.is_dir():
         return []
     files = [(p, p.relative_to(src).as_posix()) for p in sorted(src.rglob("*")) if p.is_file()]
-    docs = work / "experiments" / exp / "docs"
+    root = work / "experiments" / exp
+    docs = root / "docs"
     files += [(p, f"docs/{p.name}") for p in sorted(docs.glob("*.md"))] if docs.is_dir() else []
+    # the exploratory post-hoc analyses (scripts/posthoc_*.py) run after the export stage: same layout
+    files += [(p, p.relative_to(root).as_posix()) for d in sorted((root / "results").glob("posthoc*"))
+              for p in sorted(d.rglob("*")) if p.is_file()]
+    files += [(p, p.relative_to(root).as_posix()) for p in sorted((root / "reports").glob("posthoc_*.html")) +
+              sorted((root / "artifacts" / "main").glob("posthoc_*.json"))]
     files = list({rel: (p, rel) for p, rel in files}.values())     # the experiment's own docs win over the export's
     dest = ROOT / "results" / exp
     shutil.rmtree(dest, ignore_errors=True)

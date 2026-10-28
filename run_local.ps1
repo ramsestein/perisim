@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -12,6 +12,10 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
   test       pytest
   ksweep     secondary k sweep of the finished cross-validation (minutes; aggregates in results\ksweep)
   freeze     S6.3 freeze (e.g. freeze --registration <OSF_ID>)
+  posthoc    exploratory, after transport: PERISIM vs LightGBM / logistic regression transported, recalibrated and
+             refitted locally, and the shape functions by site (scripts\posthoc_transport.py; --force refits)
+  drift      exploratory, after transport: ICE and re-deformation of every variable of the frozen INSPIRE metric
+             with each site's case base (scripts\posthoc_drift.py; about 2 h, resumable; --force refits)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
@@ -144,7 +148,9 @@ switch ($Command) {
         Push-Location $RepoDir; & $Py -m pytest -p no:cacheprovider @Rest; $rc = $LASTEXITCODE; Pop-Location; exit $rc
     }
     "ksweep" { Invoke-Setup; & $Py -m perisim ksweep @ProfArgs @Rest; exit $LASTEXITCODE }
+    "posthoc" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_transport.py") @ProfArgs @Rest; exit $LASTEXITCODE }
+    "drift" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_drift.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | resources)" }
 }
