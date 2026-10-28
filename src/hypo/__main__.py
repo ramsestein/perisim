@@ -2,11 +2,16 @@
 
   python -m hypo landmarks [--cohorts inspire mimic eicu] [--threads 4] [--force-extract eicu ...]
   python -m hypo audit
+  python -m hypo smoke --external eicu [--quick] [--threads 8]
+  python -m hypo cv [--external inspire mimic eicu] [--methods perisim ...] [--folds 0 1] [--quick] [--threads 16]
+  python -m hypo cv-report [--quick]
 
 `landmarks` builds the landmark table of each cohort from its original tables: <workdir>/landmarks/<cohort>.parquet
 (patient level, git-ignored) and an aggregate summary <workdir>/reports/landmarks_summary.md / .json; then runs
 `audit`, the completeness audit of the metric's inputs (<workdir>/reports/audit.md / .json), the gate before the
-model. Aggregates only: shares, quantiles, counts ≥ 10.
+model. `smoke` runs the whole model (metric, case bases, predictions) on the development sites of one rotation with
+a plain patient split: mechanics and cost (Phase 1). `cv` is the internal validation by rotation (Phase 2,
+resumable: finished units are kept) and ends with `cv-report`. Aggregates only: shares, quantiles, counts ≥ 10.
 """
 
 from __future__ import annotations
@@ -215,11 +220,39 @@ def main(argv=None) -> int:
     p.add_argument("--force-extract", nargs="*", default=[], metavar="COHORT",
                    help="re-extract these cohorts from the original tables (default: reuse the cached extracts)")
     sub.add_parser("audit", help="completeness audit of the metric's inputs (the gate before the model)")
+    p = sub.add_parser("smoke", help="Phase 1: the whole model on one rotation's development sites")
+    p.add_argument("--external", required=True, choices=load()["cohorts"], help="the rotation's external site")
+    p.add_argument("--quick", action="store_true", help="8 models and 10 NCA epochs (mechanics only)")
+    p.add_argument("--threads", type=int, default=8)
+    cfg = load()
+    p = sub.add_parser("cv", help="Phase 2: internal validation by rotation (resumable)")
+    p.add_argument("--external", nargs="*", default=cfg["cohorts"], choices=cfg["cohorts"],
+                   help="rotations, named by their external site")
+    p.add_argument("--methods", nargs="*", default=["perisim"] + cfg["cv"]["comparators"])
+    p.add_argument("--folds", nargs="*", type=int, default=None)
+    p.add_argument("--quick", action="store_true", help="8 models and 10 NCA epochs, in a separate folder")
+    p.add_argument("--threads", type=int, default=16)
+    p = sub.add_parser("cv-report", help="aggregate report of the internal validation")
+    p.add_argument("--quick", action="store_true")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
                         stream=sys.stdout)
     if a.cmd == "audit":
         audit()
+        return 0
+    if a.cmd == "smoke":
+        from .run import smoke
+
+        smoke(a.external, quick=a.quick, threads=a.threads)
+        return 0
+    if a.cmd in ("cv", "cv-report"):
+        from .report import report
+
+        if a.cmd == "cv":
+            from .cv import run
+
+            run(a.external, a.methods, a.folds, quick=a.quick, threads=a.threads)
+        report(a.quick)
         return 0
     return landmarks(a.cohorts, a.threads, a.force_extract)
 

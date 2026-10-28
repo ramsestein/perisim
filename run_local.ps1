@@ -21,7 +21,9 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
   case-base  exploratory: how many local patients the frozen metric needs (dense accumulation), and whether the
              eICU neighbours of the same hospital carry relations the other hospitals' do not (scripts\posthoc_case_base.py)
   hypo       experiment `hypo` (hypotension in the next 6 h, docs\design_hypotension.md): python -m hypo <command>,
-             e.g. `hypo landmarks` builds the landmark tables from the original tables
+             e.g. `hypo landmarks` builds the landmark tables from the original tables, `hypo smoke --external eicu`
+             runs the whole model on the other two sites (Phase 1), `hypo cv` the internal validation by
+             rotation (Phase 2, resumable; `hypo cv-report` rebuilds its report)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders

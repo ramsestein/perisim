@@ -80,8 +80,16 @@ vasopressor hours are a declared source gap there (D7, Phase 0). BMI, surgery du
 surgery are left out (absent in MIMIC-IV / eICU). The arterial-line flag is not an input (**D3**); it stratifies
 the drift analysis.
 
-**Metric.** Consensus shape functions g_j (T2's procedure) and diagonal-NCA weights (λ = 0, no SAGE); k = 50; α in
-the inner folds; nested patient-level CV (5 × 3) in the development sites.
+**Metric (Phase 1: `src/hypo/metric.py`, `casebase.py`; `metric` in `config/hypo.yaml`).** Consensus shape
+functions g_j (T2's procedure) from 40 accepted models of T2's model space; without SAGE the loop stops at that
+fixed number. The development site enters those models as a nuisance column, not the metric, so each g_j is a
+within-site effect and not a difference of base rates. Diagonal-NCA weights (λ = 0), with each anchor's candidates
+searched in its own site, as the metric is used. An input constant within every development site (the missing
+indicator of a source gap is the site itself) leaves the metric. Learning sample: at most 3 random landmarks per
+patient and the same number from each development site (≤ 30,000). Case base: every landmark of the site's
+patients. The k = 50 neighbours are distinct patients, each at its most similar moment, never the query's own. α by
+patient-level LOO on 20,000 of the case base's landmarks; out of support as T2. Nested patient-level CV (5 × 3) in
+the development sites: the inner level tunes the comparators (PERISIM has nothing left to tune but α).
 
 **Sites (D1).** Leave-one-site-out: the metric learned on two cohorts, frozen, applied to the third with its own case
 base; three rotations. eICU's rotation also per hospital (37 with ≥ 300 patients).

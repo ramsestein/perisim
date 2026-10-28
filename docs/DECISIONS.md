@@ -60,6 +60,52 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-28 — `hypo` Phase 2: internal validation by rotation (analyst's design; Phase 1 confirmed by the lead)
+
+- The lead confirmed Phase 1's defaults (entry below). `src/hypo/cv.py`, `compare.py`, `report.py`; `cv` in
+  `config/hypo.yaml`; `python -m hypo cv` (resumable: finished units are kept) and `python -m hypo cv-report`.
+- **Folds fixed per site**: 5 patient-level folds, stratified by the outcome, the same in every rotation, so a
+  site's test fold is predicted by the metric learned with each of the other two sites (one line per partner).
+- **PERISIM per rotation and fold**: metric learned on the learning sample of both development sites' training
+  patients; each site queried with its own case base (its training landmarks); α by LOO in that case base.
+- **Comparators are local** (one site's training landmarks): prevalence, last MAP + slope (logistic), logistic on
+  every input (C tuned), T2's LightGBM (grid × early stopping, temperature), Euclidean kNN (neutral axes, uniform
+  weights, the same case base and vote). Settings are T2's (`model_space.yaml` `baselines`), tuned in 3 inner
+  patient-level folds. They do not depend on the rotation, so each runs once per site and fold, and they are the
+  external stage's "refitted locally" arm too. Transported comparators (trained on the development sites, applied
+  to the external one) belong to the external stage.
+- Report: AUROC, log-loss, Brier, calibration in the large and slope per site and method, and PERISIM − comparator
+  paired in log-loss and AUROC, with 95 % CIs from 500 patient-level bootstrap resamples (the same for every method
+  of a site; weighted AUROC). Descriptive: Phase 2 has no decision rule; the hypotheses H1–H5 are for the external
+  stage, after the freeze.
+- Chain checked on real data in quick mode (8 models, 10 epochs; rotation external-eICU, fold 0; `cv_quick/`,
+  kept apart from the run): PERISIM unit 137 s; local comparators per site and fold 35 s (INSPIRE) to 90 s
+  (MIMIC-IV). The full run is estimated at 2.5–3 h.
+
+## 2026-10-28 — `hypo` Phase 1: the metric and the case base (analyst's defaults, confirmed by the lead)
+
+- `src/hypo/data.py` (landmarks → perisim's encoder input; learning sample), `metric.py` (shapes and weights),
+  `casebase.py` (neighbours and probabilities); settings in `metric` of `config/hypo.yaml`. perisim's encoder, model
+  space, surrogates, curve reading, consensus, NCA and smoothed vote are used unchanged.
+- **No SAGE stage** (T2: λ ≈ 0). The weights are a free diagonal NCA; the shape loop stops at a fixed 40 accepted
+  models (T2's loops accepted 31–57), with the stability trace Δ of the distance (uniform weights) recorded only.
+- **Several development sites.** The site is a nuisance column of the ensemble's models, not part of the metric:
+  each g_j is a within-site effect, not a base-rate difference between sites. The NCA searches each anchor's
+  candidates within its own site, as the metric is used (each site queries its own case base). Each development
+  site gives the learning sample the same number of landmarks (≤ 30,000; ≤ 3 random landmarks per patient).
+- **Inputs constant within every development site leave the metric**: the missing indicator of a source gap is the
+  site itself (INSPIRE's "vasopressor running now" and vasopressor hours when INSPIRE is a development site).
+- **Neighbours are distinct patients.** A patient's consecutive landmarks are near-copies; each other patient enters
+  the k = 50 once, at its most similar moment, and the query's own patient never enters. α by patient-level LOO on
+  20,000 of the case base's own landmarks; out of support as T2 (99th percentile of the k-th distance).
+- The secondary bands are the same neighbours' smoothed vote over three classes; carried outcomes (vasopressor
+  start, ICU discharge in 24 h, MAP at 6 h) are their shares / medians.
+- Smoke run (`python -m hypo smoke --external eicu`: development INSPIRE + MIMIC-IV, 80 / 20 patient split, mechanics
+  and cost only): 411 s in all (shapes 174 s, NCA 187 s); 40 accepted models in 46 attempts, Δ ≈ 0.002–0.003 from
+  the 20th; 18 of 27 variables shaped; no neighbourhood short of 50 distinct patients; held-out mean prediction
+  equal to each site's prevalence (13 / 31 %), AUROC 0.78 at both. A quick version (8 models, 10 epochs) gave the
+  same numbers. Comparators are Phase 2.
+
 ## 2026-10-28 — New experiment `hypo`: hypotension in the next 6 h in the ICU after surgery (lead)
 
 - T2 was the deliberately hard case (little information at ICU discharge), run to learn whether the shape functions
