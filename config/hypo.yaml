@@ -1,0 +1,111 @@
+# Experiment `hypo`: hypotension in the next 6 h in the ICU after surgery (docs/design_hypotension.md; defaults
+# approved by the lead on 2026-10-28). Separate from T2: not one of T2's configuration sections, so T2's frozen
+# configuration hash does not cover it. Sources mirror config/harmonization.yaml where T2 already defined them.
+
+experiment: hypo
+cohorts: [inspire, mimic, eicu]
+seed: 20261028
+
+population:
+  # stays_candidates of the common format (T2's extraction: every adult ICU stay with its times, the postoperative
+  # flag, the surgery and the deaths); the first postoperative ICU stay of each hospitalization; deaths kept
+  first_postop_stay_of_hospitalization: true
+  exclude_organ_donors: true
+  min_age: 18
+
+landmarks:
+  first_h: 2                   # hours after the ICU admission
+  last_h: 48
+  every_h: 2
+  history_h: 6                 # window of the MAP / heart-rate summaries
+  horizon_h: 6                 # outcome window [L, L + horizon)
+  map_threshold: 65            # mmHg, on the hourly median MAP
+  map_bands: [65, 75]          # secondary outcome: lowest hourly MAP of the window < 65 / 65–75 / ≥ 75
+  support_lookback_h: 2        # a support running in the last 2 h is running at L
+  support_gap_h: 6             # charted points of a support merge into one run while the gaps are < 6 h (T2's rule)
+  support_recent_h: 24         # "given in the last 24 h": comparable across sites (INSPIRE cannot time infusions)
+  lab_lookback_h: 72
+
+extraction:
+  vitals_h: [-2, 54]           # hours after the ICU admission (landmarks up to 48 h + the 6-h window)
+  labs_h: [-72, 48]
+
+bounds:                        # as config/harmonization.yaml
+  map: [10, 250]
+  hr: [10, 300]
+  spo2: [30, 100]
+  rr: [2, 80]
+  temp: [25, 45]
+  hb: [2, 25]
+  creatinine: [0.1, 25]
+  lactate: [0.1, 30]
+
+sources:
+  inspire:
+    ward_vitals:               # subject_id, chart_time (minutes, the clock of icuin_time), item_name, value
+      map_nibp: [nibp_mbp]     # plus (SBP + 2·DBP) / 3 where only nibp_sbp / nibp_dbp were charted (T2's rule)
+      hr: [hr]
+      spo2: [spo2]
+      rr: [rr]
+      temp: [bt]
+    supports_ward_vitals:            # 0 / 1 items ("use of mechanical ventilation"): a 0 record is not a support
+      vent: [vent, mv, ventilator]
+    labs: {hb: [hb], creatinine: [creatinine], lactate: [lacate, lactate]}   # "lacate" (sic) in INSPIRE
+    medications_atc:           # route "ex" (external) excluded, as in T2
+      vaso: [C01CA03, C01CA24, C01CA04, C01CA06, H01BA01]
+      sedation: [N01AX10, N05CM18, N05CD08]
+  mimic:
+    chartevents:
+      map_inv: [220052, 225312]
+      map_nibp: [220181]
+      hr: [220045]
+      spo2: [220277]
+      rr: [220210]
+      temp: [223762]
+      temp_f: [223761]         # converted to °C
+    labevents: {hb: [51222], creatinine: [50912], lactate: [50813]}
+    inputevents:
+      vaso: [221906, 221289, 221749, 222315, 221662]
+      sedation: [222168, 225150, 221668]
+    procedureevents:
+      vent: [225792]
+    # invasive ventilation also from the ventilator settings charted hourly in chartevents (d_items labels): the
+    # procedure is often charted hours after the ICU arrival; PEEP set left out (non-invasive ventilation charts it)
+    chartevents_vent: [223849, 229314, 224684, 224688, 224695, 224696, 224697]
+  eicu:
+    vitalperiodic: {map_inv: systemicmean, hr: heartrate, spo2: sao2, rr: respiration, temp: temperature}
+    vitalaperiodic: {map_nibp: noninvasivemean}
+    lab: {hb: [Hgb], creatinine: [creatinine], lactate: [lactate]}
+    infusiondrug_regex:
+      vaso: "(?i)(norepinephrine|levophed|epinephrine|adrenalin|phenylephrine|neo-?synephrine|vasopressin|dopamine)"
+      sedation: "(?i)(propofol|diprivan|dexmedetomidine|precedex|midazolam|versed)"
+    respiratorycare_vent: true # ventstartoffset / ventendoffset intervals [VERIFY]
+    # invasive ventilation also from the ventilator settings charted in respiratoryCharting (labels from the
+    # inventory of schema_eicu; PEEP / CPAP / EPAP left out: non-invasive ventilation charts them too) and from
+    # treatment (as T2)
+    respiratorycharting_vent_labels: ["Vent Rate", "Tidal Volume (set)", "TV/kg IBW", "Plateau Pressure",
+                                      "Peak Insp. Pressure", "Mean Airway Pressure", "Exhaled TV (machine)",
+                                      "Pressure Control", "Adult Con Setting Set RR", "Adult Con Setting Set Vt",
+                                      "Set Vt (Servo,LTV)", "Set Vt (Drager)", "Mechanical Ventilator Mode",
+                                      "Inspiratory Pressure, Set", "Minute Ventilation Set(L/min)"]
+    treatment_vent_regex: "(?i)mechanical ventilation"
+    # temperature: vitalPeriodic.temperature is sparse (14 % of the stays at 12 h); nurseCharting has it
+    nursecharting_temp: {label: Temperature, name: "Temperature (C)"}
+
+# Inputs of the metric (docs/design_hypotension.md §4). BMI, surgery duration and the time since the surgery are left
+# out: MIMIC-IV has no BMI and MIMIC-IV / eICU no surgery times in the common format (Phase 0, 2026-10-28). A missing
+# value is its own value.
+model:
+  inputs:
+    continuous: [map_last, map_mean_6h, map_min_6h, map_sd_6h, map_slope_6h, hr_last, hr_slope_6h, spo2_last,
+                 spo2_min_6h, rr_last, temp_last, hb_last, creatinine_last, lactate_last, age, L, vaso_hours]
+    binary: [vaso_on, vaso_24h, sedation_on, sedation_24h, vent_on, sex_male, emergency]
+    nominal: [surgical_group]            # unmapped -> "unknown"
+  # features a source cannot measure: set missing (type "source") in that cohort. INSPIRE's medication table holds
+  # administrations, not infusion intervals, so "running now" is unknown there (D7, 2026-10-28)
+  source_missing:
+    inspire: [vaso_on, sedation_on, vaso_hours]
+  # inputs a cohort measures only for some patients by practice, kept with their missing value as its own value
+  # (design §4); declared so the completeness audit does not stop on them
+  measurement_gaps:
+    eicu: [lactate_last]               # 23 % of the landmarks (eICU draws lactate selectively)

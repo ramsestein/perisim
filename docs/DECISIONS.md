@@ -60,6 +60,52 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-28 — New experiment `hypo`: hypotension in the next 6 h in the ICU after surgery (lead)
+
+- T2 was the deliberately hard case (little information at ICU discharge), run to learn whether the shape functions
+  carry real information, where the method breaks (rare classes, small case bases) and what it is good for (transfer
+  with a local case base, drift diagnosis). The next experiment applies that to a case with dense data and a frequent
+  outcome, centred again on transfer and explainability. Candidates measured on the original tables; rare outcomes
+  (vasopressor start, 2–9 % per landmark) discarded; the lead chose hypotension in the next 6 h.
+- Design: `docs/design_hypotension.md`; feasibility: `docs/feasibility_hypotension.md`. **Approved defaults:** D1
+  leave-one-site-out; D2 secondary outcome in absolute MAP bands (< 65 / 65–75 / ≥ 75); D3 arterial line as a
+  stratum, not an input; D4 landmarks every 2 h; D5 MAP < 65 mmHg on the hourly median, 6-h horizon. Open: D6 OSF
+  registration, D7 verify INSPIRE's ICU vasopressor infusions, D8 T1 / T3 of the original plan.
+- Code: a separate package `src/hypo/` (config `config/hypo.yaml`) on the branch `hypotension`. `perisim` is used as a
+  library and not changed, so T2's frozen code and configuration hashes stay valid on this branch; `hypo` has its own
+  code hash (its files plus perisim's hash). Population from T2's `stays_candidates` (postoperative adult ICU stays,
+  first of the hospitalization, deaths kept); vitals, labs and supports read again from the original tables, because
+  T2's common format keeps only T2's index stays and, in MIMIC-IV / eICU, the vitals of a window before the ICU
+  discharge.
+- **Phase 0 (data), approved by the lead.** First landmark build: INSPIRE 148,293 landmarks (13.2 % hypotension),
+  MIMIC-IV 387,159 (30.7 %), eICU 466,385 (19.3 %). Fixed before the model:
+  - eICU invasive ventilation was 1.7 % of the landmarks (respiratoryCare intervals alone): now also the ventilator
+    settings charted in respiratoryCharting (set rate / volume, plateau / peak pressure, mode, …; PEEP / CPAP / EPAP
+    left out, non-invasive ventilation charts them) and `treatment` (as T2); eICU temperature also from
+    nurseCharting ("Temperature (C)"), vitalPeriodic having it for 16 %.
+  - Charted points of a support merge into runs while the gaps are < 6 h (T2's `support_gap_hours`); new inputs
+    "vasopressor / sedation in the last 24 h", comparable across sites.
+  - **D7 resolved**: INSPIRE's medication table does hold the ICU (records for 99.8 % of the stays, median 19 per
+    stay); vasopressors in the ICU 8.5 % of the stays (norepinephrine 4.0 %, dopamine 4.1 %), sedation 16.3 % — a
+    practice difference, not missing data. But its records are administrations, not infusion intervals, so
+    "running now" (vaso_on, sedation_on) and vasopressor hours are a declared `source` missing value in INSPIRE.
+  - Left out of the metric: BMI (absent in MIMIC-IV), surgery duration and time since the surgery (no surgery times
+    in MIMIC-IV / eICU). Unmapped surgical group → its own category "unknown" (MIMIC-IV 25 %).
+  - A completeness audit (`python -m hypo audit`) is the gate before the model: outcome prevalence ≥ 10 % per
+    cohort, every input ≥ 50 % coverage unless declared a gap.
+  - Ventilation checked at the first landmark: INSPIRE stayed at 61–64 % up to 24 h in every surgical group because
+    its `vent` item is 0 / 1 and `hypo` counted the 0 records (39 % of them) as ventilation; now as T2's extraction
+    (`value != 0`, which T2 already applied). MIMIC-IV rose from 37 % at 2 h to 52 % at 6 h (the ventilation
+    procedure is charted hours after the arrival): the ventilator settings charted hourly in chartevents are added
+    (mode, set volume / rate, peak / plateau / mean airway pressure; PEEP left out), as in eICU.
+  - eICU lactate (23 % of the landmarks, drawn selectively) is a declared `measurement` gap: kept with its missing
+    value as its own value (design §4).
+  - After the fixes the audit passes with no flags. Ventilation at L = 2 / 24 h: INSPIRE 37 / 11 %, MIMIC-IV
+    45 / 26 %, eICU 40 / 12 %. MIMIC-IV's rise to 60 % at 6 h is composition, not charting: in the same stays it falls
+    (45 → 43 %); the stays without a MAP in the first ICU hour (8,733, 82 % ventilated, mostly cardiac) enter the
+    landmarks only from L = 4–6. The earliest landmarks under-represent the busiest arrivals; a property of the
+    design (a MAP in the last hour is required), reported, not corrected.
+
 ## 2026-10-28 — Post-hoc case-base analyses: patients needed, and hospital-specific relations in eICU (lead)
 
 - Two questions of the lead after the drift analysis. (1) With the frozen INSPIRE metric (the "scaffold"), how many
