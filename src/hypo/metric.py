@@ -160,7 +160,8 @@ def shape_loop(enc: Encoder, lm: Landmarks, scfg: dict, model_space: dict, *, se
     shapes, diag = consensus_shapes(_kept(curves, keep), enc, np.ones(enc.n_features), 1.0, float(scfg["flat_alpha"]))
     return {"shapes": shapes, "shape_diag": diag, "models": rows, "delta": deltas, "n_accepted": len(vls),
             "n_competitive": int(keep.sum()), "n_attempts": attempts, "seconds": time.perf_counter() - t0,
-            "groups": {enc.feature_names[j]: gnames[g] for j, g in enumerate(gof)}}
+            "groups": {enc.feature_names[j]: gnames[g] for j, g in enumerate(gof)},
+            "curves": {enc.feature_names[j]: c for j, c in _kept(curves, keep).items()}}
 
 
 def _kept(curves: dict, keep: np.ndarray) -> dict:
@@ -186,5 +187,5 @@ def fit_metric(lm: Landmarks, mcfg: dict, model_space: dict, *, seed: int, threa
             "seconds": {"shapes": loop["seconds"], "nca": time.perf_counter() - t_nca,
                         "total": time.perf_counter() - t},
             **{k: loop[k] for k in ("shape_diag", "models", "delta", "n_accepted", "n_competitive", "n_attempts",
-                                    "groups")}}
+                                    "groups", "curves")}}
     return Metric(enc, nca.weights, info)

@@ -18,6 +18,32 @@ from .data import Landmarks
 from .metric import C, Metric
 
 
+def search_distinct(Ew: np.ndarray, code: np.ndarray, Qw: np.ndarray, qc: np.ndarray, k: int, fetch: int,
+                    distinct: bool = True, chunk: int = 50000):
+    """(D, I, valid) of the k nearest reference rows of each query in a weighted embedding: never the query's own
+    patient (`code` / `qc`: patient codes, −1 = none) and, with `distinct`, each patient once, at its closest row.
+    D is the squared distance."""
+    k = min(k, Ew.shape[0])
+    kk = min(k * (fetch if distinct else 1) + 25, Ew.shape[0])
+    out = []
+    for s in range(0, Qw.shape[0], chunk):
+        Q = np.ascontiguousarray(Qw[s:s + chunk], dtype=np.float32)
+        D, I = search(Ew, Q, kk)
+        S = code[I]
+        bad = S == qc[s:s + chunk, None]
+        if distinct:                           # keep each patient's first (closest) appearance only
+            o = np.argsort(S, axis=1, kind="stable")
+            Ss = np.take_along_axis(S, o, 1)
+            first_s = np.ones_like(Ss, dtype=bool)
+            first_s[:, 1:] = Ss[:, 1:] != Ss[:, :-1]
+            first = np.empty_like(first_s)
+            np.put_along_axis(first, o, first_s, 1)
+            bad |= ~first
+        o = np.argsort(bad, axis=1, kind="stable")[:, :k]
+        out.append((np.take_along_axis(D, o, 1), np.take_along_axis(I, o, 1), ~np.take_along_axis(bad, o, 1)))
+    return tuple(np.vstack([x[i] for x in out]) for i in range(3))
+
+
 class CaseBase(KNNModel):
     def __init__(self, metric: Metric, lm: Landmarks, mcfg: dict, E: np.ndarray | None = None):
         E = metric.embed(lm) if E is None else E
@@ -37,28 +63,10 @@ class CaseBase(KNNModel):
         pos = np.minimum(np.searchsorted(self.uniq, s), self.uniq.size - 1)
         return np.where(self.uniq[pos] == s, pos, -1)
 
-    def search(self, Eq: np.ndarray, subjects_q: np.ndarray | None, chunk: int = 50000):
+    def search(self, Eq: np.ndarray, subjects_q: np.ndarray | None, chunk: int = 50000, k: int | None = None):
         """(D, I, valid) of the k neighbours of the queries (embedded, unweighted), with the exclusions above."""
-        k = min(self.k, self.Ew.shape[0])
-        kk = min(k * self.fetch + 25, self.Ew.shape[0])
-        qc = self._codes(subjects_q, Eq.shape[0])
-        out = []
-        for s in range(0, Eq.shape[0], chunk):
-            Q = np.ascontiguousarray(Eq[s:s + chunk] * self.sw, dtype=np.float32)
-            D, I = search(self.Ew, Q, kk)
-            S = self.code[I]
-            bad = S == qc[s:s + chunk, None]
-            if self.distinct:                  # keep each patient's first (closest) appearance only
-                o = np.argsort(S, axis=1, kind="stable")
-                Ss = np.take_along_axis(S, o, 1)
-                first_s = np.ones_like(Ss, dtype=bool)
-                first_s[:, 1:] = Ss[:, 1:] != Ss[:, :-1]
-                first = np.empty_like(first_s)
-                np.put_along_axis(first, o, first_s, 1)
-                bad |= ~first
-            o = np.argsort(bad, axis=1, kind="stable")[:, :k]
-            out.append((np.take_along_axis(D, o, 1), np.take_along_axis(I, o, 1), ~np.take_along_axis(bad, o, 1)))
-        return tuple(np.vstack([x[i] for x in out]) for i in range(3))
+        return search_distinct(self.Ew, self.code, np.asarray(Eq) * self.sw, self._codes(subjects_q, Eq.shape[0]),
+                               self.k if k is None else k, self.fetch, self.distinct, chunk)
 
     def neighbors(self, E_query, subjects_query=None, loo: bool = False):
         if loo:
@@ -71,6 +79,7 @@ class CaseBase(KNNModel):
         n = self.Ew.shape[0]
         rows = rng.choice(n, size=min(int(self.mcfg["alpha_queries"]), n), replace=False)
         D, I, valid = self.search(self.E[rows], self.subj_s[rows])
+        self.loo = {"rows": rows, "D": D, "I": I, "valid": valid}       # kept for votes re-weighted later (H5)
         y = self.y[rows]
         best = (np.inf, 1.0)
         for a in self.mcfg["alpha_grid"]:

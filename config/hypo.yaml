@@ -113,7 +113,9 @@ model:
 # Phase 1: the metric and the case base (design §4 "Metric"; T2's procedure without the SAGE stage, λ = 0)
 metric:
   k: 50
-  alpha_grid: [0, 0.1, 0.5, 1, 2, 5, 10]     # vote smoothing towards the case base's prevalence, chosen by LOO
+  # vote smoothing towards the case base's prevalence, chosen by LOO. No 0: in a small case base the LOO can prefer
+  # α = 0, and then a unanimous neighbourhood predicts exactly 0 or 1 (dry run, 2026-10-29); Phase 2 never chose it
+  alpha_grid: [0.1, 0.5, 1, 2, 5, 10]
   alpha_queries: 20000         # landmarks of the case base used as LOO queries to choose α and the OOD threshold
   ood_percentile: 99
   # neighbours are distinct patients: each other patient enters once, at its most similar moment (a patient's
@@ -158,3 +160,42 @@ cv:
   inner_folds: 3               # comparators' tuning; PERISIM has only α, chosen by LOO in its case base
   comparators: [prevalence, last_map, logreg, lightgbm, euclidean]
   n_boot: 500                  # patient-level bootstrap of the aggregate report
+
+# Phases 3-4: the frozen artefacts and the external stage (docs/prereg_hypo.md). Each rotation's transported metric is
+# learned once on all patients of its two development sites; the external site X is evaluated on its Phase 2 folds
+# (case base = the training folds, test = the fold), so every landmark of X is predicted once.
+external:
+  final_seed_offset: 1000      # seed of the frozen artefacts = seed + this
+  comparators: [last_map, logreg, lightgbm]     # also transported (fitted on the two development sites pooled)
+  n_boot_primary: 2000         # H1-H5
+  n_boot: 500                  # secondary analyses
+  h1_margin: 0.02              # AUROC, non-inferiority
+  h2_citl: 0.10                # log-odds
+  h2_slope: 0.90
+  recalibration_n: [100, 250, 500]   # local patients for the transported comparators' logistic recalibration
+  curve:                       # S1: case bases of n random patients of the training folds
+    n: [50, 100, 250, 500, 1000, 2000, 4000, 8000]
+    reps: 5
+    reps_large: 3
+    large_from: 2000
+  hospitals:                   # H4 / S6 (eICU)
+    min_patients: 300
+    draws: 10
+  gamma: [2, 4, 8]             # H5: weight of a neighbour from the query's own hospital
+  drift:                       # S4 (fold 0 only), after T2's post hoc drift analyses
+    fold: 0
+    n_ice: 500
+    k_candidates: 150          # distinct-patient candidates of the smoothed kNN
+    smooth: 10
+    ridge: 20.0
+    anchors: 20000             # LOO anchors drawn from the case base (at most 3 per patient)
+    test: 20000                # test landmarks of the real kNN
+    iters: 30
+    joint_rounds: 2
+    joint_iters: 25
+    chunk: 2048
+  threshold:                   # S5: where the risk rises, read from g_j of the MAP variables
+    variables: [map_last, map_mean_6h, map_min_6h]
+    reference: 85              # mmHg
+    rise: 0.6931               # ln 2: the odds double
+  min_cell: 10                 # aggregates of fewer landmarks are not exported

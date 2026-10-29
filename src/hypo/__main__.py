@@ -234,6 +234,22 @@ def main(argv=None) -> int:
     p.add_argument("--threads", type=int, default=16)
     p = sub.add_parser("cv-report", help="aggregate report of the internal validation")
     p.add_argument("--quick", action="store_true")
+    p = sub.add_parser("final", help="Phase 3: the frozen artefacts (transported metrics and comparators)")
+    p.add_argument("--threads", type=int, default=16)
+    p = sub.add_parser("freeze", help="Phase 3: freeze record and git tag (enables the external stage)")
+    p.add_argument("--registration", default=None, help="registration ID (OSF, or a local ID); PENDING if absent")
+    p.add_argument("--no-git", action="store_true", help="no tag (the freeze is recorded by hashes only)")
+    p = sub.add_parser("external", help="Phase 4: the external stage on the frozen version (resumable)")
+    p.add_argument("--external", nargs="*", default=cfg["cohorts"], choices=cfg["cohorts"])
+    p.add_argument("--folds", nargs="*", type=int, default=None)
+    p.add_argument("--parts", nargs="*", default=None,
+                   choices=["transported", "local", "comps", "curve", "hospitals", "drift", "shapes"])
+    p.add_argument("--threads", type=int, default=16)
+    p.add_argument("--dry-run", action="store_true",
+                   help="pre-freeze rehearsal on the real data, nothing external (each site served by a metric "
+                        "that included it), in external_dryrun/")
+    p = sub.add_parser("external-report", help="aggregate report of the external stage")
+    p.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
                         stream=sys.stdout)
@@ -253,6 +269,34 @@ def main(argv=None) -> int:
 
             run(a.external, a.methods, a.folds, quick=a.quick, threads=a.threads)
         report(a.quick)
+        return 0
+    if a.cmd in ("final", "freeze"):
+        from .frozen import Stop, final, freeze
+
+        try:
+            if a.cmd == "final":
+                final(threads=a.threads)
+            else:
+                rec = freeze(a.registration, no_git=a.no_git)
+                print(f"[hypo] frozen: {rec['tag']} (registration {rec['registration']}). Push the tag before the "
+                      "external stage: git push origin " + rec["tag"])
+        except Stop as e:
+            print(f"[hypo] {e}")
+            return 2
+        return 0
+    if a.cmd in ("external", "external-report"):
+        from .external_report import report as xreport
+        from .frozen import Stop
+
+        try:
+            if a.cmd == "external":
+                from .external import Stage
+
+                Stage(threads=a.threads, dry=a.dry_run).run(a.external, a.folds, a.parts)
+            xreport(dry=a.dry_run)
+        except Stop as e:
+            print(f"[hypo] {e}")
+            return 2
         return 0
     return landmarks(a.cohorts, a.threads, a.force_extract)
 

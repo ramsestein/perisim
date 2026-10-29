@@ -43,5 +43,5 @@ def code_hash(n: int = 12) -> str:
     h = hashlib.sha256(perisim_hash().encode())
     for f in sorted(PKG.rglob("*.py")):
         h.update(f.relative_to(PKG).as_posix().encode())
-        h.update(f.read_bytes())
+        h.update(f.read_bytes().replace(b"\r\n", b"\n"))           # same hash on any checkout (as perisim's)
     return h.hexdigest()[:n]

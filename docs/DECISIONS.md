@@ -60,6 +60,62 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-29 — `hypo` Phase 3: pre-registration draft, frozen artefacts and the external stage's code (analyst; for the lead's approval before the freeze)
+
+- Phase 2 finished (`reports/cv.md`, code `11a7ad77e519`; summary in docs/prereg_hypo.md §3); nothing tuned on it.
+- **Draft pre-registration**: [prereg_hypo.md](prereg_hypo.md). H1–H5 of the design §5 made operational, the
+  secondary analyses S1–S8, rules and limitations. Analyst's choices inside the design's wording, for the lead to
+  confirm or change before the freeze:
+  - H1 "PERISIM refitted locally" = a metric learned on the external site's training folds only, with the same
+    case base;
+  - H2 "inside ±0.10" read as T2 did, the 95 % CI inside the margin;
+  - H3 against the last-MAP model refitted locally (the harder bar);
+  - H4's control as a decision condition (Δ_hosp − Δ_ctrl < 0);
+  - H5 with a Bonferroni over the three pre-declared γ;
+  - 2,000 bootstrap resamples for H1–H5 and 500 for the rest;
+  - the external stage on the Phase 2 folds (case base = the training folds), so every landmark of the external
+    site is predicted once;
+  - drift and shapes on fold 0 only.
+- **The code of the external stage is written and frozen before it runs**, as T2's was:
+  - `frozen.py`: `python -m hypo final` fits the three transported metrics on all patients of each development
+    pair, and the transported comparators. `python -m hypo freeze` creates the tag and the hash record and refuses
+    when external results exist or the tree is dirty. `check` is the gate.
+  - `external.py`: the units per site and fold.
+  - `drift.py`: S4–S6, T2's post hoc drift analyses re-implemented for a binary outcome and distinct-patient
+    neighbours; candidates of the one-variable fits from the frozen metric, shared by all variables.
+  - `external_report.py`: H1–H5 and the secondary tables.
+  - `stats.py`: perisim's calibration fits with weights.
+  - The external stage checks the freeze at its start and its end.
+- Small changes to Phase 1 code, behaviour unchanged (tested):
+  - the distinct-patient search is a function reusable by the drift fits;
+  - the case base keeps its LOO neighbours, so H5 can re-choose α;
+  - the shape loop returns the accepted models' curves, so S5 can read thresholds per model;
+  - `hypo`'s code hash now normalises line endings as perisim's does, so the frozen hash is the same on any checkout
+    (the hash itself changes from Phase 2's `11a7ad77e519`).
+- A frozen-metric input that the external site cannot measure (INSPIRE's infusion timing) is the same value for all
+  of that site's landmarks, so it adds nothing to any distance in its case base (tested). It needs no rule.
+- **Dry run on real data** (`python -m hypo external --dry-run`, `external_dryrun/`, `reports/external_dryrun.md`):
+  - eICU fold 0 is served by the rotation whose development pair includes eICU, so it is in-sample and touches no
+    external result; it checks the mechanics only;
+  - every unit ran at full size in 2 h 11 min;
+  - it found one fault. In small case bases (H4's hospital contrasts, the S1 curve at n ≤ 500) the LOO chose α = 0,
+    and unanimous neighbourhoods then predicted exactly 0 or 1. Four hospital test rows reached the log-loss clip
+    (34.5), and up to 1,909 curve predictions were 0 or 1;
+  - fix: α = 0 is removed from `metric.alpha_grid` (now 0.1–10). Phase 2 never chose α = 0, so its results are
+    unchanged. The grid is used only by case bases, so the frozen artefacts are unchanged too. The affected
+    dry-run units (hospitals, curve, hospital drift) were rerun; no prediction is 0 or 1 any more, and the largest
+    log-loss of a row is 7.1;
+  - the fix changes two in-sample dry-run figures, recorded in prereg §3. H4 goes from "does not hold" to "holds":
+    the own-hospital arm had carried the clipped rows. S1's "within 0.01" goes from 500 to 250 patients. The old
+    outputs are kept in `external_dryrun_alpha0/`.
+- Order:
+  1. `final` (done; code `cf0d0b80c70a`);
+  2. dry run (done);
+  3. the lead approves prereg_hypo.md and decides D6;
+  4. commit the code;
+  5. `freeze` and push the tag;
+  6. `external` (about 8 h).
+
 ## 2026-10-28 — `hypo` Phase 2: internal validation by rotation (analyst's design; Phase 1 confirmed by the lead)
 
 - The lead confirmed Phase 1's defaults (entry below). `src/hypo/cv.py`, `compare.py`, `report.py`; `cv` in

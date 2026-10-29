@@ -1,6 +1,6 @@
 # Next use case: hypotension in the next 6 h in the ICU after surgery
 
-Status: **defaults D1–D5 approved by the lead on 2026-10-28; D7 resolved in Phase 0; D6 and D8 open.** Branch `hypotension`, package `src/hypo/`; Phase 0 done: landmark builder and completeness audit (`python -m hypo landmarks`, gate passed); nothing registered. T2 was the deliberately hard case
+Status: **defaults D1–D5 approved by the lead on 2026-10-28; D7 resolved in Phase 0; D6 and D8 open.** Branch `hypotension`, package `src/hypo/`; Phases 0–2 done (landmarks and audit, model, internal validation `reports/cv.md`); Phase 3 in progress: draft pre-registration [prereg_hypo.md](prereg_hypo.md) and the external stage's code, to freeze once the lead approves it; nothing registered yet. T2 was the deliberately hard case
 (little information at ICU discharge) used to learn whether the shape functions carry real information, where the
 method breaks and what it is good for. This experiment applies that, end to end, to a case with dense data and a
 frequent outcome, again centred on **transfer and explainability**. Feasibility measured on the original tables of the
