@@ -18,5 +18,6 @@ their identifier.
 | `reports/final.md` | Phase 3: the frozen artefacts (weights, MAP thresholds) |
 | `reports/external_dryrun.*` | Phase 3: dry run of the external stage, in-sample, mechanics only (after the α fix; prereg §3) |
 | `reports/external.*` | **Phase 4: the external stage**, H1–H5 (confirmatory) and S1–S8 (secondary) |
+| `reports/posthoc.md` | post hoc follow-ups (exploratory, not pre-registered; REPORT §13): local weights swapped in, MAP-block threshold, drift over five folds |
 | `results/freeze.json` | the freeze record with every hash the external stage checked |
-| `results/cv/`, `results/final/`, `results/external/`, `results/external_dryrun/` | per-unit summaries (α, weights, shapes, drift, thresholds, timings), JSON only |
+| `results/cv/`, `results/final/`, `results/external/`, `results/external_dryrun/`, `results/posthoc/` | per-unit summaries (α, weights, shapes, drift, thresholds, timings), JSON only |

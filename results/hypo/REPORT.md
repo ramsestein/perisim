@@ -34,6 +34,12 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
   transported methods. It is level with logistic regression refitted locally (−0.001 to +0.004) and below LightGBM
   refitted locally (+0.011 to +0.016). That was expected: the experiment is centred on transfer and explainability,
   not on beating general models (design, opening paragraph).
+- **Post hoc (exploratory, §13):**
+  - the drift null holds over all five folds;
+  - a threshold for the MAP block as a whole is about 78 mmHg in every site (eICU hospitals: interquartile range
+    77–79);
+  - MIMIC-IV gains a little from weighting a running vasopressor infusion (−0.0017 nats). This is a lead for a
+    pre-registered test.
 
 ## 1. Question and design
 
@@ -268,7 +274,7 @@ transported ones well beyond the fold-to-fold range:
   - Vasopressors running now: weighted in MIMIC-IV's own metric, where 22.6 % of the landmarks are on vasopressors.
     In the transported metric it is near zero. That metric was learned on INSPIRE, which cannot tell whether an
     infusion is running, and eICU, where 7.9 % of the landmarks are on vasopressors.
-- These two are the candidate site differences for a follow-up. They are not tested here.
+- These two are the candidate site differences for a follow-up. They are not tested here; §13.1 tests them post hoc.
 
 ### 7.5 Reading
 
@@ -354,10 +360,97 @@ physiology measured the same way everywhere.
    any gain at about 0.002 nats, and the development-site controls behave the same way.
 3. What differs between sites and hospitals (base rates, time-since-admission weighting, vasopressor use) is visible
    in the metric's pieces. It is absorbed by the case base rather than requiring a new metric.
-4. Possible follow-ups, post hoc and outside the frozen code, if the lead wants them:
-   - a MAP-block threshold;
-   - the L and vasopressor differences of §7.4 tested with the re-deformation machinery;
-   - the drift analyses over all five folds.
+4. Three follow-ups were run post hoc, outside the frozen code (§13). They support points 2 and 3:
+   - the drift null holds over all five folds;
+   - a MAP-block threshold of about 78 mmHg agrees across sites (eICU hospitals: interquartile range 77–79);
+   - of the two weight differences named in §7.4, only MIMIC-IV's vasopressor weight gains anything (−0.0017 nats).
+     That gain is exploratory.
+
+## 13. Post hoc follow-ups (exploratory, not pre-registered)
+
+The lead asked for these follow-ups after the first draft of this report. They ran on 2026-10-29/30 with
+`scripts/posthoc_hypo.py`, outside the frozen code. The frozen artefacts are only read, and the freeze record was
+checked at the start and at the end. Nothing here changes H1–H5 or S1–S8. Full tables:
+[reports/posthoc.md](reports/posthoc.md).
+
+### 13.1 The weight differences of §7.4 (fold 0)
+
+The weights of the H1 arm's local fold-0 metric are swapped into the transported metric. The transported shapes and
+the site's own case base are kept. Δ log-loss is measured on S4's test sample (negative = better than frozen):
+
+| site | the H1 local metric itself | all weights local, shapes transported |
+|---|---|---|
+| INSPIRE | −0.0016 (−0.0048 to 0.0018) | −0.0019 (−0.0048 to 0.0008) |
+| MIMIC-IV | −0.0022 (−0.0051 to 0.0009) | −0.0001 (−0.0026 to 0.0029) |
+| eICU | −0.0012 (−0.0036 to 0.0009) | −0.0008 (−0.0028 to 0.0012) |
+
+- **Swapping all the weights at once gains nothing**, and neither does the whole local metric. As a whole, the weight
+  differences of §7.4 are a sharing of credit that the kNN does not feel.
+- **One variable at a time** (25 swaps, every variable whose weight differs by ≥ 0.02):
+  - **One swap has a CI below 0: MIMIC-IV's `vaso_on`** (weight 0.000 → 0.133), −0.0017 nats (−0.0031 to −0.0002).
+    It is one of the two candidates §7.4 named before this analysis. It is small (0.3 % of MIMIC-IV's log-loss of
+    0.503), and it is one of 25 tests. It is a lead, not a finding.
+  - The other candidate gains nothing: lowering the weight of time since admission in MIMIC-IV (L 0.281 → 0.133)
+    gives −0.0007 (−0.0016 to 0.0004).
+  - Two swaps have a CI above 0: INSPIRE `map_mean_6h` (+0.0010) and eICU `map_min_6h` (+0.0013). Each moves one
+    MAP summary alone, which breaks the split of credit among the three (§7.2).
+- **Re-deforming the shapes after a swap gains nothing further.** The swap moved some weights a lot, or started from
+  a (near-)zero weight that S4 cannot move. Every "fitted − start" CI includes 0.
+
+### 13.2 A threshold for the MAP block (fold 0)
+
+The per-variable thresholds of §7.2 move between sites because the models split credit differently among the three
+correlated MAP summaries. Adding the three log-odds curves along a steady MAP (last = 6-h mean = 6-h minimum)
+removes that split. The block threshold is the highest steady MAP below 85 mmHg where the odds double relative to a
+steady 85. Adding the curves is exact for the additive surrogate models and an approximation for the trees. Median
+(10–90 %) over the 40 models:
+
+| site | block threshold, own shapes | block threshold, transported | OR 70 vs 85, own / transported | per-variable `map_last`, own |
+|---|---|---|---|---|
+| INSPIRE | 79.1 (77.9–80.1) | 78.5 (76.7–79.7) | 10.2 / 6.9 | 73.1 |
+| MIMIC-IV | 77.6 (76.8–79.4) | 79.2 (77.4–79.9) | 6.8 / 9.5 | 67.3 |
+| eICU | 79.2 (78.5–80.0) | 78.1 (76.5–79.0) | 8.3 / 8.1 | 70.9 |
+
+- **The block threshold is about 78 mmHg in every site.** It spans 1.6 mmHg across the three sites (77.6–79.2), and own
+  and transported shapes differ by at most 1.6 mmHg in any site. The per-variable `map_last` thresholds of the same
+  models span 5.8 mmHg (67.3–73.1).
+- It sits above every per-variable threshold because a steady MAP lowers all three summaries at once.
+- **Odds ratios** of a steady 70 mmHg against 85 are 6.8–10.2 (own) and 6.9–9.5 (transported). At 65 against 85 they
+  are 17.6–29.1 and 18.0–24.2. The ranges over the models are wide (INSPIRE own, OR 70 vs 85: 4.4–14.8).
+- **eICU hospitals (36)**: block threshold median 77.8 mmHg, interquartile range 77.1–79.0, range 74.1–81.9.
+  - The spread between hospitals (SD 1.6 mmHg) is smaller than for `map_last` (2.1).
+  - The spread among the models inside a hospital is the same for both (10–90 % width 3.5 and 3.4 mmHg).
+- The refitted site shapes reproduce S5's nine per-variable thresholds exactly (difference 0.00 mmHg).
+
+### 13.3 Drift over the five folds (external role)
+
+S4's re-deformation is repeated on folds 1–4, with each fold's case base and test sample. Gain from re-deforming
+every g_j (negative = better than frozen):
+
+| site | fold 0 | fold 1 | fold 2 | fold 3 | fold 4 | mean (SD) |
+|---|---|---|---|---|---|---|
+| INSPIRE | −0.0004 | −0.0010 | −0.0003 | +0.0014 | −0.0011 | −0.0003 (0.0010) |
+| MIMIC-IV | −0.0004 | −0.0024 | −0.0013 | +0.0020 | −0.0001 | −0.0004 (0.0017) |
+| eICU | +0.0007 | +0.0013 | +0.0015 | +0.0020 | +0.0017 | +0.0015 (0.0005) |
+
+- **One of the 15 refits has a CI below 0**: MIMIC-IV fold 1 (−0.0042 to −0.0007). MIMIC-IV's mean over the folds is
+  −0.0004.
+- **In eICU every fold is slightly worse after refitting**, and every CI includes 0. The refit adds a little variance
+  and finds no signal.
+- **"Missing only"** stays within ±0.0004 in every fold.
+- **One-variable refits**: 8 of 425 CIs are below 0 and 10 above 0, about the 11 per side that chance gives. No
+  variable has a CI below 0 in two folds. Median split-half r is 0.17–0.21, close to fold 0's 0.10–0.22.
+- **Fold 0's null (§7.1) is therefore not a property of one fold.**
+
+### 13.4 Reading
+
+- **The drift null of §7 holds over all five folds.**
+- **The one site difference with a measurable gain is a weight, not a shape.** MIMIC-IV has 22.6 % of its landmarks
+  on vasopressors. It gains a little from weighting a running infusion, which the transported metric leaves out
+  because it was learned where infusions are rare (eICU) or cannot be seen (INSPIRE). This is the kind of drift
+  PERISIM is meant to show. Confirming it would need a pre-registered test.
+- **MAP thresholds are better reported for the block than per variable.** The block threshold is about 78 mmHg in
+  every site, own or transported. Across eICU's hospitals the interquartile range is 77–79 mmHg.
 
 ## Reproducibility
 
@@ -365,7 +458,9 @@ physiology measured the same way everywhere.
   configuration `772940e4ed77`.
 - **Commands**, from the frozen checkout: `python -m hypo landmarks`, `audit`, `cv`, `final`,
   `freeze --registration <ID>`, `external`, `external-report`.
-- **Compute**: one workstation, 16 threads. The external stage took 7 h 11 min.
+- **Post hoc** (§13): `python scripts/posthoc_hypo.py` (or `run_local.ps1 hypo-posthoc`), outside the frozen code.
+  It reads the frozen artefacts and checks the freeze record at the start and at the end.
+- **Compute**: one workstation, 16 threads. The external stage took 7 h 11 min, and the post hoc follow-ups 4 h 58 min.
 - **Data**: patient-level data stay on that computer under the PhysioNet data use agreements.
   The per-unit summaries are in [results/](results/), and the frozen hashes in
   [results/freeze.json](results/freeze.json).
