@@ -1,6 +1,6 @@
 # Next use case: hypotension in the next 6 h in the ICU after surgery
 
-Status: **defaults D1–D5 approved by the lead on 2026-10-28; D7 resolved in Phase 0; D6 and D8 open.** Branch `hypotension`, package `src/hypo/`; Phases 0–2 done (landmarks and audit, model, internal validation `reports/cv.md`); Phase 3 in progress: draft pre-registration [prereg_hypo.md](prereg_hypo.md) and the external stage's code, to freeze once the lead approves it; nothing registered yet. T2 was the deliberately hard case
+Status: **defaults D1–D5 approved by the lead on 2026-10-28; D7 resolved in Phase 0; D6 decided on 2026-10-29 (local registration ID); D8 open.** Branch `hypotension`, package `src/hypo/`; Phases 0–3 done (landmarks and audit, model, internal validation `reports/cv.md`, pre-registration [prereg_hypo.md](prereg_hypo.md) approved by the lead and frozen: [freeze_hypo.md](freeze_hypo.md), tag `perisim-freeze-hypo-2026-10-29-120652`); Phase 4, the external stage, running since 2026-10-29. T2 was the deliberately hard case
 (little information at ICU discharge) used to learn whether the shape functions carry real information, where the
 method breaks and what it is good for. This experiment applies that, end to end, to a case with dense data and a
 frequent outcome, again centred on **transfer and explainability**. Feasibility measured on the original tables of the
@@ -131,7 +131,8 @@ regression transported / recalibrated / refitted.
 - **D3** Arterial-line flag: stratifier only (proposed) or an input.
 - **D4** Case-base density: every 2 h (proposed) or thinned to 4 h.
 - **D5** Horizon and threshold: 6 h and MAP < 65 (proposed); 65 is the usual target, 60 or 70 as sensitivity.
-- **D6** Its own OSF registration (T2's real OSF ID is still pending).
+- **D6** Decided by the lead on 2026-10-29: no OSF filing. A local registration ID, `LOCAL-PREREG-HYPO-2026-10-29`,
+  with the pushed freeze tag as the timestamp ([freeze_hypo.md](freeze_hypo.md)). T2's real OSF ID is still pending.
 - **D7** Resolved in Phase 0: INSPIRE's ICU vasopressor use is genuinely low; "running now" and vasopressor hours are
   a declared source gap there, and "in the last 24 h" is added for every cohort (DECISIONS.md).
 - **D8** T1 and T3 of the original plan: dropped, postponed, or run on T2's frozen pipeline.

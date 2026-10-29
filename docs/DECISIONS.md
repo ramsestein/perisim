@@ -60,6 +60,16 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-29 — `hypo` frozen; external stage started (lead)
+
+- The lead approved [prereg_hypo.md](prereg_hypo.md) as drafted, including the analyst's interpretations of H1–H5
+  (entry below) and the α grid without 0.
+- **D6**: a local registration ID, `LOCAL-PREREG-HYPO-2026-10-29`, with no OSF filing. The pushed tag is the
+  timestamp.
+- Freeze: tag `perisim-freeze-hypo-2026-10-29-120652` on commit `b0c9a02`, code `cf0d0b80c70a`, configuration
+  `772940e4ed77`. The branch and the tag were pushed before the external stage started (12:07:25). Record:
+  [freeze_hypo.md](freeze_hypo.md).
+
 ## 2026-10-29 — `hypo` Phase 3: pre-registration draft, frozen artefacts and the external stage's code (analyst; for the lead's approval before the freeze)
 
 - Phase 2 finished (`reports/cv.md`, code `11a7ad77e519`; summary in docs/prereg_hypo.md §3); nothing tuned on it.
