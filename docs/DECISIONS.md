@@ -60,6 +60,22 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — `hypo` reported, followed up post hoc, merged into `main` (lead)
+
+- Phase 5 (2026-10-29): the report, [results/hypo/REPORT.md](../results/hypo/REPORT.md), with the aggregates of every
+  phase in `results/hypo/`.
+- After the report the lead asked for three post hoc follow-ups. They are exploratory, not pre-registered, and are
+  reported in REPORT §13:
+  - the H1 arm's local weights swapped into the transported metric;
+  - a threshold for the MAP block as a whole;
+  - S4's drift on folds 1–4.
+
+  They run in `scripts/posthoc_hypo.py`, outside `src/hypo`. The script only reads the frozen artefacts and checks
+  the freeze record at the start and at the end.
+- The branch `hypotension` is merged into `main` as a separate experiment. Its files keep their paths, because the
+  freeze record, the pre-registration and the tag refer to them. README.md and results/README.md describe it next
+  to T2.
+
 ## 2026-10-29 — `hypo` frozen; external stage started (lead)
 
 - The lead approved [prereg_hypo.md](prereg_hypo.md) as drafted, including the analyst's interpretations of H1–H5
