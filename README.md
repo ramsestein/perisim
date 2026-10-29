@@ -1,7 +1,8 @@
 # PERISIM — Perioperative Similarity
 
-kNN with a learned distance metric for postoperative patients at ICU discharge: every variable lives on its
-consensus **shape function** (how its values move the prediction, read from many competitive models) and counts
+The project's technique is **consensus effect-space kNN (CE-kNN)**, a kNN with a learned distance metric, applied
+here to postoperative patients at ICU discharge. Every variable lives on its consensus **shape function**: how its
+values move the prediction, read from many competitive models. That is its effect space. Every variable also counts
 with a **weight** (SAGE aggregated across the same models + regularised diagonal NCA). Development in INSPIRE,
 external validation in MIMIC-IV and eICU, with trivial, metric-learning and parametric comparators. The full
 specification is in [SPECS.md](SPECS.md) (v0.5; amendments marked **[v0.4]** / **[v0.5]**, decisions in
@@ -11,7 +12,7 @@ specification is in [SPECS.md](SPECS.md) (v0.5; amendments marked **[v0.4]** / *
 short / medium / long / death — primary target and demonstration of the method), **T1** (complications, compared
 with T2), **T3** (both). Select one with `PERISIM_EXPERIMENT` (default `t2`); the extraction is shared.
 
-**A separate experiment, `hypo`**, applies the same metric to a different question: hypotension in the next 6 h in
+**A separate experiment, `hypo`**, applies CE-kNN to a different question: hypotension in the next 6 h in
 the ICU after surgery, learned on two cohorts and tested on the third by rotation. It has its own package
 (`src/hypo`), configuration, pre-registration and freeze, and is run locally: see [Experiment `hypo`](#experiment-hypo).
 

@@ -60,6 +60,30 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — Name of the technique: consensus effect-space kNN, CE-kNN (lead)
+
+- The technique is named **consensus effect-space kNN (CE-kNN)**. The project and the software keep the name
+  PERISIM.
+- What the name describes:
+  - each variable is carried to its consensus shape function g_j (centred log-odds, the consensus of a Rashomon set
+    of competitive models);
+  - each variable is weighted by w_j;
+  - the prediction is the vote of a local case base.
+- Prior work reviewed, the closest first:
+  - VDM / HVDM (Stanfill & Waltz 1986; Wilson & Martinez 1997): per-value class probabilities, one variable at a
+    time;
+  - SHAP's explanation space (Lundberg et al. 2020): supervised clustering, with one model;
+  - KAAM (Almodóvar et al. 2025, preprint): nearest patients in one additive model's logit-contribution space;
+  - metric learning (NCA, LMNN, and LSML for patient similarity);
+  - the prognostic score (Hansen 2008).
+- None of them combines the four pieces of CE-kNN: the multi-model consensus of the curves, the SAGE + NCA weights,
+  a transported metric with a local case base, and re-deforming the g_j to measure drift. The name points at the
+  consensus, which the closest work lacks.
+- Some names were avoided because they are taken: CEM (Coarsened Exact Matching; Iacus, King & Porro 2012), MVDM
+  (Modified VDM; Cost & Salzberg 1993), EDM (Elucidated Diffusion Models).
+- PERISIM alone was set aside as the technique's name for two reasons: "peri-" ties it to perioperative care, and
+  PeriopSim, a perioperative training simulator, already exists.
+
 ## 2026-10-30 — `hypo` reported, followed up post hoc, merged into `main` (lead)
 
 - Phase 5 (2026-10-29): the report, [results/hypo/REPORT.md](../results/hypo/REPORT.md), with the aggregates of every

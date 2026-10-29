@@ -3,6 +3,8 @@
 > **For the LLM agent working in this repository:** this document is the project's source of truth. Read it in full before writing any code. If something is missing or ambiguous, **do not decide silently**: add the question to `docs/OPEN_QUESTIONS.md` and continue with whatever does not depend on it. Everything marked `[VERIFY]` is an assumption about schemas or data that must be confirmed against the official documentation before use.
 
 - **Project:** PERISIM (*Perioperative Similarity*)
+- **Technique:** consensus effect-space kNN (**CE-kNN**), named by the lead on 2026-10-30 (`docs/DECISIONS.md`): the
+  kNN of §5.1 on the consensus shape functions g_j, weighted by w_j
 - **Lead:** Ramses Marrero García (MD, PhD), AI-Lab, Hospital Clínic de Barcelona / SIMTRI, SNUH
 - **Platform:** KHDP (Korea Health Data Platform, SNUH) + PhysioNet
 - **Document version:** v0.5 (2026-10-24)
@@ -207,7 +209,7 @@ d(a, b)² = Σ_j  w_j · δ_j(a_j, b_j)²
 
 - **δ_j:** shape of the dissimilarity, by variable type (§5.2). Each δ_j is normalised to unit variance in training so that w_j keeps its meaning.
 - **w_j ≥ 0:** scale (importance), derived from SAGE and adjusted as in §5.4.
-- **[v0.5]** `d(a, b)² = Σ_j w_j ‖g_j(a_j) − g_j(b_j)‖²`: each variable lives on its **shape function** g_j — the consensus, across the competitive models of §5.3, of how its values move the prediction (centred log-odds, one component per class). g_j says *how* a variable relates to the outcome, w_j *how much* it counts; both come from multivariable models, and the kNN captures the remaining interactions by locality. Neighbours are therefore patients who reach the same prediction for the same reasons (profiles).
+- **[v0.5]** `d(a, b)² = Σ_j w_j ‖g_j(a_j) − g_j(b_j)‖²`: each variable lives on its **shape function** g_j — the consensus, across the competitive models of §5.3, of how its values move the prediction (centred log-odds, one component per class). g_j says *how* a variable relates to the outcome, w_j *how much* it counts; both come from multivariable models, and the kNN captures the remaining interactions by locality. Neighbours are therefore patients who reach the same prediction for the same reasons (profiles). The space of the g_j is the *effect space* that names the technique, consensus effect-space kNN (CE-kNN).
 
 ### 5.2 Variable types and δ_j
 
