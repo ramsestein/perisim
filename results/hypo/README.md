@@ -11,6 +11,7 @@ their identifier.
 
 | path | what |
 |---|---|
+| [`REPORT.md`](REPORT.md) | **Phase 5: the report** (draft for the lead) |
 | `reports/landmarks_summary.*`, `reports/audit.*` | Phase 0: landmark tables and completeness audit |
 | `reports/smoke_external-eicu.*` | Phase 1: smoke run of the model |
 | `reports/cv.*` | Phase 2: internal validation by rotation (development results) |
