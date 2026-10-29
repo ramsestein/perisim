@@ -1,0 +1,14 @@
+{
+ "site": "mimic",
+ "fold": 3,
+ "method": "euclidean",
+ "n_train": 309702,
+ "n_test": 77457,
+ "seconds": 37.39807349999319,
+ "code_hash": "11a7ad77e519",
+ "alpha": 0.1,
+ "loo_logloss": 0.5122358260671168,
+ "ood_threshold": 3.2469289302825928,
+ "short_neighbourhoods": 0.0,
+ "n_queries": 20000
+}

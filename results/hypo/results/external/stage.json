@@ -1,0 +1,30 @@
+{
+ "runs": [
+  {
+   "start": "2026-10-29 12:07:25",
+   "tag": "perisim-freeze-hypo-2026-10-29-120652",
+   "externals": [
+    "inspire",
+    "mimic",
+    "eicu"
+   ],
+   "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "parts": [
+    "transported",
+    "local",
+    "comps",
+    "curve",
+    "hospitals",
+    "drift",
+    "shapes"
+   ],
+   "end": "2026-10-29 19:18:36"
+  }
+ ]
+}

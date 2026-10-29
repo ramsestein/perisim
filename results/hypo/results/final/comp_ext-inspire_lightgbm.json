@@ -1,0 +1,18 @@
+{
+ "external": "inspire",
+ "development": [
+  "mimic",
+  "eicu"
+ ],
+ "method": "lightgbm",
+ "n_train": 853544,
+ "seed": 20262028,
+ "quick": false,
+ "code_hash": "cf0d0b80c70a",
+ "seconds": 186.76663759999792,
+ "temperature": 0.997050549226251,
+ "num_leaves": 63,
+ "learning_rate": 0.03,
+ "n_estimators": 533,
+ "inner_logloss": 0.4335693612071528
+}

@@ -1,0 +1,154 @@
+{
+ "meta": {
+  "time": "2026-10-28 19:10",
+  "code_hash": "f75989425604"
+ },
+ "inspire": {
+  "stays": 12893,
+  "patients": 12002,
+  "landmarks_all": 160506,
+  "landmarks": 148293,
+  "patients_with_landmarks": 11631,
+  "unknown_window": 0.008166459328223463,
+  "y": 0.13158409365243134,
+  "y_first_reading": 0.152158227293264,
+  "band": {
+   "0": 0.13158409365243134,
+   "1": 0.2768573027722145,
+   "2": 0.5915586035753542
+  },
+  "vaso_start": NaN,
+  "art_line": 0.0,
+  "vaso_on": NaN,
+  "sedation_on": NaN,
+  "vent_on": 0.153601316312975,
+  "vaso_24h": 0.06211351850727951,
+  "sedation_24h": 0.12532621229592766,
+  "y_by_art_line": {
+   "False": 0.13158409365243134
+  },
+  "inputs_available": {
+   "map_last": 1.0,
+   "map_mean_6h": 1.0,
+   "map_min_6h": 1.0,
+   "map_sd_6h": 0.9977881626239944,
+   "map_slope_6h": 0.9977881626239944,
+   "hr_slope_6h": 0.9859265103545009,
+   "spo2_min_6h": 0.9621694887823431,
+   "hr_last": 0.9898714032354865,
+   "spo2_last": 0.9621694887823431,
+   "rr_last": 0.9933847180918857,
+   "temp_last": 0.9670382283722091,
+   "hb_last": 0.9940320851287654,
+   "creatinine_last": 0.9972554334998954,
+   "lactate_last": 0.957752557436966,
+   "age": 1.0,
+   "sex_male": 1.0,
+   "bmi": 0.9787717559156535,
+   "emergency": 1.0,
+   "surgical_group": 1.0,
+   "surgery_duration_h": 1.0
+  }
+ },
+ "mimic": {
+  "stays": 28163,
+  "patients": 26083,
+  "landmarks_all": 466190,
+  "landmarks": 387159,
+  "patients_with_landmarks": 24464,
+  "unknown_window": 0.013112313696301059,
+  "y": 0.306628542795079,
+  "y_first_reading": 0.31773250783269924,
+  "band": {
+   "0": 0.306628542795079,
+   "1": 0.4001430936643601,
+   "2": 0.29322836354056087
+  },
+  "vaso_start": 0.022476655709365218,
+  "art_line": 0.705118568856723,
+  "vaso_on": 0.21110448162124607,
+  "sedation_on": 0.26208611965626527,
+  "vent_on": 0.3529712598699759,
+  "vaso_24h": 0.38317073863709744,
+  "sedation_24h": 0.5298675737875137,
+  "y_by_art_line": {
+   "False": 0.2937739782422087,
+   "True": 0.3120043371075449
+  },
+  "inputs_available": {
+   "map_last": 1.0,
+   "map_mean_6h": 1.0,
+   "map_min_6h": 1.0,
+   "map_sd_6h": 0.9825937147270243,
+   "map_slope_6h": 0.9825937147270243,
+   "hr_slope_6h": 0.9829656549376354,
+   "spo2_min_6h": 0.9976598761749049,
+   "hr_last": 0.999904432029218,
+   "spo2_last": 0.9976598761749049,
+   "rr_last": 0.9955702954083464,
+   "temp_last": 0.9084536327452029,
+   "hb_last": 0.968144870712033,
+   "creatinine_last": 0.9688629219519629,
+   "lactate_last": 0.7938521382687733,
+   "age": 1.0,
+   "sex_male": 1.0,
+   "bmi": 0.0,
+   "emergency": 1.0,
+   "surgical_group": 1.0,
+   "surgery_duration_h": 0.0
+  }
+ },
+ "eicu": {
+  "stays": 35201,
+  "patients": 33681,
+  "landmarks_all": 541551,
+  "landmarks": 466385,
+  "patients_with_landmarks": 32032,
+  "unknown_window": 0.013447081071705114,
+  "y": 0.19343246459470181,
+  "y_first_reading": 0.2361160843509118,
+  "band": {
+   "0": 0.19343246459470181,
+   "1": 0.3629490656860748,
+   "2": 0.44361846971922336
+  },
+  "vaso_start": 0.021058321598177436,
+  "art_line": 0.6125647265671066,
+  "vaso_on": 0.07578288324024143,
+  "sedation_on": 0.06525938870246685,
+  "vent_on": 0.1697288720692132,
+  "vaso_24h": 0.15639653933981582,
+  "sedation_24h": 0.16363519409929564,
+  "y_by_art_line": {
+   "False": 0.18746610291431923,
+   "True": 0.19720607229489204
+  },
+  "inputs_available": {
+   "map_last": 1.0,
+   "map_mean_6h": 1.0,
+   "map_min_6h": 1.0,
+   "map_sd_6h": 0.9946138919562164,
+   "map_slope_6h": 0.9946138919562164,
+   "hr_slope_6h": 0.9933038155172229,
+   "spo2_min_6h": 0.9872701737834622,
+   "hr_last": 0.9976028388563097,
+   "spo2_last": 0.9872701737834622,
+   "rr_last": 0.9086655874438501,
+   "temp_last": 0.8856652765419128,
+   "hb_last": 0.9067079773148793,
+   "creatinine_last": 0.8793014355092895,
+   "lactate_last": 0.22571051813415954,
+   "age": 1.0,
+   "sex_male": 1.0,
+   "bmi": 0.9716350225671924,
+   "emergency": 0.943625974248743,
+   "surgical_group": 1.0,
+   "surgery_duration_h": 0.0
+  },
+  "hospitals": {
+   "with_landmarks": 196,
+   "\u2265 300 patients": 37,
+   "\u2265 1000 patients": 2
+  }
+ }
+}
