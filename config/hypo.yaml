@@ -1,0 +1,201 @@
+# Experiment `hypo`: hypotension in the next 6 h in the ICU after surgery (docs/design_hypotension.md; defaults
+# approved by the lead on 2026-10-28). Separate from T2: not one of T2's configuration sections, so T2's frozen
+# configuration hash does not cover it. Sources mirror config/harmonization.yaml where T2 already defined them.
+
+experiment: hypo
+cohorts: [inspire, mimic, eicu]
+seed: 20261028
+
+population:
+  # stays_candidates of the common format (T2's extraction: every adult ICU stay with its times, the postoperative
+  # flag, the surgery and the deaths); the first postoperative ICU stay of each hospitalization; deaths kept
+  first_postop_stay_of_hospitalization: true
+  exclude_organ_donors: true
+  min_age: 18
+
+landmarks:
+  first_h: 2                   # hours after the ICU admission
+  last_h: 48
+  every_h: 2
+  history_h: 6                 # window of the MAP / heart-rate summaries
+  horizon_h: 6                 # outcome window [L, L + horizon)
+  map_threshold: 65            # mmHg, on the hourly median MAP
+  map_bands: [65, 75]          # secondary outcome: lowest hourly MAP of the window < 65 / 65–75 / ≥ 75
+  support_lookback_h: 2        # a support running in the last 2 h is running at L
+  support_gap_h: 6             # charted points of a support merge into one run while the gaps are < 6 h (T2's rule)
+  support_recent_h: 24         # "given in the last 24 h": comparable across sites (INSPIRE cannot time infusions)
+  lab_lookback_h: 72
+
+extraction:
+  vitals_h: [-2, 54]           # hours after the ICU admission (landmarks up to 48 h + the 6-h window)
+  labs_h: [-72, 48]
+
+bounds:                        # as config/harmonization.yaml
+  map: [10, 250]
+  hr: [10, 300]
+  spo2: [30, 100]
+  rr: [2, 80]
+  temp: [25, 45]
+  hb: [2, 25]
+  creatinine: [0.1, 25]
+  lactate: [0.1, 30]
+
+sources:
+  inspire:
+    ward_vitals:               # subject_id, chart_time (minutes, the clock of icuin_time), item_name, value
+      map_nibp: [nibp_mbp]     # plus (SBP + 2·DBP) / 3 where only nibp_sbp / nibp_dbp were charted (T2's rule)
+      hr: [hr]
+      spo2: [spo2]
+      rr: [rr]
+      temp: [bt]
+    supports_ward_vitals:            # 0 / 1 items ("use of mechanical ventilation"): a 0 record is not a support
+      vent: [vent, mv, ventilator]
+    labs: {hb: [hb], creatinine: [creatinine], lactate: [lacate, lactate]}   # "lacate" (sic) in INSPIRE
+    medications_atc:           # route "ex" (external) excluded, as in T2
+      vaso: [C01CA03, C01CA24, C01CA04, C01CA06, H01BA01]
+      sedation: [N01AX10, N05CM18, N05CD08]
+  mimic:
+    chartevents:
+      map_inv: [220052, 225312]
+      map_nibp: [220181]
+      hr: [220045]
+      spo2: [220277]
+      rr: [220210]
+      temp: [223762]
+      temp_f: [223761]         # converted to °C
+    labevents: {hb: [51222], creatinine: [50912], lactate: [50813]}
+    inputevents:
+      vaso: [221906, 221289, 221749, 222315, 221662]
+      sedation: [222168, 225150, 221668]
+    procedureevents:
+      vent: [225792]
+    # invasive ventilation also from the ventilator settings charted hourly in chartevents (d_items labels): the
+    # procedure is often charted hours after the ICU arrival; PEEP set left out (non-invasive ventilation charts it)
+    chartevents_vent: [223849, 229314, 224684, 224688, 224695, 224696, 224697]
+  eicu:
+    vitalperiodic: {map_inv: systemicmean, hr: heartrate, spo2: sao2, rr: respiration, temp: temperature}
+    vitalaperiodic: {map_nibp: noninvasivemean}
+    lab: {hb: [Hgb], creatinine: [creatinine], lactate: [lactate]}
+    infusiondrug_regex:
+      vaso: "(?i)(norepinephrine|levophed|epinephrine|adrenalin|phenylephrine|neo-?synephrine|vasopressin|dopamine)"
+      sedation: "(?i)(propofol|diprivan|dexmedetomidine|precedex|midazolam|versed)"
+    respiratorycare_vent: true # ventstartoffset / ventendoffset intervals [VERIFY]
+    # invasive ventilation also from the ventilator settings charted in respiratoryCharting (labels from the
+    # inventory of schema_eicu; PEEP / CPAP / EPAP left out: non-invasive ventilation charts them too) and from
+    # treatment (as T2)
+    respiratorycharting_vent_labels: ["Vent Rate", "Tidal Volume (set)", "TV/kg IBW", "Plateau Pressure",
+                                      "Peak Insp. Pressure", "Mean Airway Pressure", "Exhaled TV (machine)",
+                                      "Pressure Control", "Adult Con Setting Set RR", "Adult Con Setting Set Vt",
+                                      "Set Vt (Servo,LTV)", "Set Vt (Drager)", "Mechanical Ventilator Mode",
+                                      "Inspiratory Pressure, Set", "Minute Ventilation Set(L/min)"]
+    treatment_vent_regex: "(?i)mechanical ventilation"
+    # temperature: vitalPeriodic.temperature is sparse (14 % of the stays at 12 h); nurseCharting has it
+    nursecharting_temp: {label: Temperature, name: "Temperature (C)"}
+
+# Inputs of the metric (docs/design_hypotension.md §4). BMI, surgery duration and the time since the surgery are left
+# out: MIMIC-IV has no BMI and MIMIC-IV / eICU no surgery times in the common format (Phase 0, 2026-10-28). A missing
+# value is its own value.
+model:
+  inputs:
+    continuous: [map_last, map_mean_6h, map_min_6h, map_sd_6h, map_slope_6h, hr_last, hr_slope_6h, spo2_last,
+                 spo2_min_6h, rr_last, temp_last, hb_last, creatinine_last, lactate_last, age, L, vaso_hours]
+    binary: [vaso_on, vaso_24h, sedation_on, sedation_24h, vent_on, sex_male, emergency]
+    nominal: [surgical_group]            # unmapped -> "unknown"
+  # features a source cannot measure: set missing (type "source") in that cohort. INSPIRE's medication table holds
+  # administrations, not infusion intervals, so "running now" is unknown there (D7, 2026-10-28)
+  source_missing:
+    inspire: [vaso_on, sedation_on, vaso_hours]
+  # inputs a cohort measures only for some patients by practice, kept with their missing value as its own value
+  # (design §4); declared so the completeness audit does not stop on them
+  measurement_gaps:
+    eicu: [lactate_last]               # 23 % of the landmarks (eICU draws lactate selectively)
+
+# Phase 1: the metric and the case base (design §4 "Metric"; T2's procedure without the SAGE stage, λ = 0)
+metric:
+  k: 50
+  # vote smoothing towards the case base's prevalence, chosen by LOO. No 0: in a small case base the LOO can prefer
+  # α = 0, and then a unanimous neighbourhood predicts exactly 0 or 1 (dry run, 2026-10-29); Phase 2 never chose it
+  alpha_grid: [0.1, 0.5, 1, 2, 5, 10]
+  alpha_queries: 20000         # landmarks of the case base used as LOO queries to choose α and the OOD threshold
+  ood_percentile: 99
+  # neighbours are distinct patients: each other patient enters once, at its most similar moment (a patient's
+  # consecutive landmarks are near-copies and would vote several times); the patient's own landmarks never enter
+  distinct_patients: true
+  fetch_factor: 6              # candidates searched per neighbour to find k distinct patients
+  learn:                       # learning sample of the metric (the case base keeps every landmark, D4)
+    per_patient: 3             # at most this many landmarks per patient, drawn at random
+    per_site: 30000            # landmarks per development site; every development site contributes the same number
+  shapes:                      # consensus shape functions g_j from an ensemble of models (T2's model space)
+    n_models: 40               # accepted models (no SAGE: a fixed number, T2's loops accepted 31-57)
+    max_attempts_factor: 3
+    epsilon: 0.05              # a model is accepted when its log-loss is within (1 + ε) of the best so far
+    augment_copies: 2          # feature dropout as T2
+    max_train: 20000           # landmarks to train each model (inner train part of the learning sample)
+    max_val: 10000             # landmarks to accept the models
+    n_explain: 2000            # explanation set (from the validation part); each model's curves on a fresh
+    subsample: 1000            #   subsample of it
+    max_bins: 20
+    min_bin: 50
+    flat_alpha: 0.05
+    corr_cluster_threshold: 0.8    # feature-dropout groups as T2
+    site_adjusted: true        # the development site enters the models (not the metric): g_j are within-site effects
+    n_reference_pairs: 20000   # stability trace Δ of the distance (uniform weights) over the accepted models
+  nca:                         # diagonal NCA, free weights (λ = 0); candidates searched within the anchor's site,
+    epochs: 30                 # as the metric is used (each site queries its own case base)
+    batch_size: 256
+    lr: 0.05
+    refresh_every: 5
+    n_candidates: 500
+    eps0: 1.0e-4
+    label_smoothing: 1.0e-3
+
+# Phase 2: internal validation by rotation (D1: leave-one-site-out). Patient-level folds are fixed per site, so a
+# site's test fold is the same in both rotations where it is a development site. PERISIM is fitted per rotation and
+# fold (its metric learned on the training patients of both development sites, each site queried with its own case
+# base); the comparators are local (fitted on one site's training patients), so they do not depend on the rotation
+# and serve the external stage's "refitted locally" arm too. Their settings are T2's (config/model_space.yaml
+# `baselines`), tuned in the inner folds.
+cv:
+  outer_folds: 5
+  inner_folds: 3               # comparators' tuning; PERISIM has only α, chosen by LOO in its case base
+  comparators: [prevalence, last_map, logreg, lightgbm, euclidean]
+  n_boot: 500                  # patient-level bootstrap of the aggregate report
+
+# Phases 3-4: the frozen artefacts and the external stage (docs/prereg_hypo.md). Each rotation's transported metric is
+# learned once on all patients of its two development sites; the external site X is evaluated on its Phase 2 folds
+# (case base = the training folds, test = the fold), so every landmark of X is predicted once.
+external:
+  final_seed_offset: 1000      # seed of the frozen artefacts = seed + this
+  comparators: [last_map, logreg, lightgbm]     # also transported (fitted on the two development sites pooled)
+  n_boot_primary: 2000         # H1-H5
+  n_boot: 500                  # secondary analyses
+  h1_margin: 0.02              # AUROC, non-inferiority
+  h2_citl: 0.10                # log-odds
+  h2_slope: 0.90
+  recalibration_n: [100, 250, 500]   # local patients for the transported comparators' logistic recalibration
+  curve:                       # S1: case bases of n random patients of the training folds
+    n: [50, 100, 250, 500, 1000, 2000, 4000, 8000]
+    reps: 5
+    reps_large: 3
+    large_from: 2000
+  hospitals:                   # H4 / S6 (eICU)
+    min_patients: 300
+    draws: 10
+  gamma: [2, 4, 8]             # H5: weight of a neighbour from the query's own hospital
+  drift:                       # S4 (fold 0 only), after T2's post hoc drift analyses
+    fold: 0
+    n_ice: 500
+    k_candidates: 150          # distinct-patient candidates of the smoothed kNN
+    smooth: 10
+    ridge: 20.0
+    anchors: 20000             # LOO anchors drawn from the case base (at most 3 per patient)
+    test: 20000                # test landmarks of the real kNN
+    iters: 30
+    joint_rounds: 2
+    joint_iters: 25
+    chunk: 2048
+  threshold:                   # S5: where the risk rises, read from g_j of the MAP variables
+    variables: [map_last, map_mean_6h, map_min_6h]
+    reference: 85              # mmHg
+    rise: 0.6931               # ln 2: the odds double
+  min_cell: 10                 # aggregates of fewer landmarks are not exported

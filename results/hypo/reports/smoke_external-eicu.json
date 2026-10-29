@@ -1,0 +1,130 @@
+{
+ "rotation": "external-eicu",
+ "development": [
+  "inspire",
+  "mimic"
+ ],
+ "quick": false,
+ "code_hash": "4cfc09a35ba0",
+ "metric": {
+  "n_learn": 55016,
+  "learn_per_site": {
+   "inspire": 27508,
+   "mimic": 27508
+  },
+  "dropped_site_constant": [
+   "vaso_hours__missing",
+   "vaso_on__missing",
+   "sedation_on__missing"
+  ],
+  "n_features": 27,
+  "n_dims": 45,
+  "n_shaped": 18,
+  "n_accepted": 40,
+  "n_competitive": 40,
+  "n_attempts": 46,
+  "seconds": {
+   "shapes": 173.99925839999923,
+   "nca": 186.74922650000372,
+   "total": 364.2038367000059
+  }
+ },
+ "weights": {
+  "map_last": 0.18251862679155484,
+  "map_mean_6h": 0.3718206622443889,
+  "map_min_6h": 0.11288471663172342,
+  "map_sd_6h": 0.05050941408155342,
+  "map_slope_6h": 0.008208358787253666,
+  "hr_last": 0.0020468049539787455,
+  "hr_slope_6h": 0.004137160354618985,
+  "spo2_last": 0.0025532632384925964,
+  "spo2_min_6h": 0.012729886541408551,
+  "rr_last": 0.004888111798601942,
+  "temp_last": 0.00019913123633217864,
+  "temp_last__missing": 0.0024321371991858996,
+  "hb_last": 0.014486652417977043,
+  "creatinine_last": 0.0003833237360756035,
+  "lactate_last": 0.0003556473647326645,
+  "lactate_last__missing": 0.009023186533205925,
+  "age": 0.02455888738976625,
+  "L": 0.10536792580367055,
+  "vaso_hours": 0.002362851793242908,
+  "vaso_on": 0.004730961426239562,
+  "vaso_24h": 0.010551750873370876,
+  "sedation_on": 1.309115465057299e-05,
+  "sedation_24h": 0.00012062909353337533,
+  "vent_on": 0.002353667964845539,
+  "sex_male": 0.009624565529699867,
+  "emergency": 0.00011925624483254275,
+  "surgical_group": 0.06101932881506354
+ },
+ "shaped": {
+  "map_last": true,
+  "map_mean_6h": true,
+  "map_min_6h": true,
+  "map_sd_6h": true,
+  "map_slope_6h": true,
+  "hr_last": true,
+  "hr_slope_6h": true,
+  "spo2_last": true,
+  "spo2_min_6h": true,
+  "rr_last": true,
+  "temp_last": true,
+  "hb_last": true,
+  "creatinine_last": true,
+  "lactate_last": true,
+  "age": true,
+  "L": true,
+  "vaso_hours": true,
+  "surgical_group": true
+ },
+ "delta_last": [
+  0.003183606394637859,
+  0.00046864772914119587,
+  0.003071112250039946
+ ],
+ "nca_loss": [
+  0.427564766867417,
+  0.42405299143994357,
+  0.42380101991563024,
+  0.4235977787809939,
+  0.42355435761199606
+ ],
+ "sites": {
+  "inspire": {
+   "case_base_landmarks": 118832,
+   "test_landmarks": 29461,
+   "alpha": 5.0,
+   "loo_logloss": 0.3229385209794896,
+   "ood_threshold": 1.5535707473754883,
+   "short_neighbourhoods": 0.0,
+   "n_queries": 20000,
+   "auroc": 0.7771335390969725,
+   "logloss": 0.3302877698868317,
+   "logloss_prevalence": 0.3916579644038436,
+   "brier": 0.09845980833659425,
+   "mean_p": 0.13109830121274343,
+   "prevalence_test": 0.13278571671022707,
+   "ood_share": 0.007908760734530396,
+   "seconds": 8.423586799995974
+  },
+  "mimic": {
+   "case_base_landmarks": 309804,
+   "test_landmarks": 77355,
+   "alpha": 1.0,
+   "loo_logloss": 0.49806509976666313,
+   "ood_threshold": 1.6341203451156616,
+   "short_neighbourhoods": 0.0,
+   "n_queries": 20000,
+   "auroc": 0.7844497135895524,
+   "logloss": 0.5024161617793457,
+   "logloss_prevalence": 0.6160154581894416,
+   "brier": 0.16684877256059222,
+   "mean_p": 0.30576304204215443,
+   "prevalence_test": 0.3061857669187512,
+   "ood_share": 0.009320664469006529,
+   "seconds": 36.6400883999886
+  }
+ },
+ "seconds": 410.6570925999986
+}

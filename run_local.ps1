@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|hypo|hypo-posthoc|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -20,6 +20,14 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              (scripts\posthoc_drift_missing.py; resumable; --force refits)
   case-base  exploratory: how many local patients the frozen metric needs (dense accumulation), and whether the
              eICU neighbours of the same hospital carry relations the other hospitals' do not (scripts\posthoc_case_base.py)
+  hypo       experiment `hypo` (hypotension in the next 6 h, docs\design_hypotension.md): python -m hypo <command>,
+             e.g. `hypo landmarks` builds the landmark tables from the original tables, `hypo smoke --external eicu`
+             runs the whole model on the other two sites (Phase 1), `hypo cv` the internal validation by
+             rotation (Phase 2, resumable; `hypo cv-report` rebuilds its report), `hypo final` the frozen
+             artefacts and `hypo freeze --registration <ID>` the freeze (Phase 3), `hypo external` the external
+             stage on the frozen version (Phase 4, resumable; `hypo external-report` rebuilds its report)
+  hypo-posthoc  exploratory, after the `hypo` report: local weights swapped into the transported metric, the MAP
+             block threshold, drift over all five folds (scripts\posthoc_hypo.py; resumable; about 5 h)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
@@ -156,7 +164,9 @@ switch ($Command) {
     "drift" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_drift.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "drift-missing" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_drift_missing.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "case-base" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_case_base.py") @ProfArgs @Rest; exit $LASTEXITCODE }
+    "hypo" { Invoke-Setup; & $Py -m hypo @Rest; exit $LASTEXITCODE }
+    "hypo-posthoc" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_hypo.py") @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | hypo | hypo-posthoc | resources)" }
 }

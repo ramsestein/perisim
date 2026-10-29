@@ -1,0 +1,14 @@
+{
+ "site": "eicu",
+ "fold": 0,
+ "method": "lightgbm",
+ "n_train": 372804,
+ "n_test": 93581,
+ "seconds": 56.70557620000909,
+ "code_hash": "11a7ad77e519",
+ "temperature": 0.9975315248244768,
+ "num_leaves": 31,
+ "learning_rate": 0.03,
+ "n_estimators": 384,
+ "inner_logloss": 0.38600468967317086
+}

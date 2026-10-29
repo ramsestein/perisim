@@ -11,6 +11,10 @@ specification is in [SPECS.md](SPECS.md) (v0.5; amendments marked **[v0.4]** / *
 short / medium / long / death — primary target and demonstration of the method), **T1** (complications, compared
 with T2), **T3** (both). Select one with `PERISIM_EXPERIMENT` (default `t2`); the extraction is shared.
 
+**A separate experiment, `hypo`**, applies the same metric to a different question: hypotension in the next 6 h in
+the ICU after surgery, learned on two cohorts and tested on the third by rotation. It has its own package
+(`src/hypo`), configuration, pre-registration and freeze, and is run locally: see [Experiment `hypo`](#experiment-hypo).
+
 > **Public repository.** Code and configuration only: never data, outputs or secrets. Before every
 > `git push`: `python scripts/check_public_safety.py --all` (the `.githooks/pre-commit` hook runs it too).
 
@@ -184,6 +188,45 @@ base rates corrected (`reports/posthoc_case_base.html`, `results/posthoc_case_ba
 package: reports, tables, figures, aggregate JSON, plus the experiment's docs) into the repository's `results/t2/` for
 version control. Patient-level data (`data\` and the rest of `work\`) are never copied; see `results/README.md`.
 
+## Experiment `hypo`
+
+Hypotension (an hour with mean MAP < 65 mmHg) in the next 6 h, predicted every 2 h during the first 48 h of a
+postoperative ICU stay for a patient who is normotensive now. T2 was the hard case, with little information at ICU
+discharge. `hypo` is a case with dense physiology and a frequent outcome, centred on transfer and on drift: how the
+shape functions g_j deform from one site to another.
+
+- **Design.** The metric is learned on two of INSPIRE, MIMIC-IV and eICU and tested on the third, rotating, so each
+  cohort is the external site once. The case base is always the site's own patients.
+- **Documents.**
+  - [design](docs/design_hypotension.md) and [feasibility](docs/feasibility_hypotension.md);
+  - [pre-registration](docs/prereg_hypo.md) and [freeze record](docs/freeze_hypo.md) (tag
+    `perisim-freeze-hypo-2026-10-29-120652`);
+  - the decisions, in [docs/DECISIONS.md](docs/DECISIONS.md) (entries marked `hypo`).
+- **Results.** The report is [results/hypo/REPORT.md](results/hypo/REPORT.md), and the post hoc follow-ups are its §13
+  (exploratory). All five pre-registered hypotheses hold. The transported metric discriminates as well as a locally
+  learned one and is calibrated with the local case base. The shapes do not need to deform.
+
+It does not use T2's pipeline stages. It reads the original tables (found as T2's discovery finds them) and keeps
+its own work folder, `work/experiments/hypo/` (patient level, git-ignored). It runs in phases, each a command:
+
+```powershell
+.\run_local.ps1 hypo landmarks        # Phase 0: landmark tables, then the completeness audit (gate)
+.\run_local.ps1 hypo cv               # Phase 2: internal validation by rotation (resumable); hypo cv-report
+.\run_local.ps1 hypo final            # Phase 3: the frozen artefacts
+.\run_local.ps1 hypo freeze --registration <ID>
+.\run_local.ps1 hypo external         # Phase 4: the external stage on the frozen version (resumable); hypo external-report
+.\run_local.ps1 hypo-posthoc          # exploratory follow-ups (scripts/posthoc_hypo.py), after the report
+```
+
+`.\run_local.ps1 hypo` runs `python -m hypo` (`hypo smoke --external eicu` is the Phase 1 smoke run).
+
+**Freeze.** `hypo`'s code hash covers `src/hypo` and all of `src/perisim`. Its configuration hash covers
+`config/hypo.yaml` and `config/model_space.yaml`. After its freeze, a change to any of them blocks the external stage,
+as T2's freeze does. Post hoc code lives in `scripts/`.
+
+**Results** (aggregates only) are copied by hand to `results/hypo/`; see
+[results/hypo/README.md](results/hypo/README.md).
+
 ## Export (KHDP §3.2)
 
 `<workdir>/export/` (copied after every run to `updown/perisim/<user>/results/experiments/<t>/export/`) contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with
@@ -225,8 +268,15 @@ src/perisim/
   compare.py       similarity of two experiments' metrics (neighbour overlap, weight ranks, shapes)
   resources.py     real container limits (cgroup CPU quota, affinity, memory) → jobs × threads plan
   pipeline.py      stages, gates and parallelism (at most 4 processes × 4 threads)
-tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets
-docs/              OPEN_QUESTIONS.md and DECISIONS.md
-results/           published aggregate results per experiment (reports, tables, figures, aggregate JSON)
-scripts/           public-safety check (pre-commit hook), publish_results.py and the post-hoc posthoc_*.py
+src/hypo/          experiment `hypo` (config/hypo.yaml), its own command line (python -m hypo)
+  extract.py, landmarks.py   original tables → long tables → one landmark row per (stay, 2-h step)
+  metric.py        consensus g_j and diagonal-NCA w_j (T2's procedure, no SAGE stage); casebase.py, compare.py
+  run.py, cv.py, report.py   Phase 1 smoke run, Phase 2 validation by rotation and its report
+  frozen.py        Phase 3: frozen artefacts, freeze record and its check
+  external.py, drift.py, stats.py, external_report.py   Phase 4: the external stage, drift, bootstrap, report
+tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets; test_hypo_*.py for `hypo`
+docs/              OPEN_QUESTIONS.md and DECISIONS.md; design, feasibility, pre-registration and freeze of `hypo`
+results/           published aggregate results per experiment (t2/, hypo/: reports, tables, figures, aggregate JSON)
+scripts/           public-safety check (pre-commit hook), publish_results.py, the post-hoc posthoc_*.py (posthoc_hypo.py
+                   for `hypo`) and feasibility_hypotension.py
 ```

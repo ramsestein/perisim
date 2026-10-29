@@ -1,0 +1,44 @@
+{
+ "runs": [
+  {
+   "start": "2026-10-29 08:06:48",
+   "tag": "dry run (no freeze)",
+   "externals": [
+    "eicu"
+   ],
+   "folds": [
+    0
+   ],
+   "parts": [
+    "transported",
+    "local",
+    "comps",
+    "curve",
+    "hospitals",
+    "drift",
+    "shapes"
+   ],
+   "end": "2026-10-29 10:17:35"
+  },
+  {
+   "start": "2026-10-29 10:27:11",
+   "tag": "dry run (no freeze)",
+   "externals": [
+    "eicu"
+   ],
+   "folds": [
+    0
+   ],
+   "parts": [
+    "transported",
+    "local",
+    "comps",
+    "curve",
+    "hospitals",
+    "drift",
+    "shapes"
+   ],
+   "end": "2026-10-29 10:56:40"
+  }
+ ]
+}

@@ -60,6 +60,180 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — `hypo` reported, followed up post hoc, merged into `main` (lead)
+
+- Phase 5 (2026-10-29): the report, [results/hypo/REPORT.md](../results/hypo/REPORT.md), with the aggregates of every
+  phase in `results/hypo/`.
+- After the report the lead asked for three post hoc follow-ups. They are exploratory, not pre-registered, and are
+  reported in REPORT §13:
+  - the H1 arm's local weights swapped into the transported metric;
+  - a threshold for the MAP block as a whole;
+  - S4's drift on folds 1–4.
+
+  They run in `scripts/posthoc_hypo.py`, outside `src/hypo`. The script only reads the frozen artefacts and checks
+  the freeze record at the start and at the end.
+- The branch `hypotension` is merged into `main` as a separate experiment. Its files keep their paths, because the
+  freeze record, the pre-registration and the tag refer to them. README.md and results/README.md describe it next
+  to T2.
+
+## 2026-10-29 — `hypo` frozen; external stage started (lead)
+
+- The lead approved [prereg_hypo.md](prereg_hypo.md) as drafted, including the analyst's interpretations of H1–H5
+  (entry below) and the α grid without 0.
+- **D6**: a local registration ID, `LOCAL-PREREG-HYPO-2026-10-29`, with no OSF filing. The pushed tag is the
+  timestamp.
+- Freeze: tag `perisim-freeze-hypo-2026-10-29-120652` on commit `b0c9a02`, code `cf0d0b80c70a`, configuration
+  `772940e4ed77`. The branch and the tag were pushed before the external stage started (12:07:25). Record:
+  [freeze_hypo.md](freeze_hypo.md).
+
+## 2026-10-29 — `hypo` Phase 3: pre-registration draft, frozen artefacts and the external stage's code (analyst; for the lead's approval before the freeze)
+
+- Phase 2 finished (`reports/cv.md`, code `11a7ad77e519`; summary in docs/prereg_hypo.md §3); nothing tuned on it.
+- **Draft pre-registration**: [prereg_hypo.md](prereg_hypo.md). H1–H5 of the design §5 made operational, the
+  secondary analyses S1–S8, rules and limitations. Analyst's choices inside the design's wording, for the lead to
+  confirm or change before the freeze:
+  - H1 "PERISIM refitted locally" = a metric learned on the external site's training folds only, with the same
+    case base;
+  - H2 "inside ±0.10" read as T2 did, the 95 % CI inside the margin;
+  - H3 against the last-MAP model refitted locally (the harder bar);
+  - H4's control as a decision condition (Δ_hosp − Δ_ctrl < 0);
+  - H5 with a Bonferroni over the three pre-declared γ;
+  - 2,000 bootstrap resamples for H1–H5 and 500 for the rest;
+  - the external stage on the Phase 2 folds (case base = the training folds), so every landmark of the external
+    site is predicted once;
+  - drift and shapes on fold 0 only.
+- **The code of the external stage is written and frozen before it runs**, as T2's was:
+  - `frozen.py`: `python -m hypo final` fits the three transported metrics on all patients of each development
+    pair, and the transported comparators. `python -m hypo freeze` creates the tag and the hash record and refuses
+    when external results exist or the tree is dirty. `check` is the gate.
+  - `external.py`: the units per site and fold.
+  - `drift.py`: S4–S6, T2's post hoc drift analyses re-implemented for a binary outcome and distinct-patient
+    neighbours; candidates of the one-variable fits from the frozen metric, shared by all variables.
+  - `external_report.py`: H1–H5 and the secondary tables.
+  - `stats.py`: perisim's calibration fits with weights.
+  - The external stage checks the freeze at its start and its end.
+- Small changes to Phase 1 code, behaviour unchanged (tested):
+  - the distinct-patient search is a function reusable by the drift fits;
+  - the case base keeps its LOO neighbours, so H5 can re-choose α;
+  - the shape loop returns the accepted models' curves, so S5 can read thresholds per model;
+  - `hypo`'s code hash now normalises line endings as perisim's does, so the frozen hash is the same on any checkout
+    (the hash itself changes from Phase 2's `11a7ad77e519`).
+- A frozen-metric input that the external site cannot measure (INSPIRE's infusion timing) is the same value for all
+  of that site's landmarks, so it adds nothing to any distance in its case base (tested). It needs no rule.
+- **Dry run on real data** (`python -m hypo external --dry-run`, `external_dryrun/`, `reports/external_dryrun.md`):
+  - eICU fold 0 is served by the rotation whose development pair includes eICU, so it is in-sample and touches no
+    external result; it checks the mechanics only;
+  - every unit ran at full size in 2 h 11 min;
+  - it found one fault. In small case bases (H4's hospital contrasts, the S1 curve at n ≤ 500) the LOO chose α = 0,
+    and unanimous neighbourhoods then predicted exactly 0 or 1. Four hospital test rows reached the log-loss clip
+    (34.5), and up to 1,909 curve predictions were 0 or 1;
+  - fix: α = 0 is removed from `metric.alpha_grid` (now 0.1–10). Phase 2 never chose α = 0, so its results are
+    unchanged. The grid is used only by case bases, so the frozen artefacts are unchanged too. The affected
+    dry-run units (hospitals, curve, hospital drift) were rerun; no prediction is 0 or 1 any more, and the largest
+    log-loss of a row is 7.1;
+  - the fix changes two in-sample dry-run figures, recorded in prereg §3. H4 goes from "does not hold" to "holds":
+    the own-hospital arm had carried the clipped rows. S1's "within 0.01" goes from 500 to 250 patients. The old
+    outputs are kept in `external_dryrun_alpha0/`.
+- Order:
+  1. `final` (done; code `cf0d0b80c70a`);
+  2. dry run (done);
+  3. the lead approves prereg_hypo.md and decides D6;
+  4. commit the code;
+  5. `freeze` and push the tag;
+  6. `external` (about 8 h).
+
+## 2026-10-28 — `hypo` Phase 2: internal validation by rotation (analyst's design; Phase 1 confirmed by the lead)
+
+- The lead confirmed Phase 1's defaults (entry below). `src/hypo/cv.py`, `compare.py`, `report.py`; `cv` in
+  `config/hypo.yaml`; `python -m hypo cv` (resumable: finished units are kept) and `python -m hypo cv-report`.
+- **Folds fixed per site**: 5 patient-level folds, stratified by the outcome, the same in every rotation, so a
+  site's test fold is predicted by the metric learned with each of the other two sites (one line per partner).
+- **PERISIM per rotation and fold**: metric learned on the learning sample of both development sites' training
+  patients; each site queried with its own case base (its training landmarks); α by LOO in that case base.
+- **Comparators are local** (one site's training landmarks): prevalence, last MAP + slope (logistic), logistic on
+  every input (C tuned), T2's LightGBM (grid × early stopping, temperature), Euclidean kNN (neutral axes, uniform
+  weights, the same case base and vote). Settings are T2's (`model_space.yaml` `baselines`), tuned in 3 inner
+  patient-level folds. They do not depend on the rotation, so each runs once per site and fold, and they are the
+  external stage's "refitted locally" arm too. Transported comparators (trained on the development sites, applied
+  to the external one) belong to the external stage.
+- Report: AUROC, log-loss, Brier, calibration in the large and slope per site and method, and PERISIM − comparator
+  paired in log-loss and AUROC, with 95 % CIs from 500 patient-level bootstrap resamples (the same for every method
+  of a site; weighted AUROC). Descriptive: Phase 2 has no decision rule; the hypotheses H1–H5 are for the external
+  stage, after the freeze.
+- Chain checked on real data in quick mode (8 models, 10 epochs; rotation external-eICU, fold 0; `cv_quick/`,
+  kept apart from the run): PERISIM unit 137 s; local comparators per site and fold 35 s (INSPIRE) to 90 s
+  (MIMIC-IV). The full run is estimated at 2.5–3 h.
+
+## 2026-10-28 — `hypo` Phase 1: the metric and the case base (analyst's defaults, confirmed by the lead)
+
+- `src/hypo/data.py` (landmarks → perisim's encoder input; learning sample), `metric.py` (shapes and weights),
+  `casebase.py` (neighbours and probabilities); settings in `metric` of `config/hypo.yaml`. perisim's encoder, model
+  space, surrogates, curve reading, consensus, NCA and smoothed vote are used unchanged.
+- **No SAGE stage** (T2: λ ≈ 0). The weights are a free diagonal NCA; the shape loop stops at a fixed 40 accepted
+  models (T2's loops accepted 31–57), with the stability trace Δ of the distance (uniform weights) recorded only.
+- **Several development sites.** The site is a nuisance column of the ensemble's models, not part of the metric:
+  each g_j is a within-site effect, not a base-rate difference between sites. The NCA searches each anchor's
+  candidates within its own site, as the metric is used (each site queries its own case base). Each development
+  site gives the learning sample the same number of landmarks (≤ 30,000; ≤ 3 random landmarks per patient).
+- **Inputs constant within every development site leave the metric**: the missing indicator of a source gap is the
+  site itself (INSPIRE's "vasopressor running now" and vasopressor hours when INSPIRE is a development site).
+- **Neighbours are distinct patients.** A patient's consecutive landmarks are near-copies; each other patient enters
+  the k = 50 once, at its most similar moment, and the query's own patient never enters. α by patient-level LOO on
+  20,000 of the case base's own landmarks; out of support as T2 (99th percentile of the k-th distance).
+- The secondary bands are the same neighbours' smoothed vote over three classes; carried outcomes (vasopressor
+  start, ICU discharge in 24 h, MAP at 6 h) are their shares / medians.
+- Smoke run (`python -m hypo smoke --external eicu`: development INSPIRE + MIMIC-IV, 80 / 20 patient split, mechanics
+  and cost only): 411 s in all (shapes 174 s, NCA 187 s); 40 accepted models in 46 attempts, Δ ≈ 0.002–0.003 from
+  the 20th; 18 of 27 variables shaped; no neighbourhood short of 50 distinct patients; held-out mean prediction
+  equal to each site's prevalence (13 / 31 %), AUROC 0.78 at both. A quick version (8 models, 10 epochs) gave the
+  same numbers. Comparators are Phase 2.
+
+## 2026-10-28 — New experiment `hypo`: hypotension in the next 6 h in the ICU after surgery (lead)
+
+- T2 was the deliberately hard case (little information at ICU discharge), run to learn whether the shape functions
+  carry real information, where the method breaks (rare classes, small case bases) and what it is good for (transfer
+  with a local case base, drift diagnosis). The next experiment applies that to a case with dense data and a frequent
+  outcome, centred again on transfer and explainability. Candidates measured on the original tables; rare outcomes
+  (vasopressor start, 2–9 % per landmark) discarded; the lead chose hypotension in the next 6 h.
+- Design: `docs/design_hypotension.md`; feasibility: `docs/feasibility_hypotension.md`. **Approved defaults:** D1
+  leave-one-site-out; D2 secondary outcome in absolute MAP bands (< 65 / 65–75 / ≥ 75); D3 arterial line as a
+  stratum, not an input; D4 landmarks every 2 h; D5 MAP < 65 mmHg on the hourly median, 6-h horizon. Open: D6 OSF
+  registration, D7 verify INSPIRE's ICU vasopressor infusions, D8 T1 / T3 of the original plan.
+- Code: a separate package `src/hypo/` (config `config/hypo.yaml`) on the branch `hypotension`. `perisim` is used as a
+  library and not changed, so T2's frozen code and configuration hashes stay valid on this branch; `hypo` has its own
+  code hash (its files plus perisim's hash). Population from T2's `stays_candidates` (postoperative adult ICU stays,
+  first of the hospitalization, deaths kept); vitals, labs and supports read again from the original tables, because
+  T2's common format keeps only T2's index stays and, in MIMIC-IV / eICU, the vitals of a window before the ICU
+  discharge.
+- **Phase 0 (data), approved by the lead.** First landmark build: INSPIRE 148,293 landmarks (13.2 % hypotension),
+  MIMIC-IV 387,159 (30.7 %), eICU 466,385 (19.3 %). Fixed before the model:
+  - eICU invasive ventilation was 1.7 % of the landmarks (respiratoryCare intervals alone): now also the ventilator
+    settings charted in respiratoryCharting (set rate / volume, plateau / peak pressure, mode, …; PEEP / CPAP / EPAP
+    left out, non-invasive ventilation charts them) and `treatment` (as T2); eICU temperature also from
+    nurseCharting ("Temperature (C)"), vitalPeriodic having it for 16 %.
+  - Charted points of a support merge into runs while the gaps are < 6 h (T2's `support_gap_hours`); new inputs
+    "vasopressor / sedation in the last 24 h", comparable across sites.
+  - **D7 resolved**: INSPIRE's medication table does hold the ICU (records for 99.8 % of the stays, median 19 per
+    stay); vasopressors in the ICU 8.5 % of the stays (norepinephrine 4.0 %, dopamine 4.1 %), sedation 16.3 % — a
+    practice difference, not missing data. But its records are administrations, not infusion intervals, so
+    "running now" (vaso_on, sedation_on) and vasopressor hours are a declared `source` missing value in INSPIRE.
+  - Left out of the metric: BMI (absent in MIMIC-IV), surgery duration and time since the surgery (no surgery times
+    in MIMIC-IV / eICU). Unmapped surgical group → its own category "unknown" (MIMIC-IV 25 %).
+  - A completeness audit (`python -m hypo audit`) is the gate before the model: outcome prevalence ≥ 10 % per
+    cohort, every input ≥ 50 % coverage unless declared a gap.
+  - Ventilation checked at the first landmark: INSPIRE stayed at 61–64 % up to 24 h in every surgical group because
+    its `vent` item is 0 / 1 and `hypo` counted the 0 records (39 % of them) as ventilation; now as T2's extraction
+    (`value != 0`, which T2 already applied). MIMIC-IV rose from 37 % at 2 h to 52 % at 6 h (the ventilation
+    procedure is charted hours after the arrival): the ventilator settings charted hourly in chartevents are added
+    (mode, set volume / rate, peak / plateau / mean airway pressure; PEEP left out), as in eICU.
+  - eICU lactate (23 % of the landmarks, drawn selectively) is a declared `measurement` gap: kept with its missing
+    value as its own value (design §4).
+  - After the fixes the audit passes with no flags. Ventilation at L = 2 / 24 h: INSPIRE 37 / 11 %, MIMIC-IV
+    45 / 26 %, eICU 40 / 12 %. MIMIC-IV's rise to 60 % at 6 h is composition, not charting: in the same stays it falls
+    (45 → 43 %); the stays without a MAP in the first ICU hour (8,733, 82 % ventilated, mostly cardiac) enter the
+    landmarks only from L = 4–6. The earliest landmarks under-represent the busiest arrivals; a property of the
+    design (a MAP in the last hour is required), reported, not corrected.
+
 ## 2026-10-28 — Post-hoc case-base analyses: patients needed, and hospital-specific relations in eICU (lead)
 
 - Two questions of the lead after the drift analysis. (1) With the frozen INSPIRE metric (the "scaffold"), how many

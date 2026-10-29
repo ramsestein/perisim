@@ -1,0 +1,38 @@
+{
+ "tag": "perisim-freeze-hypo-2026-10-29-120652",
+ "at": "2026-10-29 12:06:52",
+ "registration": "LOCAL-PREREG-HYPO-2026-10-29",
+ "quick": false,
+ "git": {
+  "tag": "perisim-freeze-hypo-2026-10-29-120652",
+  "commit": "b0c9a02449bc7f90f75aaee8971731ee8cda7ab9"
+ },
+ "hashes": {
+  "code": "cf0d0b80c70a",
+  "config": "772940e4ed77",
+  "folds": {
+   "inspire": "68665fa041dead72",
+   "mimic": "77428c10f55839b2",
+   "eicu": "ce7fc67b42803550"
+  },
+  "phase2_comparators": {
+   "files": 75,
+   "sha": "c369c32ed35b4993"
+  },
+  "final": {
+   "comp_ext-eicu_last_map.pkl": "588b3ac061dcc498",
+   "comp_ext-eicu_lightgbm.pkl": "c8c6bad9e5ea612c",
+   "comp_ext-eicu_logreg.pkl": "8d947c81cb7417a4",
+   "comp_ext-inspire_last_map.pkl": "2af2cebdde737087",
+   "comp_ext-inspire_lightgbm.pkl": "bd4348007085d77d",
+   "comp_ext-inspire_logreg.pkl": "349a222340d08339",
+   "comp_ext-mimic_last_map.pkl": "e2b89f21160ae0c1",
+   "comp_ext-mimic_lightgbm.pkl": "1a550d0993bf1b6b",
+   "comp_ext-mimic_logreg.pkl": "97f29c49f4ebe7af",
+   "metric_ext-eicu.pkl": "ee43ae7b6cff5417",
+   "metric_ext-inspire.pkl": "738a7989b3e0d890",
+   "metric_ext-mimic.pkl": "8dbfea6db4488981"
+  }
+ },
+ "prereg_sha": "2fb3525f5278b4f2"
+}

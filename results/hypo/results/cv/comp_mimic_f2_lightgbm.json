@@ -1,0 +1,14 @@
+{
+ "site": "mimic",
+ "fold": 2,
+ "method": "lightgbm",
+ "n_train": 308956,
+ "n_test": 78203,
+ "seconds": 56.51705759999459,
+ "code_hash": "11a7ad77e519",
+ "temperature": 0.9927176657741306,
+ "num_leaves": 63,
+ "learning_rate": 0.03,
+ "n_estimators": 282,
+ "inner_logloss": 0.49143583113804673
+}
