@@ -18,6 +18,7 @@ Aggregates only in the outputs (windows hold ≥ 20 patients).
 from __future__ import annotations
 
 import math
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import polars as pl
@@ -33,7 +34,7 @@ STATS = ("auroc_mean", "auroc_median", "auroc_sd", "auroc_excess_var", "auroc_p1
 
 # --------------------------------------------------------------------------- one order: the window table
 def window_table(frame: pl.DataFrame, windows: list[dict], arms: list[str], cfg: dict, checks: list[dict],
-                 seed: int) -> dict:
+                 seed: int, workers: int = 8) -> dict:
     wc = cfg["windows"]
     R = int(wc["boot"])
     y_all = frame["y"].to_numpy().astype(np.float64)
@@ -52,19 +53,21 @@ def window_table(frame: pl.DataFrame, windows: list[dict], arms: list[str], cfg:
         T["m"][a] = {k: np.full(K, np.nan) for k in names}
         T["v"][a] = {k: np.full(K, np.nan) for k in Mx.BOOT_METRICS}
     nom = float(cfg["diagnostics"]["ood_nominal"])
-    for k in range(K):
-        r = np.where(wid == k)[0]
+    order = np.argsort(wid, kind="stable")
+    cuts = np.searchsorted(wid[order], np.arange(K + 1))
+
+    def one_window(k: int) -> dict:
+        r = order[cuts[k]:cuts[k + 1]]
         y, code = y_all[r], code_all[r]
-        ev_pat = np.unique(code[y == 1]).size
-        T["patients"][k], T["events"][k] = np.unique(code).size, int(y.sum())
-        T["valid"][k] = y.sum() >= int(wc["min_event_landmarks"]) and ev_pat >= int(wc["min_event_patients"])
         o = ood[r].astype(np.float64)
         _, inv = np.unique(code, return_inverse=True)
-        T["d1_rate"][k] = o.mean()
         se = math.sqrt(float((np.bincount(inv, weights=o - nom) ** 2).sum())) / len(o)
-        T["d1_z"][k] = (o.mean() - nom) / se if se > 0 else np.nan
-        if not T["valid"][k]:
-            continue
+        out = {"patients": np.unique(code).size, "events": int(y.sum()), "d1_rate": o.mean(),
+               "d1_z": (o.mean() - nom) / se if se > 0 else np.nan,
+               "valid": y.sum() >= int(wc["min_event_landmarks"])
+               and np.unique(code[y == 1]).size >= int(wc["min_event_patients"]), "arms": {}}
+        if not out["valid"]:
+            return out
         Wb = Mx.boot_weights(code, R, seed + k)
         one = np.ones(len(y))
         for a in arms:
@@ -75,12 +78,22 @@ def window_table(frame: pl.DataFrame, windows: list[dict], arms: list[str], cfg:
                 for name in ("auroc", "auprc", "auprc_minus_prev", "auprc_over_prev", "slope"):
                     pt[name] = np.nan
                     bt.pop(name, None)
+            c, s_ = citl_se(p, y, code)
+            out["arms"][a] = ({n: float(v) for n, v in pt.items()}, {n: float(np.nanvar(v, ddof=1)) for n, v in bt.items()},
+                              c / s_ if s_ > 0 else np.nan)
+        return out
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:          # windows are independent: the same result
+        done = list(ex.map(one_window, range(K)))
+    for k, o in enumerate(done):
+        for key in ("patients", "events", "d1_rate", "d1_z", "valid"):
+            T[key][k] = o[key]
+        for a, (pt, bt, z) in o["arms"].items():
             for name, v in pt.items():
-                T["m"][a][name][k] = float(v)
+                T["m"][a][name][k] = v
             for name, v in bt.items():
-                T["v"][a][name][k] = float(np.nanvar(v, ddof=1))
-            c, s = citl_se(p, y, code)
-            T["citl_z"][a][k] = c / s if s > 0 else np.nan
+                T["v"][a][name][k] = v
+            T["citl_z"][a][k] = z
     fires = {a: np.full(K, np.nan) for a in arms}
     for ch in checks:
         for a in arms:
@@ -132,10 +145,60 @@ def mean_stats(Ts: list[dict], a: str, idx: np.ndarray, cfg: dict, ref: float) -
             for k in STATS}
 
 
+def vec_stats(Ts: list[dict], a: str, IDX: np.ndarray, M: np.ndarray, cfg: dict, ref: float) -> dict:
+    """`mean_stats` for many resampled sets of windows at once: IDX (B × K) window positions, M (B × K) the positions
+    kept (a stretch). The same statistics as `arm_stats`, averaged over the orders (tested equal)."""
+    import warnings
+
+    e, tp = cfg["endpoints"], cfg["triggers"]["primary"]
+    per = []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for T in Ts:
+            valid = T["valid"][IDX] & M
+            n = valid.sum(1)
+
+            def take(x, keep=valid):
+                X = np.asarray(x, dtype=np.float64)[IDX]
+                X[~keep] = np.nan
+                return X
+
+            m, v = T["m"][a], T["v"][a]
+            au, ap, amp, ct, oe = (take(m[k]) for k in ("auroc", "auprc", "auprc_minus_prev", "citl", "oe"))
+            two = n > 1
+
+            def sd(X):
+                return np.where(two, np.nanstd(X, 1, ddof=1), np.nan)
+
+            def exv(X, V):
+                return np.where(two, np.nanvar(X, 1, ddof=1) - np.nanmean(take(V), 1), np.nan)
+
+            def share(cond, X):
+                return np.nanmean(np.where(np.isnan(X), np.nan, cond.astype(float)), 1)
+
+            out_cal = (np.abs(ct) > tp["citl_band"]) | (oe < tp["oe_low"]) | (oe > tp["oe_high"])
+            F = take(T["fires"][a], keep=M)
+            per.append({"auroc_mean": np.nanmean(au, 1), "auroc_median": np.nanmedian(au, 1), "auroc_sd": sd(au),
+                        "auroc_excess_var": exv(au, v.get("auroc", np.full(len(T["valid"]), np.nan))),
+                        "auroc_p10": np.nanpercentile(au, 10, 1), "auprc_mean": np.nanmean(ap, 1),
+                        "auprc_p10": np.nanpercentile(ap, 10, 1), "amp_mean": np.nanmean(amp, 1),
+                        "amp_excess_var": exv(amp, v.get("auprc_minus_prev", np.full(len(T["valid"]), np.nan))),
+                        "aop_mean": np.nanmean(take(m["auprc_over_prev"]), 1),
+                        "citl_mean": np.nanmean(ct, 1), "citl_sd": sd(ct), "oe_mean": np.nanmean(oe, 1), "oe_sd": sd(oe),
+                        "share_cal_out": share(out_cal, ct),
+                        "ece": np.sqrt(np.maximum(0.0, np.nanmean(ct ** 2, 1) - np.nanmean(take(v["citl"]), 1))),
+                        "below_clinical": share(au < e["clinical_auroc"], au),
+                        "below_reference": share(au < ref - e["margins"]["auroc"], au),
+                        "trigger_share": np.where(n > 0, np.nanmean(F, 1), np.nan),
+                        "logloss_mean": np.nanmean(take(m["logloss"]), 1),
+                        "brier_mean": np.nanmean(take(m["brier"]), 1), "slope_mean": np.nanmean(take(m["slope"]), 1)})
+        return {k: np.nanmean(np.stack([p[k] for p in per]), 0) for k in STATS}
+
+
 def contrast(sf: dict, sc: dict, floor: float) -> dict:
+    """FIFO minus a comparator (H2: the ratio of excess SDs, each variance floored). Scalars or arrays."""
     def ratio(vf, vc):
-        return math.sqrt((max(vf, 0.0) + floor ** 2) / (max(vc, 0.0) + floor ** 2)) \
-            if np.isfinite(vf) and np.isfinite(vc) else np.nan
+        return np.sqrt((np.maximum(vf, 0.0) + floor ** 2) / (np.maximum(vc, 0.0) + floor ** 2))
 
     return {"H1_auroc": sf["auroc_mean"] - sc["auroc_mean"], "H1_amp": sf["amp_mean"] - sc["amp_mean"],
             "H2_auroc_ratio": ratio(sf["auroc_excess_var"], sc["auroc_excess_var"]),
@@ -237,12 +300,13 @@ def rewindow(frame: pl.DataFrame, log: dict, scale: float) -> tuple[pl.DataFrame
     return frame.with_columns(pl.Series("window", wid)), {**log, "windows": wins, "checks": []}
 
 
-def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int, light: bool = False) -> dict:
+def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int, light: bool = False,
+                     arms: list[str] | None = None) -> dict:
     """Endpoints of one stream (one N, one hospital) from its R orders: [(predictions, log), …]. `light`: the whole
     stream's arms and contrasts only (the sensitivity analyses)."""
     logs = [lg for _, lg in runs]
     windows = logs[0]["windows"]
-    arms = list(logs[0]["arms"])
+    arms = list(logs[0]["arms"]) if arms is None else arms
     K = len(windows)
     if any(len(lg["windows"]) != K for lg in logs):
         raise ValueError("the orders of a stream must have the same windows")
@@ -269,27 +333,28 @@ def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int
     boot = mbb(seg, ell, int(cfg["endpoints"]["boot"]), seed)
     res = {"stream": st, "orders": len(runs), "windows": K, "block_length": ell,
            "windows_dropped": [int((~T["valid"]).sum()) for T in Ts], "arms": {}, "contrasts": {}, "stretch": {}}
+    IDXB = np.stack(boot)
+    IDX0 = np.arange(K)[None, :]
     for name, idx in sets.items():
         if idx.size == 0:
             continue
-        S = {a: mean_stats(Ts, a, idx, cfg, ref) for a in arms}
+        S = {a: {k: float(x[0]) for k, x in vec_stats(Ts, a, IDX0, np.isin(IDX0, idx), cfg, ref).items()} for a in arms}
         if name == "all":
             res["arms"] = S
-        B = []
-        for b in boot:
-            bi = b if name == "all" else b[np.isin(b, idx)]
-            B.append({a: mean_stats(Ts, a, bi, cfg, ref) for a in arms})
+        MB = np.isin(IDXB, idx)
+        BS = {a: vec_stats(Ts, a, IDXB, MB, cfg, ref) for a in arms}
         con = {}
         for c in arms:
             if c == "perisim_fifo":
                 continue
             pt = contrast(S["perisim_fifo"], S[c], floor)
-            bs = [contrast(x["perisim_fifo"], x[c], floor) for x in B]
-            con[c] = {k: {"estimate": pt[k], "ci": ci95([x[k] for x in bs]),
-                          "se": float(np.nanstd([x[k] for x in bs], ddof=1))} for k in pt}
+            bs = contrast(BS["perisim_fifo"], BS[c], floor)
+            con[c] = {k: {"estimate": float(pt[k]), "ci": ci95(bs[k]),
+                          "se": float(np.nanstd(bs[k], ddof=1)) if np.isfinite(bs[k]).sum() > 1 else np.nan}
+                      for k in pt}
         if name == "all":
             res["contrasts"] = con
-            res["arms_ci"] = {a: {k: ci95([x[a][k] for x in B]) for k in STATS} for a in arms}
+            res["arms_ci"] = {a: {k: ci95(BS[a][k]) for k in STATS} for a in arms}
         else:
             res["stretch"][name] = {"windows": int(idx.size), "arms": S, "contrasts": con}
     if light:

@@ -7,7 +7,8 @@
   python -m roll rehearse [--threads 16]  before the freeze: one unit per stream kind at real size, in-sample
                                           artefacts; cost and mechanics only (no metric read)
   python -m roll freeze --registration ID the freeze (Phase 3, after the lead approves docs/prereg_roll.md)
-  python -m roll run [--threads 8] [--streams …]   the single real run (Phase 4; frozen version only; resumable)
+  python -m roll run [--threads 8] [--streams …] [--N …]   the single real run (Phase 4; frozen version only;
+                                          resumable; parts may run side by side in separate terminals)
   python -m roll endpoints                the endpoints of the real run (aggregates)
   python -m roll t2                       T2, secondary and descriptive (runs and endpoints)
 
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     r = sub.add_parser("run")
     r.add_argument("--threads", type=int, default=8)
     r.add_argument("--streams", nargs="*")
+    r.add_argument("--N", nargs="*", type=int, dest="Ns")
     sub.add_parser("endpoints")
     sub.add_parser("t2")
     rh = sub.add_parser("rehearse")
@@ -63,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd in ("run", "endpoints", "t2"):
         from . import run as R
 
-        out = R.real(a.threads, a.streams) if a.cmd == "run" else R.real_endpoints() if a.cmd == "endpoints" else R.real_t2()
+        out = R.real(a.threads, a.streams, a.Ns) if a.cmd == "run" else R.real_endpoints() if a.cmd == "endpoints" else R.real_t2()
         print(out)
         return 0
     if a.cmd == "check":

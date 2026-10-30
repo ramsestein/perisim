@@ -71,7 +71,24 @@ and `hypo`'s numbers say that its accuracy half is expected to fail against Ligh
   - a calibration in the large of ±0.4 between case bases of 100 patients.
 
   N was not changed after it.
-- **Not seen**: the performance of any arm along any real stream. Nothing of the single run exists.
+- **The rehearsal at real size, before the freeze** (the lead's decision; `python -m roll rehearse`):
+  - one unit of each stream kind, at the primary N and order 0: MIMIC-IV temporal; eICU (a) and (b) in the
+    median-sized eligible hospital; INSPIRE → MIMIC-IV; the INSPIRE control;
+  - every arm;
+  - served by **in-sample** artefacts: a rotation whose development pair holds every cohort of the stream, so
+    nothing of the single run was computed;
+  - only time, determinism and reconstruction were read; no metric was read.
+
+  It found no fault: identical predictions with 1 thread, and the FIFO window rebuilt from the log with no
+  mismatch. It led to three changes for cost only:
+  - the endpoints' bootstrap vectorised, and the per-window metrics computed in parallel threads (both tested equal
+    to the plain computation);
+  - the W sensitivity read for PERISIM-FIFO and arm 5 only;
+  - `roll run --streams … --N …`, so that parts can run side by side.
+
+  Estimated cost: about 27 hours of compute for the runs (one process) and 2 for the endpoints.
+- **Not seen**: the performance of any arm along any real stream with the metrics of the run. Nothing of the single
+  run exists.
 
 ## 4. Frozen artefacts
 
@@ -214,8 +231,8 @@ contrast is PERISIM-FIFO minus arm 5, paired on the same windows.
   - H1–H4 with each sensitivity trigger, and with L = 0;
   - by stretch;
   - against logistic regression, and against arm 5′;
-  - with W halved and doubled. These are the same predictions read in windows of W/2 and 2W: the arms' runs, checks
-    and updates are unchanged, and H4 (b) is not re-read.
+  - with W halved and doubled, PERISIM-FIFO against arm 5 (both families). These are the same predictions read in
+    windows of W/2 and 2W: the arms' runs, checks and updates are unchanged, and H4 (b) is not re-read.
 
 ## 9. Rules for the stage
 

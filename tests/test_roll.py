@@ -372,6 +372,30 @@ def test_the_freeze_records_and_checks_and_refuses_after_results(tmp_path, monke
         frozen.freeze("TEST", {}, {}, no_git=True)
 
 
+def test_vectorised_statistics_equal_the_plain_ones(ran, env):
+    st, run, res, _ = ran
+    cfg = env[0]
+    arms = list(res["arms"])
+    T = EP.window_table(run.frame(), res["windows"], arms, cfg, res["checks"], 5)
+    T1 = EP.window_table(run.frame(), res["windows"], arms, cfg, res["checks"], 5, workers=1)
+    for a in arms:                                                 # the threads change nothing
+        for k in T["m"][a]:
+            assert np.array_equal(T["m"][a][k], T1["m"][a][k], equal_nan=True)
+        for k in T["v"][a]:
+            assert np.array_equal(T["v"][a][k], T1["v"][a][k], equal_nan=True)
+    seg = T["seg"]
+    K = len(seg)
+    boot = EP.mbb(seg, 3, 20, 1)
+    sub = np.arange(0, K, 2)
+    for b in boot[:5] + [np.arange(K)]:
+        for idx, M in ((b, np.ones(K, bool)), (b[np.isin(b, sub)], np.isin(b, sub))):
+            for a in ("perisim_fifo", "lightgbm_realistic", "prevalence"):
+                plain = EP.mean_stats([T, T], a, idx, cfg, 0.8)
+                vec = EP.vec_stats([T, T], a, b[None, :], M[None, :], cfg, 0.8)
+                for k in EP.STATS:
+                    assert vec[k][0] == pytest.approx(plain[k], rel=1e-9, abs=1e-12, nan_ok=True), (a, k)
+
+
 def test_endpoints_run_on_a_stream(ran, env):
     st, run, res, _ = ran
     out = EP.stream_endpoints([(run.frame(), res)], env[0], 1)

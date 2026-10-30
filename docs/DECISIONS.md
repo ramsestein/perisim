@@ -111,6 +111,42 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   before the freeze, from `hypo`'s saved S1 predictions with case bases of 100 and 250 patients. That would be a new
   aggregate of examined data, so it is the lead's decision. (Measured: next entry.)
 
+## 2026-10-30 — `roll`: the rehearsal at real size before the freeze (lead's decision)
+
+- **What ran** (`python -m roll rehearse --threads 16`, in the lead's terminal; 61 min):
+  - one unit of each stream kind at the primary N, order 0: MIMIC-IV temporal; eICU (a) and (b) in the
+    median-sized eligible hospital (H18); INSPIRE → MIMIC-IV; the INSPIRE control;
+  - all 24 arms;
+  - in-sample artefacts: MIMIC-IV served by ext-eicu, eICU by ext-inspire, INSPIRE by ext-mimic, the cross-cohort
+    stream by ext-eicu.
+
+  Nothing of the single run was computed.
+- **What was read**: time per unit and per arm, the endpoints' time, determinism and reconstruction. No metric was
+  read; the outputs stay in `work/experiments/roll/rehearsal/` and are not used.
+- **Findings**:
+  - no fault;
+  - predictions identical with 1 and 16 threads;
+  - the FIFO window rebuilt from the log at all 44 steps, with no mismatch;
+  - the freezes of T2 and `hypo` unchanged.
+- **Time**:
+
+  | unit | run | slowest arms |
+  |---|---|---|
+  | MIMIC-IV temporal | 35 min | PERISIM cumulative 375 s, FIFO 209 s, LightGBM ideal 112 s |
+  | INSPIRE control | 9 min | |
+  | INSPIRE → MIMIC-IV | 8 min | |
+  | an eICU hospital | 0.2–0.3 min | |
+
+  Scaled to the design, the runs need about 27 hours in one process. The endpoints needed about 18 hours.
+- **Changes, for cost only** (the results are the same; tested):
+  - the bootstrap over windows vectorised;
+  - the per-window metrics computed in parallel threads (one window per thread);
+  - the W sensitivity read for PERISIM-FIFO and arm 5 only, as the pre-registration reports it.
+
+  The endpoints now need about 2 hours.
+- **Running the single run in parts.** `roll run --streams … --N …` selects a part. Parts never write the same unit,
+  so several can run side by side in separate terminals.
+
 ## 2026-10-30 — `roll` Phase 3: the pre-registration draft and the freeze's code (analyst; for the lead's approval)
 
 - **The draft**: [prereg_roll.md](prereg_roll.md). It holds:

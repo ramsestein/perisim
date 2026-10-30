@@ -101,11 +101,12 @@ def endpoints(root: Path, cfg: dict, js: list[dict], seed: int) -> dict:
         if job["spec"]["kind"] == "within" and primary:
             res["h6"] = EP.h6_hospital(runs, cfg, ml5, seed)
         if primary:                                   # the W sensitivity: the same predictions, windows ½ and 2 W
+            key_arms = ["perisim_fifo"] + [f"{f}_realistic" for f in cfg["ml"]["families"]]
             res["sensitivity_W"] = {}
             for scale in (0.5, 2.0):
                 rw = [EP.rewindow(fr, lg, scale) for fr, lg in runs]
                 try:
-                    s = EP.stream_endpoints(rw, cfg, seed, light=True)
+                    s = EP.stream_endpoints(rw, cfg, seed, light=True, arms=key_arms)
                     res["sensitivity_W"][str(scale)] = {"windows": s["windows"], "contrasts": s["contrasts"]}
                 except ValueError as e:                # orders whose re-windowing differs: reported, not hidden
                     res["sensitivity_W"][str(scale)] = {"error": str(e)}
@@ -133,9 +134,10 @@ def _real():
     return cfg, hcfg, mcfg, space, {c: real_cohort(c, hcfg) for c in ("inspire", "mimic", "eicu")}
 
 
-def real(threads: int = 8, names: list[str] | None = None) -> Path:
+def real(threads: int = 8, names: list[str] | None = None, Ns: list[int] | None = None) -> Path:
     """Every stream of the design on the frozen version, primary N first; resumable (finished units are kept).
-    The freeze is checked at the start and the end."""
+    `names` / `Ns` select a part, so that parts can run side by side in separate processes (they never write the
+    same unit). The freeze is checked at the start and the end."""
     from .data import Frozen
     from .frozen import check, runs_dir
 
@@ -148,12 +150,12 @@ def real(threads: int = 8, names: list[str] | None = None) -> Path:
         st.write_text(json.dumps({"tag": rec["tag"], "started": time.strftime("%Y-%m-%d %H:%M:%S"),
                                   "code_hash": code_hash()}, indent=1), encoding="utf-8")
     fz = Frozen.load(cfg["ml"]["families"])
-    js = jobs(cfg, cs, names)
+    js = [j for j in jobs(cfg, cs, names) if not Ns or j["N"] in Ns]
     js.sort(key=lambda j: j["N"] != int(j["spec"]["N_primary"]))
     for j in js:
         for r in range(j["orders"]):
             run_job(j, r, cs, fz, cfg, hcfg, mcfg, space, root, threads)
-    gj = next((j for j in js if j["spec"]["kind"] == "within"), js[0] if js else None)   # a cheap unit
+    gj = next((j for j in js if j["spec"]["kind"] == "within"), None)     # a cheap unit, in the part that runs (a)
     if not (root / "governability.json").exists() and gj is not None:
         (root / "governability.json").write_text(json.dumps(governability(gj, cs, fz, cfg, mcfg, space, root),
                                                             indent=1, default=_json), encoding="utf-8")
