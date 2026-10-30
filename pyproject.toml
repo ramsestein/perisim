@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ceknn"
+version = "0.1.0"
+description = "Consensus effect-space kNN (CE-kNN): kNN on consensus shape functions read from a Rashomon set of models"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ramses Marrero García" }]
+dependencies = ["numpy>=1.24", "scipy>=1.10", "pandas>=1.5", "scikit-learn>=1.3"]
+
+[project.optional-dependencies]
+boosting = ["lightgbm>=4.0", "xgboost>=2.0"]
+fast = ["faiss-cpu>=1.7"]
+plot = ["matplotlib>=3.6"]
+all = ["lightgbm>=4.0", "xgboost>=2.0", "faiss-cpu>=1.7", "matplotlib>=3.6"]
+test = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
