@@ -1,0 +1,231 @@
+{
+ "inspire": {
+  "stays": 12893,
+  "patients": 12002,
+  "map_readings_per_hour_median": 1.0,
+  "hours_with_map_share": 0.8884753528874605,
+  "map_hours_invasive_share": 0.0,
+  "stays_with_invasive_map": 0.0,
+  "landmarks": {
+   "all": 160506,
+   "normotensive": 149514,
+   "patients_all": 12495,
+   "patients_normotensive": 12470
+  },
+  "outcome": {
+   "hypotension next 6 h, all landmarks": 0.17202167538412272,
+   "\u2026 normotensive in the last hour": 0.1315512708150745,
+   "\u2026 normotensive, off vasopressors": 0.13050654060882677,
+   "\u2026 normotensive, on vasopressors": 0.2718978102189781,
+   "landmarks on vasopressors": 0.008996548415635552,
+   "normotensive: any reading < 65 (not the hourly median)": 0.1799229503591637,
+   "normotensive: one reading per hour (the first)": 0.15091563331861899,
+   "normotensive, off vasopressors: hypotension or vasopressor started": 0.14015810061936326,
+   "death within the 6 h (counted as positive)": 0.00030528453764968287
+  },
+  "lowest_map_next_6h_tertile_cuts": [
+   71.5,
+   83.0
+  ],
+  "window_hours_with_map_median": 6.0,
+  "inputs_at_landmark": {
+   "heart rate in the last hour": 0.9788782321387963,
+   "SpO2 in the last hour": 0.9521850796580922,
+   "\u2265 3 hourly MAPs in the last 6 h": 0.9198402825153498
+  },
+  "normotensive_rate_by_landmark": {
+   "2": 0.181,
+   "4": 0.162,
+   "6": 0.152,
+   "8": 0.144,
+   "10": 0.136,
+   "12": 0.126,
+   "14": 0.124,
+   "16": 0.123,
+   "18": 0.118,
+   "20": 0.118,
+   "22": 0.107,
+   "24": 0.115,
+   "26": 0.115,
+   "28": 0.122,
+   "30": 0.121,
+   "32": 0.115,
+   "34": 0.107,
+   "36": 0.105,
+   "38": 0.109,
+   "40": 0.118,
+   "42": 0.121,
+   "44": 0.11,
+   "46": 0.105,
+   "48": 0.106
+  },
+  "normotensive_rate_by_surgical_group": {
+   "neuro": 0.13,
+   "general_gi": 0.118,
+   "cardiac": 0.152,
+   "thoracic": 0.135,
+   "ortho": 0.119,
+   "vascular": 0.109,
+   "uro_gyn": 0.133,
+   "ent_head_neck": 0.135,
+   "plastic_other": 0.083,
+   "other": 0.179
+  }
+ },
+ "mimic": {
+  "stays": 28163,
+  "patients": 26083,
+  "map_readings_per_hour_median": 1.0,
+  "hours_with_map_share": 0.8798446014002586,
+  "map_hours_invasive_share": 0.6345699570560855,
+  "stays_with_invasive_map": 0.7221531797038667,
+  "landmarks": {
+   "all": 471061,
+   "normotensive": 395934,
+   "patients_all": 26539,
+   "patients_normotensive": 26453
+  },
+  "outcome": {
+   "hypotension next 6 h, all landmarks": 0.38822119772128466,
+   "\u2026 normotensive in the last hour": 0.30712615478974203,
+   "\u2026 normotensive, off vasopressors": 0.26697502372600274,
+   "\u2026 normotensive, on vasopressors": 0.45724943079978686,
+   "landmarks on vasopressors": 0.22590067952982734,
+   "normotensive: any reading < 65 (not the hourly median)": 0.3497072744447307,
+   "normotensive: one reading per hour (the first)": 0.31438825662863,
+   "normotensive, off vasopressors: hypotension or vasopressor started": 0.27584263476001997,
+   "death within the 6 h (counted as positive)": 0.002188676201171398
+  },
+  "lowest_map_next_6h_tertile_cuts": [
+   65.0,
+   73.0
+  ],
+  "window_hours_with_map_median": 6.0,
+  "inputs_at_landmark": {
+   "heart rate in the last hour": 0.9974718008556982,
+   "SpO2 in the last hour": 0.9837877019907358,
+   "\u2265 3 hourly MAPs in the last 6 h": 0.945690443356721
+  },
+  "normotensive_rate_by_landmark": {
+   "2": 0.311,
+   "4": 0.325,
+   "6": 0.327,
+   "8": 0.324,
+   "10": 0.325,
+   "12": 0.325,
+   "14": 0.32,
+   "16": 0.32,
+   "18": 0.322,
+   "20": 0.324,
+   "22": 0.314,
+   "24": 0.307,
+   "26": 0.298,
+   "28": 0.292,
+   "30": 0.284,
+   "32": 0.288,
+   "34": 0.285,
+   "36": 0.284,
+   "38": 0.274,
+   "40": 0.273,
+   "42": 0.282,
+   "44": 0.292,
+   "46": 0.294,
+   "48": 0.283
+  },
+  "normotensive_rate_by_surgical_group": {
+   "cardiac": 0.37,
+   "None": 0.329,
+   "general_gi": 0.262,
+   "neuro": 0.152,
+   "thoracic": 0.299,
+   "vascular": 0.306,
+   "ortho": 0.325,
+   "uro_gyn": 0.301,
+   "ent_head_neck": 0.181,
+   "plastic_other": 0.251
+  }
+ },
+ "eicu": {
+  "stays": 35282,
+  "patients": 33759,
+  "map_readings_per_hour_median": 12.0,
+  "hours_with_map_share": 0.9266525391850762,
+  "map_hours_invasive_share": 0.5435703913075008,
+  "stays_with_invasive_map": 0.6885664078000113,
+  "landmarks": {
+   "all": 556959,
+   "normotensive": 485293,
+   "patients_all": 34274,
+   "patients_normotensive": 34069
+  },
+  "outcome": {
+   "hypotension next 6 h, all landmarks": 0.27469810868267736,
+   "\u2026 normotensive in the last hour": 0.19341565489520765,
+   "\u2026 normotensive, off vasopressors": 0.18456221044116566,
+   "\u2026 normotensive, on vasopressors": 0.30889747987094146,
+   "landmarks on vasopressors": 0.0786072224346855,
+   "normotensive: any reading < 65 (not the hourly median)": 0.38077821027709036,
+   "normotensive: one reading per hour (the first)": 0.23462114640021595,
+   "normotensive, off vasopressors: hypotension or vasopressor started": 0.2010754269618854,
+   "death within the 6 h (counted as positive)": 0.0014166213311931398
+  },
+  "lowest_map_next_6h_tertile_cuts": [
+   68.5,
+   78.0
+  ],
+  "window_hours_with_map_median": 6.0,
+  "inputs_at_landmark": {
+   "heart rate in the last hour": 0.9964742949104973,
+   "SpO2 in the last hour": 0.9693051414300227,
+   "\u2265 3 hourly MAPs in the last 6 h": 0.9372647040035608
+  },
+  "normotensive_rate_by_landmark": {
+   "2": 0.223,
+   "4": 0.219,
+   "6": 0.215,
+   "8": 0.209,
+   "10": 0.205,
+   "12": 0.198,
+   "14": 0.195,
+   "16": 0.195,
+   "18": 0.192,
+   "20": 0.19,
+   "22": 0.185,
+   "24": 0.187,
+   "26": 0.182,
+   "28": 0.187,
+   "30": 0.184,
+   "32": 0.179,
+   "34": 0.175,
+   "36": 0.176,
+   "38": 0.174,
+   "40": 0.178,
+   "42": 0.175,
+   "44": 0.171,
+   "46": 0.171,
+   "48": 0.174
+  },
+  "normotensive_rate_by_surgical_group": {
+   "cardiac": 0.225,
+   "plastic_other": 0.149,
+   "general_gi": 0.195,
+   "vascular": 0.18,
+   "thoracic": 0.196,
+   "neuro": 0.152,
+   "None": 0.194,
+   "ortho": 0.242,
+   "uro_gyn": 0.19,
+   "ent_head_neck": 0.148
+  },
+  "hospitals": {
+   "with_landmarks": 197,
+   "\u2265 300 patients": 37,
+   "\u2265 1000 patients": 2,
+   "rate_quantiles_hospitals_\u2265300": [
+    0.115,
+    0.216,
+    0.253
+   ]
+  }
+ }
+}
