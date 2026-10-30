@@ -1,0 +1,109 @@
+# Experiment `roll`: prequential evaluation with a rotating case base (docs/design_roll.md, approved by the lead on
+# 2026-10-30). A pre-registered retrospective evaluation on data already examined. Separate from T2 and `hypo`: their
+# code and frozen artefacts are only read (config/hypo.yaml, <workdir>/experiments/hypo/final).
+
+experiment: roll
+seed: 20261030
+
+# --------------------------------------------------------------------------- the prequential loop (design §5)
+loop:
+  step: 10                      # B, patients predicted, then entered, at a time; a step never crosses a window's end
+  admission_gate: true          # duplicates (stay, L), values outside hypo's bounds, impossible values
+
+# --------------------------------------------------------------------------- streams (design §4)
+eicu_hospitals:
+  years: [2014, 2015]
+  min_patients_each_year: 150   # gate decision 2: 35 hospitals
+  n250_min_first_year: 400      # N = 250 in stream (a) only where 2014 has at least this many patients
+
+# months of calendar time per segment, for the delay L in patients (design §7.6)
+months:
+  mimic_block: 36
+  mimic_cohort: 180             # 2008-2022, for a MIMIC-IV stretch drawn from every block
+  eicu_year: 12
+  eicu_cohort: 24
+  inspire_cohort: 120           # 2011-2020 (Lim et al., 2024)
+
+streams:
+  mimic_temporal: {kind: temporal, cohort: mimic, metric: mimic, N: [250, 500, 1000, 2000], N_primary: 500, orders: 5}
+  eicu_within: {kind: within, cohort: eicu, metric: eicu, N: [100, 250], N_primary: 100, orders: 10}
+  eicu_deploy: {kind: deploy, cohort: eicu, metric: eicu, N: [100, 250], N_primary: 250, orders: 10}
+  inspire_mimic: {kind: cross, first: inspire, second: mimic, metric: mimic, first_n: 2000, second_n: 4000,
+                  N: [250, 500, 1000, 2000], N_primary: 500, orders: 5}
+  eicu_mimic: {kind: cross, first: eicu, second: mimic, metric: mimic, first_n: 2000, second_n: 4000,
+               N: [250, 500, 1000, 2000], N_primary: 500, orders: 5}
+  mimic_inspire: {kind: cross, first: mimic, second: inspire, metric: inspire, first_n: 2000, second_n: 4000,
+                  N: [250, 500, 1000, 2000], N_primary: 500, orders: 5}
+  inspire_control: {kind: random, cohort: inspire, metric: inspire, N: [250, 500, 1000, 2000], N_primary: 500,
+                    orders: 5}
+
+# --------------------------------------------------------------------------- evaluation windows (design §8.1)
+# by the population a window evaluates: a MIMIC-IV / INSPIRE stretch, one eICU hospital, the pooled eICU stretch
+windows:
+  W: {mimic: 100, inspire: 150, eicu_hospital: 50, eicu: 100}
+  min_event_landmarks: 30
+  min_event_patients: 10
+  boot: 200                     # patient-level resamples within a window (excess SD, excess calibration error)
+
+# --------------------------------------------------------------------------- the ML arms (design §6.2, §7)
+ml:
+  families: [lightgbm, logreg]  # LightGBM primary; logistic regression secondary
+  primary_family: lightgbm
+  inner_folds: 3                # arm 5': training on the starting window (hypo's settings)
+
+monitor:
+  M: {mimic: 300, inspire: 500, eicu_hospital: 200, eicu: 300}
+  E: 500                        # event landmarks a monitoring window must hold to decide
+
+triggers:
+  primary: {oe_low: 0.9, oe_high: 1.1, citl_band: 0.10, z: 1.959964}   # the CITL CI entirely outside ±0.10
+  sensitivity:
+    auroc5: {auroc_drop: 0.05}
+    auroc10: {auroc_drop: 0.10}
+    logloss10: {logloss_rise: 0.10}
+    davis: {delta: 0.05, lr: 0.01, min_sub: 50}    # dynamic calibration curve (Adam) + one-sided ADWIN
+
+update:                         # closed testing (Vergouwe et al., 2017), adapted: held-out comparison
+  split_fit: 0.6666666666666666 # share of the window's patients in the fitting part
+  alpha: 0.05                   # one-sided, per test
+  lgbm_max_estimators: 2000     # refit: the transported num_leaves / learning_rate, trees by early stopping
+  lgbm_early_stopping: 50
+
+delay:
+  months: [3, 0]                # the first is primary (realistic); 0 is the optimistic scenario
+
+# --------------------------------------------------------------------------- PERISIM's diagnostics (design §8.6)
+diagnostics:
+  ood_nominal: 0.01
+  ood_alarm_z: 2.326348         # one-sided 1 %
+  relearn: {ood_rate: 0.03, consecutive: 3, gain: -0.005}
+  redeform:
+    every_windows: 10
+    orders: [0]                 # the first order only (cost)
+    streams: [mimic_temporal, inspire_mimic, eicu_mimic, mimic_inspire, inspire_control]
+    boot: 200
+
+# --------------------------------------------------------------------------- endpoints and statistics (design §8–§10)
+endpoints:
+  boot: 2000                    # moving-block bootstrap of the windows, stratified by segment
+  clinical_auroc: 0.70
+  local_reference_auroc: {inspire: 0.802, mimic: 0.797, eicu: 0.814}   # hypo's local LightGBM, out of fold
+  margins: {auroc: 0.02, auprc: 0.03}
+  h2_floor_sd: 0.005
+  recovery: {auroc: 0.02, citl: 0.10, consecutive: 2}
+  h6: {ml_citl_z: 2.575829, max_false_alarms: 0.05}   # the ML's matched test: CITL = 0, two-sided 1 %
+
+# --------------------------------------------------------------------------- T2 (secondary, descriptive; design §12)
+t2:
+  stream: mimic_temporal
+  N: 2000
+  W: 250
+
+# --------------------------------------------------------------------------- the synthetic dry run (Phase 2 only)
+# Small sizes that exercise every arm, trigger and endpoint on synthetic data. Never an analysis.
+dry:
+  patients: {inspire: 1500, mimic: 2500, eicu: 3000}
+  landmarks_per_patient: 6
+  eicu_hospitals: 6
+  scale: {N: 120, N_eicu: 60, W: 40, W_eicu_hospital: 20, M: 80, M_eicu_hospital: 40, E: 60, first_n: 300,
+          second_n: 600, boot: 200, window_boot: 30, orders: 2}

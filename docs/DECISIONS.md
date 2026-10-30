@@ -60,6 +60,57 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — `roll` Phase 2: the implementation, its tests and the synthetic dry run (analyst; for the lead)
+
+- **The code.**
+  - `src/roll/` and `config/roll.yaml`;
+  - the command `python -m roll` (`check`, `streams`, `dry`, `t2-check`), also `run_local.ps1 roll`.
+
+  It reads `hypo`'s frozen metrics and comparators and T2's frozen artefacts, and changes nothing of either. Both
+  freezes are checked at the start and the end of every command. The single real run is added with the freeze
+  (Phase 3).
+- **The tests** (`tests/test_roll.py`, synthetic data):
+  - each patient is evaluated once and before entering; FIFO; exclusion by patient; the same sequence for every arm;
+  - the trigger, the delay and the refractory period work as declared;
+  - determinism;
+  - a `hypo` case base is reproduced exactly;
+  - the closed test picks the needed update; ADWIN; the gate; the metrics against scikit-learn; the block bootstrap;
+    DerSimonian–Laird; T2's scores.
+
+  On the real data (`PERISIM_TEST_ROLL_REAL=1`), a window equal to `hypo`'s fold-0 INSPIRE case base reproduces
+  `hypo`'s transported predictions bit for bit.
+- **The real streams, built** (`python -m roll streams`; counts only, nothing fitted or predicted):
+  - 35 hospitals in each eICU stream, as decided at the gate;
+  - 240 evaluation windows in MIMIC-IV, 74 in INSPIRE;
+  - the admission gate refuses no landmark;
+  - 142 eICU patients have landmarks in two hospitals.
+
+  T2's artefacts load: 24,768 stays, 23,162 patients, all labelled.
+- **Corrections the dry run found** (design updated):
+  - the order of the closed test (design §7.5): the approved order, from the refit down, kept a badly miscalibrated
+    model every time. Now: the nested recalibrations top-down, then the refit;
+  - ADWIN in the variance form of its cut (§7.4): the Hoeffding cut missed a tripling of the calibration error;
+  - the prevalence arm gets no discrimination metrics (its rate is the same for every patient of a step).
+- **Implementation choices, declared in the design:**
+  - a step never crosses an evaluation window's end (§5);
+  - an eICU patient belongs to the hospital holding most of their landmarks and to their first year (§5);
+  - a trigger whose closed test keeps the model still completes its cycle (§7.2);
+  - the delay in a cross-cohort stretch uses the cohort's rate (§7.6);
+  - the bootstrap's blocks are capped at half a segment (§10);
+  - D2's anchors and schedule (§8.6);
+  - T2's artefacts (§12).
+- **Seen on synthetic data only: a risk for the real run.**
+  - With a window of 120 patients and k = 50, PERISIM-FIFO under-predicted: O/E 1.17–1.28, calibration slope about
+    1.5. With 60 patients (most of them neighbours), O/E was 1.9–2.3. The cumulative arm was close to calibrated
+    (O/E 0.96–1.30).
+  - The neighbours are distinct patients, each at its closest landmark. When k is a large share of the window's
+    patients, the vote shrinks.
+  - eICU's stream (a) has N = 100 with k = 50. This could count against PERISIM in H4 there.
+
+  This is not an analysis, and neither k nor N is changed. Whether it happens on the real data could be read,
+  before the freeze, from `hypo`'s saved S1 predictions with case bases of 100 and 250 patients. That would be a new
+  aggregate of examined data, so it is the lead's decision.
+
 ## 2026-10-30 — `roll` Phase 0 gate decided; Phase 1, the design (lead; analyst's proposals for the lead's approval)
 
 - **Phase 0 gate (lead).** Every proposal of feasibility_roll.md accepted:
@@ -86,8 +137,12 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   confirmatory stream. The proposal keeps LightGBM, the margin and the brief's N.
 - **Fairness.** α fixed on the starting window; a go-live update for the realistic ML arm; H6 against the ML monitor at
   a matched nominal level (design §14).
-- **Waiting for the lead**: design §16 (windows, monitor, delay, triggers, closed testing, comparator, margins, the
-  calibration endpoint, α, T2).
+- **Approved by the lead the same day**: design §16 as proposed:
+  - windows, monitor, triggers, closed testing, comparator and margins;
+  - H4 co-primary, on the excess calibration error;
+  - α fixed on the starting window;
+  - T2 in the MIMIC-IV stream only, descriptive;
+  - the delay scenarios L = 0 and 3 months (no 6-month sensitivity).
 
 ## 2026-10-30 — New experiment `roll`: prequential evaluation with a rotating case base; Phase 0 (lead's brief)
 

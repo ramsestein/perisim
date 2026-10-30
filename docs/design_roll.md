@@ -1,6 +1,9 @@
 # Experiment `roll`: prequential evaluation with a rotating case base — design
 
-Status: **Phase 1 draft, 2026-10-30; waiting for the lead's decisions (gate ⛔, §16).** Branch `roll`. Phase 0:
+Status: **Phase 1 approved by the lead on 2026-10-30: §16 as proposed (H4 co-primary; no 6-month delay).** Phase 2,
+the implementation, done the same day: `src/roll/`, `config/roll.yaml`, `tests/test_roll.py`, the synthetic dry run
+(`python -m roll dry`). Corrections it led to are marked in §7.4–§7.5. Next: the pre-registration. Branch `roll`.
+Phase 0:
 [feasibility_roll.md](feasibility_roll.md), gate decided on 2026-10-30 (§3). New measurements for this design:
 `python scripts/feasibility_roll.py phase1` (T2's counts and the noise of the ML monitor; aggregates only, in
 `work/experiments/roll/feasibility/feasibility_roll_phase1.json`).
@@ -104,7 +107,10 @@ internal and external for them.
 - **Start.** The starting window is the first N patients of the stream (§4.1).
 - **Step.** The next B = 10 patients are predicted by every arm, with the state each arm had before them. They then
   enter, and in the FIFO arm the 10 oldest leave. Repeat to the end. Each patient is evaluated once, before any arm
-  has seen them.
+  has seen them. A step never crosses the end of an evaluation window (§8.1), so a window's last step may be
+  shorter; every check and update then happens between steps.
+- **eICU patients.** A patient belongs to the hospital holding most of their landmarks, and to the first year in
+  which they have one. 142 of eICU's 32,032 patients have landmarks in two hospitals.
 - **Exclusion by patient.** A patient's landmarks are never neighbours of each other. Neighbours are distinct
   patients, as in `hypo`.
 - **Label.** No stream has real time inside a segment, so a patient's outcomes are known when they enter. Label
@@ -167,7 +173,8 @@ from the first evaluated patient; L does not apply to it.
   patients evaluated since the current model's deployment count.
 - **Cadence**: one check at the end of every evaluation window (every W patients, §8.1).
 - **Refractory period**: no check until M patients have been evaluated since the last deployment. During the delay L
-  (§7.6) there is no check either: an update is in progress.
+  (§7.6) there is no check either: an update is in progress. A trigger whose closed test keeps the model still
+  completes its cycle: the same model is "redeployed" L patients later, and the refractory period starts again.
 - **Baseline** (for the relative triggers): the deployed model's AUROC and log-loss on the validation part of the
   window that chose it (§7.5).
 
@@ -217,12 +224,20 @@ used.
 | (a) relative AUROC drop ≥ 5 % against the baseline | 0 % / 1.3 % / 0 % |
 | (a) relative AUROC drop ≥ 10 % | 0 % / 0 % / 0 % |
 | (b) relative log-loss rise ≥ 10 % | 0 % / 3.3 % / 1.3 % |
-| (c) Davis et al. (2020): dynamic calibration curve updated online (Adam), adaptive window (ADWIN; Bifet & Gavaldà, 2007) on the calibration error, one-sided, δ = 0.05 | measured in the Phase 2 dry run |
+| (c) Davis et al. (2020): dynamic calibration curve updated online (Adam), adaptive window (ADWIN; Bifet & Gavaldà, 2007) on the calibration error, one-sided, δ = 0.05 | not measured on the real data before the freeze |
 
 - (b) also fires when the prevalence changes, with no miscalibration: log-loss rises with the base rate. This is
   expected in the cross-cohort streams and declared.
-- (c) is implementable. It is our reimplementation from the paper (fractional-polynomial calibration curve, the
-  paper's defaults; minimum window M). No code from the authors is used.
+- (c) is our reimplementation from the paper; no code from the authors is used:
+  - the calibration curve is logit p̂ = β · (1, √p, √p · ln p): a fractional polynomial with the power 0.5 repeated;
+  - it is initialised by a GLM on the window that chose the deployed model, then updated by one Adam step (learning
+    rate 0.01) per loop step, on that step's landmarks;
+  - each patient's mean |p̂ − p| enters a one-sided ADWIN. The cut is the variance form that Bifet and Gavaldà use
+    in practice: ε = √(2σ²/m · ln(2/δ′)) + 2/(3m) · ln(2/δ′), with δ′ = δ / ln n;
+  - cut points are tried every step, with at least 50 patients on each side;
+  - the detector is read at the monitor's checks (§7.2), with the same refractory period and delay.
+
+  The plain Hoeffding cut missed, in the tests, a tripling of the calibration error over 200 patients.
 
 ### 7.5 Action: the update hierarchy, chosen by closed testing
 
@@ -236,16 +251,27 @@ The candidates (Janssen et al., 2008):
 
 The choice follows the closed testing procedure of Vergouwe et al. (2017), in an internal split of the update window:
 
-- the patients of the window are split 2 : 1 (fitting : validation) by a seeded hash of the patient;
+- the patients of the window are split 2 : 1 (fitting : validation) by a seeded random draw;
 - each candidate is fitted on the fitting part and scored on the validation part (log-loss);
 - the tests compare per-patient sums of log-loss differences, one-sided, α = 0.05;
-- test 3 against 0: if 3 is not better, keep 0 (stop). Otherwise test 3 against 1: if not better, choose 1.
-  Otherwise test 3 against 2: if not better, choose 2; else choose 3.
-- The chosen candidate is refitted on the whole window.
+- **the nested recalibrations, top-down**: test 2 against 0; if 2 is not better, keep 0. Otherwise test 2 against
+  1: if not better, choose 1; else choose 2;
+- **then the refit**, against the recalibration chosen: if 3 is better, choose 3;
+- the chosen candidate is refitted on the whole window.
 
 **Adaptation, declared.** Vergouwe et al. use likelihood-ratio tests on the update data. A held-out comparison is
 used here instead, for two reasons: LightGBM's refit is not nested in its recalibrations, and the landmarks of a
-patient are not independent. No hyperparameter is re-tuned at an update.
+patient are not independent. No hyperparameter is re-tuned at an update. The refit keeps the model's
+hyperparameters (logistic regression: its C; LightGBM: num_leaves and learning rate), with LightGBM's trees found by
+early stopping, and its temperature, on an inner 3 : 1 patient split of the data it is fitted on.
+
+**Corrected in Phase 2, after the synthetic dry run.** The approved order started from the refit: "test 3 against
+0; if 3 is not better, keep 0". The dry run showed why that fails here. A LightGBM refit on a few hundred patients
+is rarely better than the transported model, even when the transported model is badly miscalibrated. The procedure
+then stopped at "keep" every time, and never recalibrated. Vergouwe et al.'s order assumes that the refit nests the
+recalibrations, which a LightGBM refit does not. A bottom-up sequence (1 against 0, then 2 against 1) was also tried.
+It missed a change of the slope alone, because the intercept step blocked it. The order above is the closed test on
+the nested family, followed by the refit. It picked the needed update in every synthetic case of the tests.
 
 ### 7.6 Deployment delay L
 
@@ -262,6 +288,10 @@ patient are not independent. No hyperparameter is re-tuned at an update.
   | MIMIC-IV 2008–2010 / 2011–2013 / 2014–2016 / 2017–2019 / 2020–2022 | 193 / 165 / 149 / 102 / 71 | 579 / 494 / 446 / 307 / 213 |
   | eICU hospital | its year's patients ÷ 12 | 38–221 (median 69) |
   | INSPIRE (2011–2020, 120 months) | 97 | 291 |
+  | a cross-cohort stretch: MIMIC-IV (180 months) / eICU pooled (24 months) | 136 / 1,335 | 408 / 4,004 |
+
+  A cross-cohort stretch is drawn from the whole cohort, so its rate is the cohort's. The pooled eICU rate is that
+  of the whole network of 196 hospitals.
 
 ### 7.7 Log
 
@@ -336,6 +366,9 @@ Every prediction is stored locally with its step, arm and order. Never exported.
 | D1 alarm | a one-sided test (patient-cluster robust, 1 %) of the window's rate against the nominal 1 % | every evaluation window |
 | **D2, re-deformation gain** | `hypo`'s S4: every g_j refitted to the current window; gain in log-loss on the next W evaluated patients, with a 95 % CI | every 10 evaluation windows and at the first window after each boundary; MIMIC-IV, INSPIRE and cross-cohort streams; first order only (cost) |
 
+- **D2's details.** It is fitted on the FIFO window at the end of a window and scored on the next window's patients,
+  who are evaluated after the fit and so are never in the fitted window. Its anchors are at most 3 random landmarks
+  per patient of the window (`hypo`'s cap, without its balancing by site: a window may mix cohorts).
 - **D2 is not computed in eICU hospitals.** Their windows (100–250 patients) are far below what S4 needed in `hypo`
   (thousands of landmarks); a gain there would be noise.
 - **The trigger to re-learn the metric** is logged, never executed. It fires when D1's rate is ≥ 3 % (three times the
@@ -416,8 +449,9 @@ S2), whose AUROC no recalibration changes:
 
 - **CIs**: 95 %, from a moving-block bootstrap of the evaluation windows (Künsch, 1989), 2,000 resamples, stratified
   by segment. The block length is ⌈N / W⌉ windows, the memory of the FIFO window (5 in MIMIC-IV, 2 in eICU (a), 5 in
-  eICU (b), 4 in INSPIRE). The resampled windows are the same for every arm and every order: windows at the same
-  position cover the same segment in all R orders.
+  eICU (b), 4 in INSPIRE), and at most half a segment's windows, so that every segment is resampled from at least
+  two blocks (an eICU year holds 3–6 windows). The resampled windows are the same for every arm and every order:
+  windows at the same position cover the same segment in all R orders.
 - **Orders**: each statistic is the mean over the R orders, recomputed in every resample.
 - **Within a window**: 200 patient-level bootstrap resamples, for the sampling variance of (ii) and (iv).
 - **eICU**: each hospital gives its paired estimate and its bootstrap SE. They are pooled by a DerSimonian–Laird
@@ -455,10 +489,20 @@ T2's analysis stays, from its frozen targets (`feasibility_roll.py phase1`):
 - **Proposal**: T2 in the MIMIC-IV temporal stream only (MIMIC-IV is external to T2's metric, which was learned on
   INSPIRE). Arms 1–3 and the window's class shares. N = 2,000 patients (T2 needed thousands: `hypo` design §2), W = 250
   patients. Labels: T2's frozen cross-fitted MIMIC-IV categories. Endpoints: the window's 4-class log-loss and
-  ranked probability score. No ML arms (the update hierarchy is binary), no hypotheses. The exact frozen artefacts are
-  named in Phase 2.
+  ranked probability score. No ML arms (the update hierarchy is binary), no hypotheses.
+- **The frozen artefacts (Phase 2):**
+  - T2's metric is the external stage's `final_model.pkl` (its encoder and weights, learned on INSPIRE);
+  - MIMIC-IV's labels are those of T2's transport stage (`perisim.transport.core.target_labels`: cut-points
+    cross-fitted between two patient halves, death the fourth class);
+  - the kNN is T2's own (`perisim.knn.predict.KNNModel`): k = 50, the patient's own stays excluded, neighbours not
+    restricted to distinct patients;
+  - α is chosen by T2's LOO on the starting window, over T2's grid (which includes 0), then fixed.
+  - 24,768 stays of 23,162 patients, all labelled (`python -m roll t2-check`).
 
-## 13. Cost (rough; measured in the Phase 2 dry run)
+## 13. Cost (rough)
+
+The synthetic dry run is too small to measure it: about 5 minutes for every stream kind at a twentieth of the real
+sizes.
 
 - **PERISIM**: a step is 10 patients (about 150 landmarks) queried against the window (about 8,000 landmarks at
   N = 500). Seconds per thousand steps. The cumulative arm queries up to 390,000 landmarks; minutes per order. D2 costs
