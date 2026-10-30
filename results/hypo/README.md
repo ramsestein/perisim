@@ -19,5 +19,7 @@ their identifier.
 | `reports/external_dryrun.*` | Phase 3: dry run of the external stage, in-sample, mechanics only (after the α fix; prereg §3) |
 | `reports/external.*` | **Phase 4: the external stage**, H1–H5 (confirmatory) and S1–S8 (secondary) |
 | `reports/posthoc.md` | post hoc follow-ups (exploratory, not pre-registered; REPORT §13): local weights swapped in, MAP-block threshold, drift over five folds |
+| `reports/posthoc_ablation.md`, `reports/posthoc_ablation/*.png` | post hoc, second round (exploratory; plan in DECISIONS 2026-10-30): AUPRC, Brier, calibration curves and decision curves of the external stage, and the ablation of the metric (geometry × weights) |
 | `results/freeze.json` | the freeze record with every hash the external stage checked |
-| `results/cv/`, `results/final/`, `results/external/`, `results/external_dryrun/`, `results/posthoc/` | per-unit summaries (α, weights, shapes, drift, thresholds, timings), JSON only |
+| `results/cv/`, `results/final/`, `results/external/`, `results/external_dryrun/`, `results/posthoc/`, `results/posthoc_ablation/` | per-unit summaries (α, weights, shapes, drift, thresholds, timings, metrics), JSON only |
+| `results/external_dryrun_alpha0/` | the first dry run of the external stage, the one that found the α = 0 fault (DECISIONS 2026-10-29); kept for the record, not evidence |

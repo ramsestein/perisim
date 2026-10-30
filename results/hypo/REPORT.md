@@ -40,6 +40,18 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
     77–79);
   - MIMIC-IV gains a little from weighting a running vasopressor infusion (−0.0017 nats). This is a lead for a
     pre-registered test.
+- **Post hoc, second round (exploratory, §14):**
+  - AUPRC, Brier score, calibration curves and decision curves agree with S2.
+    - PERISIM transported is calibrated, and its net benefit is above treating everyone or no one at thresholds
+      0.05–0.50 in every site.
+    - On the Brier score it beats every transported comparator as it is. Recalibrated on 500 local patients, the
+      transported LightGBM overtakes it.
+    - LightGBM refitted locally stays the best.
+  - The ablation: against a standardised Euclidean kNN the frozen metric gains 0.010–0.025 nats, and most of that
+    comes from the learned weights.
+    - With learned weights the shapes add nothing to prediction (within 0.001 nats).
+    - The source of the weights (NCA, SAGE, SHAP, permutation) changes log-loss by 0.0015 nats or less.
+    - The shapes stay as the layer for interpretation and drift.
 
 ## 1. Question and design
 
@@ -452,6 +464,205 @@ every g_j (negative = better than frozen):
 - **MAP thresholds are better reported for the block than per variable.** The block threshold is about 78 mmHg in
   every site, own or transported. Across eICU's hospitals the interquartile range is 77–79 mmHg.
 
+## 14. Post hoc, second round (exploratory, not pre-registered)
+
+These analyses were asked for after an external read of the work. The plan was written in
+[docs/DECISIONS.md](../../docs/DECISIONS.md) (2026-10-30) before any of them ran, and was not changed after.
+They run with `scripts/posthoc_hypo_ablation.py`, outside the frozen code. The frozen artefacts are only read, and
+the freeze record was checked at the start and at the end. Nothing here changes H1–H5 or S1–S8.
+Full tables: [reports/posthoc_ablation.md](reports/posthoc_ablation.md).
+
+### 14.1 The metrics the external report lacked
+
+These are the external stage's own predictions, scored on S2's rows (every landmark of the five folds) with no
+refit. The figures are [reports/posthoc_ablation/](reports/posthoc_ablation/), one per site
+(`calibration_dca_<site>.png`).
+
+AUPRC, with its 95 % CI from 500 patient-level resamples. The prevalence is the AUPRC of a model with no
+information:
+
+| method | INSPIRE (13.2 %) | MIMIC-IV (30.7 %) | eICU (19.3 %) |
+|---|---|---|---|
+| PERISIM transported | 0.379 (0.366–0.390) | 0.598 (0.593–0.602) | 0.493 (0.487–0.498) |
+| PERISIM local | 0.379 | 0.604 | 0.495 |
+| last MAP, transported | 0.340 | 0.540 | 0.458 |
+| logistic regression, transported | 0.362 | 0.594 | 0.487 |
+| LightGBM, transported | 0.388 | 0.614 | 0.510 |
+| LightGBM, transported and recalibrated on 500 local patients | 0.387 | 0.613 | 0.510 |
+| logistic regression, local | 0.370 | 0.609 | 0.494 |
+| LightGBM, local | 0.410 | 0.626 | 0.519 |
+
+Brier score (lower is better):
+
+| method | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| PERISIM transported | 0.0974 | 0.1683 | 0.1249 |
+| PERISIM local | 0.0972 | 0.1671 | 0.1248 |
+| last MAP, transported | 0.1041 | 0.1908 | 0.1360 |
+| logistic regression, transported | 0.0999 | 0.1731 | 0.1290 |
+| logistic regression, transported and recalibrated (500) | 0.0989 | 0.1687 | 0.1257 |
+| LightGBM, transported | 0.0988 | 0.1702 | 0.1269 |
+| LightGBM, transported and recalibrated (500) | 0.0967 | 0.1657 | 0.1229 |
+| logistic regression, local | 0.0980 | 0.1662 | 0.1246 |
+| LightGBM, local | 0.0946 | 0.1628 | 0.1217 |
+
+- **AUPRC follows AUROC.**
+  - PERISIM transported is level with PERISIM local (differences 0.000 to −0.006).
+  - It is above the last MAP (+0.034 to +0.058) and the transported logistic regression (+0.003 to +0.018).
+  - It is below the transported LightGBM (−0.009 to −0.018) and the local LightGBM (−0.026 to −0.030).
+  - Every one of these CIs excludes 0, except PERISIM local in INSPIRE.
+- **The Brier score adds calibration to discrimination.**
+  - PERISIM transported beats every transported comparator as it is (by 0.0015 to 0.0226), because those comparators
+    are not calibrated.
+  - Recalibrating them on 500 local patients turns that around for LightGBM (+0.0006 to +0.0026 in its favour), not
+    for the logistic regression.
+  - LightGBM refitted locally is the best in every site.
+- **Calibration curves (10 equal-count bins).** PERISIM transported stays within 0.012–0.027 of the diagonal in every
+  bin. The transported LightGBM and logistic regression stray by up to 0.068–0.119, because they carry the
+  development sites' rates. The local LightGBM stays within 0.003–0.006.
+- **Decision curves.**
+  - From thresholds 0.05 to 0.50, PERISIM transported has a higher net benefit than treating everyone or no one, in
+    every site.
+  - Its net benefit at 0.10 / 0.20 / 0.30 is 0.067 / 0.039 / 0.022 in INSPIRE, 0.239 / 0.183 / 0.132 in MIMIC-IV and
+    0.127 / 0.086 / 0.056 in eICU.
+  - Over 0.05–0.50 it is above the last MAP (by 0.001–0.053) and level with PERISIM local (within 0.003).
+  - It is below the local LightGBM by 0.001–0.010: 1 to 10 fewer net true positives per 1,000 landmarks.
+  - It is above the transported logistic regression at almost every threshold, by up to 0.013. The one exception is
+    eICU at 0.05 (−0.0006).
+  - Against the transported LightGBM it is below at the low thresholds and above beyond them (−0.0018 to +0.0053). The
+    switch comes after 0.10 in INSPIRE, after 0.06 in MIMIC-IV and after 0.18 in eICU.
+
+### 14.2 The weights compared
+
+For each rotation the frozen metric's learning sample was rebuilt: 60,000 landmarks from the two development sites,
+seed 20262028. It matched the frozen one in every rotation. Four other kinds of weights were computed on it:
+- **SAGE**, over the competitive models of the frozen Rashomon set.
+  - The set was refitted with its seed and checked model by model against the frozen record. In every rotation:
+    43–47 attempts, 40 competitive models, the same families, the same variables kept and dropped, and validation
+    log-loss within 1.1 × 10⁻¹⁶ of the record.
+  - SAGE is measured per family of inputs, so a family's share is split equally among its members.
+- **mean |SHAP|** and **permutation importance** of one LightGBM (T2's comparator recipe).
+- **diagonal NCA** with `hypo`'s settings, on the three other geometries (neutral axes, HVDM, z-score).
+
+The table gives three things for each kind of weights:
+- MAP: the share of the distance carried by the five MAP summaries;
+- L: the share carried by time since ICU admission;
+- ρ: the rank correlation (Spearman, 29 inputs) with the frozen weights.
+
+Each column is the external site of a rotation; the weights were learned on the other two sites.
+
+| weights | INSPIRE: MAP / L / ρ | MIMIC-IV: MAP / L / ρ | eICU: MAP / L / ρ |
+|---|---|---|---|
+| NCA on shapes (frozen) | 0.58 / 0.10 / — | 0.60 / 0.28 / — | 0.71 / 0.12 / — |
+| SAGE | 0.83 / 0.02 / 0.59 | 0.95 / 0.01 / 0.45 | 0.84 / 0.02 / 0.60 |
+| mean \|SHAP\| | 0.53 / 0.07 / 0.74 | 0.55 / 0.09 / 0.63 | 0.55 / 0.09 / 0.61 |
+| permutation | 0.78 / 0.05 / 0.62 | 0.79 / 0.09 / 0.58 | 0.76 / 0.09 / 0.62 |
+| NCA on neutral axes | 0.67 / 0.16 / 0.87 | 0.77 / 0.13 / 0.76 | 0.71 / 0.18 / 0.91 |
+| NCA on HVDM | 0.56 / 0.15 / 0.62 | 0.82 / 0.10 / 0.68 | 0.74 / 0.14 / 0.79 |
+| NCA on z-score | 0.53 / 0.24 / 0.64 | 0.78 / 0.09 / 0.67 | 0.56 / 0.33 / 0.80 |
+
+- **All seven put the MAP summaries first** (0.53–0.95 of the distance), but they split that share differently:
+  - SAGE spreads it evenly over the five summaries, because it is measured per family. That includes the 6-h slope,
+    which every NCA sets near 0 (≤ 0.012).
+  - Permutation importance puts about half of the distance on `map_mean_6h` in two rotations (0.49 and 0.52).
+- **Time since ICU admission** gets 0.01–0.02 from SAGE, 0.05–0.09 from SHAP and permutation, and 0.09–0.33 from NCA.
+  Its large share in the frozen metric of the MIMIC-IV rotation (0.28, §7.4) appears only on the shapes.
+- The rank correlations with the frozen weights are 0.45–0.91. §14.3 measures what these differences do to
+  prediction.
+
+### 14.3 Ablation of the metric
+
+Each variant was run the way the external stage runs the transported metric:
+- the rotation's development sites give the learning sample;
+- in each of the external site's five folds, the training folds are the case base and the held-out fold is scored;
+- α is chosen by leave-one-out.
+
+The frozen metric (shapes × NCA) reproduced the external stage's predictions exactly in every site (max |Δp| = 0).
+
+The table gives each variant's log-loss minus the frozen metric's (positive = worse than the frozen metric). The 95 %
+CIs come from 500 paired patient-level resamples. The frozen row gives its own log-loss.
+
+| geometry | weights | INSPIRE | MIMIC-IV | eICU | AUROC (INSPIRE / MIMIC-IV / eICU) |
+|---|---|---|---|---|---|
+| z-score | uniform | +0.0096 (+0.0080 to +0.0112) | +0.0251 (+0.0237 to +0.0266) | +0.0168 (+0.0160 to +0.0179) | 0.767 / 0.750 / 0.779 |
+| z-score | NCA | +0.0019 (+0.0008 to +0.0029) | −0.0006 (−0.0014 to +0.0001) | +0.0035 (+0.0029 to +0.0041) | 0.778 / 0.781 / 0.795 |
+| neutral | uniform | +0.0074 (+0.0060 to +0.0089) | +0.0186 (+0.0173 to +0.0200) | +0.0106 (+0.0097 to +0.0115) | 0.768 / 0.759 / 0.789 |
+| neutral | SAGE | +0.0003 (−0.0007 to +0.0014) | −0.0021 (−0.0028 to −0.0014) | +0.0001 (−0.0005 to +0.0006) | 0.778 / 0.783 / 0.799 |
+| neutral | mean \|SHAP\| | +0.0002 (−0.0007 to +0.0013) | −0.0002 (−0.0010 to +0.0006) | +0.0007 (+0.0001 to +0.0012) | 0.779 / 0.782 / 0.800 |
+| neutral | permutation | +0.0007 (−0.0003 to +0.0017) | −0.0031 (−0.0037 to −0.0024) | −0.0003 (−0.0009 to +0.0002) | 0.777 / 0.784 / 0.800 |
+| neutral | NCA | −0.0004 (−0.0013 to +0.0005) | −0.0009 (−0.0014 to −0.0002) | −0.0007 (−0.0012 to −0.0002) | 0.780 / 0.782 / 0.800 |
+| HVDM | uniform | +0.0096 (+0.0079 to +0.0111) | +0.0260 (+0.0247 to +0.0275) | +0.0172 (+0.0163 to +0.0182) | 0.767 / 0.748 / 0.779 |
+| HVDM | NCA | +0.0030 (+0.0020 to +0.0041) | −0.0011 (−0.0018 to −0.0004) | +0.0026 (+0.0020 to +0.0032) | 0.775 / 0.782 / 0.796 |
+| shapes | uniform | +0.0069 (+0.0056 to +0.0082) | +0.0143 (+0.0131 to +0.0155) | +0.0072 (+0.0066 to +0.0080) | 0.769 / 0.765 / 0.792 |
+| shapes | SAGE | +0.0010 (+0.0000 to +0.0019) | −0.0015 (−0.0022 to −0.0009) | +0.0002 (−0.0004 to +0.0008) | 0.777 / 0.782 / 0.799 |
+| shapes | mean \|SHAP\| | +0.0004 (−0.0004 to +0.0012) | −0.0003 (−0.0010 to +0.0003) | +0.0004 (−0.0001 to +0.0009) | 0.779 / 0.781 / 0.799 |
+| shapes | permutation | +0.0003 (−0.0005 to +0.0012) | −0.0016 (−0.0022 to −0.0011) | +0.0004 (−0.0001 to +0.0008) | 0.778 / 0.782 / 0.799 |
+| **shapes** | **NCA (frozen)** | **0.3276** (0.3210–0.3336) | **0.5059** (0.5023–0.5093) | **0.3965** (0.3927–0.4000) | **0.779 / 0.781 / 0.799** |
+
+The contrasts of the plan, in log-loss (a − b; negative favours a):
+
+| contrast | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| shapes − neutral, uniform weights | −0.0005 (−0.0016 to +0.0005) | −0.0044 (−0.0051 to −0.0037) | −0.0033 (−0.0039 to −0.0028) |
+| shapes − neutral, SAGE weights | +0.0007 (−0.0001 to +0.0015) | +0.0006 (+0.0001 to +0.0012) | +0.0001 (−0.0004 to +0.0006) |
+| shapes − neutral, NCA weights | +0.0004 (−0.0005 to +0.0013) | +0.0009 (+0.0002 to +0.0014) | +0.0007 (+0.0002 to +0.0012) |
+| SAGE − uniform, neutral axes | −0.0071 (−0.0084 to −0.0057) | −0.0207 (−0.0219 to −0.0196) | −0.0105 (−0.0114 to −0.0097) |
+| SAGE − uniform, shapes | −0.0060 (−0.0072 to −0.0046) | −0.0158 (−0.0168 to −0.0148) | −0.0071 (−0.0078 to −0.0063) |
+| NCA − uniform, neutral axes | −0.0078 (−0.0092 to −0.0063) | −0.0195 (−0.0208 to −0.0182) | −0.0113 (−0.0121 to −0.0105) |
+| NCA − uniform, shapes | −0.0069 (−0.0082 to −0.0056) | −0.0143 (−0.0155 to −0.0131) | −0.0072 (−0.0080 to −0.0066) |
+| NCA − SAGE, shapes | −0.0010 (−0.0019 to −0.0000) | +0.0015 (+0.0009 to +0.0022) | −0.0002 (−0.0008 to +0.0004) |
+| SHAP − SAGE, shapes | −0.0006 (−0.0014 to +0.0003) | +0.0012 (+0.0005 to +0.0018) | +0.0002 (−0.0004 to +0.0008) |
+| permutation − SAGE, shapes | −0.0007 (−0.0015 to +0.0001) | −0.0001 (−0.0007 to +0.0004) | +0.0002 (−0.0004 to +0.0007) |
+| HVDM − neutral, uniform | +0.0021 (+0.0012 to +0.0032) | +0.0074 (+0.0067 to +0.0082) | +0.0066 (+0.0060 to +0.0072) |
+| HVDM − neutral, NCA | +0.0034 (+0.0025 to +0.0044) | −0.0002 (−0.0009 to +0.0004) | +0.0033 (+0.0027 to +0.0039) |
+| shapes − HVDM, NCA | −0.0030 (−0.0041 to −0.0020) | +0.0011 (+0.0004 to +0.0018) | −0.0026 (−0.0032 to −0.0020) |
+
+- **Against the standardised Euclidean kNN** (z-score axes, uniform weights), the frozen metric is better in INSPIRE /
+  MIMIC-IV / eICU:
+  - by 0.0096 / 0.0251 / 0.0168 nats;
+  - by 0.012 / 0.031 / 0.020 in AUROC;
+  - by 0.036 / 0.059 / 0.052 in AUPRC.
+- **Most of that gain comes from the weights.**
+  - NCA weights alone, on the z-score axes, give 80 %, 102 % and 79 % of it.
+  - At any one geometry, learned weights (SAGE or NCA) in place of uniform ones gain 0.006–0.027 nats and
+    0.007–0.034 AUROC.
+- **The shapes help only while the weights are uniform.**
+  - With uniform weights they gain −0.0005 (CI includes 0) / −0.0044 / −0.0033 nats over the neutral axes.
+  - With SAGE or NCA weights they add nothing: +0.0001 to +0.0009 nats against the neutral axes, and −0.001 AUROC.
+    Three of those six CIs lie above 0.
+- **The source of the weights barely matters.**
+  - With the shapes, NCA, SHAP and permutation weights differ from SAGE by 0.0015 nats or less and by 0.002 AUROC or
+    less. The sign changes from site to site.
+  - That holds although the weights themselves differ (§14.2). The kNN is insensitive to how the credit is shared
+    among the correlated MAP summaries, as §7.4 found for the local weights.
+- **HVDM adds nothing.**
+  - With uniform weights it is within 0.0010 nats of the z-score and worse than the neutral axes (+0.0021 to
+    +0.0074).
+  - With NCA weights it is worse than the neutral axes in INSPIRE and eICU (+0.0034, +0.0033) and level in MIMIC-IV.
+- **The frozen metric is not the best variant, but the best is within 0.0031 nats of it.**
+  - The best is the neutral axes with NCA weights in INSPIRE (−0.0004, CI includes 0) and eICU (−0.0007), and the
+    neutral axes with permutation weights in MIMIC-IV (−0.0031).
+  - In MIMIC-IV all nine other learned-weight variants are a little better than the frozen metric, by 0.0002–0.0031
+    (six CIs below 0). There the frozen metric gives more weight to time since ICU admission than any of them: 0.28,
+    against 0.01–0.13.
+- **Calibration.**
+  - With uniform weights the calibration slope is 1.14–1.20: the predictions are too close to the mean.
+  - With learned weights it is 1.00–1.09, and the frozen metric's is 1.01–1.03.
+
+### 14.4 Reading
+
+- **In this outcome, CE-kNN's gain over a standardised Euclidean kNN comes from the learned weights.**
+  - Once the weights are learned, the consensus shapes neither help nor hurt prediction (within 0.001 nats).
+  - Which importance supplies the weights hardly matters either.
+- **A likely reason, not tested here.** The inputs that carry the weight are MAP summaries, whose risk changes steadily
+  with pressure, so ranking them already orders the patients almost as the shapes do. Whether the shapes add accuracy
+  where inputs are non-monotone, sparse or coded, as in T2, is not tested here.
+- **The shapes keep the role the design gives them**, at no cost in prediction:
+  - they are the axes on which drift is measured (§7, §13.3);
+  - they are where the MAP thresholds are read (§13.2).
+- **So a paper on `hypo` should credit its accuracy to the weights**, and present the shapes as the layer for
+  interpretation and drift.
+
 ## Reproducibility
 
 - **Code and configuration**: tag `perisim-freeze-hypo-2026-10-29-120652`, commit `b0c9a02`, code `cf0d0b80c70a`,
@@ -460,7 +671,10 @@ every g_j (negative = better than frozen):
   `freeze --registration <ID>`, `external`, `external-report`.
 - **Post hoc** (§13): `python scripts/posthoc_hypo.py` (or `run_local.ps1 hypo-posthoc`), outside the frozen code.
   It reads the frozen artefacts and checks the freeze record at the start and at the end.
-- **Compute**: one workstation, 16 threads. The external stage took 7 h 11 min, and the post hoc follow-ups 4 h 58 min.
+- **Post hoc, second round** (§14): `python scripts/posthoc_hypo_ablation.py` (or `run_local.ps1 hypo-ablation`),
+  run the same way.
+- **Compute**: one workstation, 16 threads. The external stage took 7 h 11 min, the post hoc follow-ups 4 h 58 min,
+  and the second round 2 h 36 min.
 - **Data**: patient-level data stay on that computer under the PhysioNet data use agreements.
   The per-unit summaries are in [results/](results/), and the frozen hashes in
   [results/freeze.json](results/freeze.json).

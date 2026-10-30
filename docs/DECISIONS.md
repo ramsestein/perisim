@@ -60,6 +60,50 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — `hypo` post hoc, second round: ablation and the missing metrics (lead; plan fixed before running)
+
+Asked for after an external read of the work (ablation and TRIPOD+AI metrics). It is exploratory, not
+pre-registered, and runs in `scripts/posthoc_hypo_ablation.py`, outside `src/hypo`. The script only reads the frozen
+artefacts and checks the freeze record at the start and at the end. The plan below is fixed before any result is
+seen.
+
+- **Metrics of the external stage's own predictions**, no refit:
+  - **Methods:** as in S2. Those are PERISIM transported and local; last MAP, logistic regression and LightGBM,
+    transported and local; prevalence, Euclidean kNN, PERISIM of Phase 2. Added are the transported comparators
+    recalibrated on 500 local patients (draw 0).
+  - **Statistics:** AUPRC, Brier score, log-loss, AUROC, calibration in the large and slope. CIs come from 500
+    patient-level resamples, with paired differences against PERISIM transported.
+  - **Calibration curves:** 10 equal-count bins of each method's prediction.
+  - **Decision curves:** net benefit for thresholds 0.01–0.60, against treat-all and treat-none. CIs of the
+    difference against PERISIM transported at 0.05, 0.10, …, 0.50.
+  - **Level:** all of this is per landmark, on the same rows as S2.
+- **Ablation, in the transported role** (each rotation's development pair, its learning sample and seed; each
+  external site's five folds, case base = training folds, α by leave-one-out, as the external stage). 14 variants,
+  geometry × weights:
+  - **Geometries:**
+    - z-score (standardised values, one-hot nominal, every block scaled to unit mean square): the standardised
+      Euclidean kNN;
+    - neutral (rank / one-hot);
+    - HVDM (standardised + smoothed VDM, m = 5);
+    - shapes (the frozen g_j).
+  - **Weights:**
+    - uniform;
+    - SAGE: aggregated over the competitive models of the frozen Rashomon set, refitted with its seed and checked
+      model by model against the frozen record;
+    - mean |SHAP| of a LightGBM (T2's comparator 2 recipe);
+    - permutation importance of the same LightGBM (log-loss, 3 repeats, held-out third of the learning sample);
+    - diagonal NCA (hypo's settings).
+  - **Grid:** z-score and HVDM × {uniform, NCA}; neutral and shapes × all five weights. Shapes × NCA is the frozen
+    metric, and it must reproduce the external stage's predictions exactly.
+  - **Contrasts** (log-loss and AUROC, paired, 500 resamples):
+    - shapes − neutral at the same weights;
+    - SAGE − uniform, and NCA − uniform, at the same geometry;
+    - SHAP and permutation − SAGE;
+    - NCA − SAGE;
+    - HVDM − neutral;
+    - every variant − z-score uniform (the standardised Euclidean kNN);
+    - every variant − the frozen metric.
+
 ## 2026-10-30 — Name of the technique: consensus effect-space kNN, CE-kNN (lead)
 
 - The technique is named **consensus effect-space kNN (CE-kNN)**. The project and the software keep the name
