@@ -135,11 +135,11 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   - the W sensitivity, the same predictions read in windows of W/2 and 2W;
   - stream (b)'s start counted as a boundary (recovery, post-boundary windows);
   - the determinism and reconstruction check of the first unit (`runs/governability.json`).
-- **Not done, and the lead's decisions:**
-  - approving the draft;
-  - the registration ID;
-  - a mechanics rehearsal at real size before the freeze (cost, faults);
-  - pushing the branch, which the public tag needs.
+- **Approved by the lead the same day**:
+  - the pre-registration as drafted;
+  - the local registration `LOCAL-PREREG-ROLL-2026-10-30`;
+  - a mechanics rehearsal at real size before the freeze, with in-sample artefacts and without looking at results;
+  - pushing the branch `roll`.
 
 ## 2026-10-30 — `roll`: the calibration of `hypo`'s small case bases, measured before the pre-registration (lead)
 

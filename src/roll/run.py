@@ -153,8 +153,9 @@ def real(threads: int = 8, names: list[str] | None = None) -> Path:
     for j in js:
         for r in range(j["orders"]):
             run_job(j, r, cs, fz, cfg, hcfg, mcfg, space, root, threads)
-    if not (root / "governability.json").exists() and js:
-        (root / "governability.json").write_text(json.dumps(governability(js[0], cs, fz, cfg, mcfg, space, root),
+    gj = next((j for j in js if j["spec"]["kind"] == "within"), js[0] if js else None)   # a cheap unit
+    if not (root / "governability.json").exists() and gj is not None:
+        (root / "governability.json").write_text(json.dumps(governability(gj, cs, fz, cfg, mcfg, space, root),
                                                             indent=1, default=_json), encoding="utf-8")
     check(cfg, cs)
     return root
@@ -211,6 +212,73 @@ def real_t2() -> Path:
     ep = t2.endpoints(runs, cfg, int(cfg["seed"]))
     (root / "endpoints.json").write_text(json.dumps(ep, indent=1, default=_json), encoding="utf-8")
     check(cfg, cs)
+    return root
+
+
+# --------------------------------------------------------------------------- the rehearsal before the freeze
+SWAP = {"inspire": "mimic", "mimic": "eicu", "eicu": "inspire"}    # a rotation whose development pair holds the cohort
+REHEARSED = ("mimic_temporal", "eicu_within", "eicu_deploy", "inspire_mimic", "inspire_control")
+
+
+def rehearse(threads: int = 16) -> Path:
+    """Before the freeze (the lead, 2026-10-30): one unit of each stream kind at real size (order 0, primary N; eICU:
+    the median-sized eligible hospital), with every arm. The units are served by IN-SAMPLE artefacts: a rotation
+    whose development pair includes every cohort of the stream, so nothing of the single run is computed. Only the
+    mechanics and the cost are read: time per unit and arm, the endpoints' time, determinism and reconstruction. No
+    metric is read, printed or written to the summary."""
+    from .data import Frozen
+
+    t0 = time.perf_counter()
+    start = frozen_guard()
+    cfg, hcfg, mcfg, space, cs = _real()
+    fz = Frozen.load(cfg["ml"]["families"])
+    root = workdir() / "rehearsal"
+    js = jobs(cfg, cs, list(REHEARSED), primary_only=True)
+    picked = []
+    for name in REHEARSED:
+        cand = [j for j in js if j["stream"] == name]
+        j = dict(cand[len(cand) // 2] if len(cand) > 1 else cand[0])
+        spec = dict(j["spec"])
+        if spec["kind"] == "cross":
+            spec["metric"] = next(c for c in ("inspire", "mimic", "eicu") if c not in (spec["first"], spec["second"]))
+        else:
+            spec["metric"] = SWAP[spec["cohort"]]
+        j.update(spec=spec, orders=1)
+        picked.append(j)
+    units = []
+    for j in picked:
+        t = time.perf_counter()
+        res = run_job(j, 0, cs, fz, cfg, hcfg, mcfg, space, root / "runs", threads)
+        secs = time.perf_counter() - t
+        d = run_dir(root / "runs", j, 0)
+        runs = [(pl.read_parquet(d / "predictions.parquet"), res)]
+        te = time.perf_counter()
+        EP.stream_endpoints(runs, cfg, int(cfg["seed"]))                 # timed only; its output is discarded
+        ep_secs = time.perf_counter() - te
+        top = sorted(res["timing"].items(), key=lambda x: -x[1])[:6]
+        units.append({"stream": j["stream"], "label": j["label"], "N": j["N"], "metric_served": f"ext-{j['spec']['metric']}",
+                      "evaluated": res["stream"]["evaluated"], "windows": res["stream"]["windows"],
+                      "seconds_run": secs, "seconds_endpoints_one_order": ep_secs,
+                      "slowest_arms_seconds": {a: round(s, 1) for a, s in top}})
+        LOG.info("rehearsal %s %s: run %.0f s, endpoints %.0f s", j["stream"], j["label"], secs, ep_secs)
+    gov = governability(picked[1], cs, fz, cfg, mcfg, space, root / "runs")          # an eICU (a) unit: the cheapest
+    # the cost of the single run, scaled from the rehearsed unit of each stream by the evaluated patients
+    per = {u["stream"]: u for u in units}
+    est_run = est_ep = 0.0
+    for j in jobs(cfg, cs):
+        st = build(j["stream"], j["spec"], cs, cfg, 0, j["N"], j["hospital"])
+        if st is None:
+            continue
+        u = per[j["stream"]] if j["stream"] in per else per["inspire_mimic"]
+        f = len(st.seq) / u["evaluated"]
+        est_run += j["orders"] * u["seconds_run"] * f
+        est_ep += j["orders"] * u["seconds_endpoints_one_order"] * f
+    summary = {"note": "Rehearsal before the freeze: in-sample artefacts, mechanics and cost only; no metric read.",
+               "freeze_start": start, "freeze_end": frozen_guard(), "code_hash": code_hash(), "threads": threads,
+               "units": units, "governability": {k: gov[k] for k in ("identical", "reconstruction")},
+               "estimate_hours": {"runs": est_run / 3600, "endpoints": est_ep / 3600},
+               "seconds": time.perf_counter() - t0}
+    (root / "summary.json").write_text(json.dumps(summary, indent=1, default=_json), encoding="utf-8")
     return root
 
 

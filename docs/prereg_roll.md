@@ -1,8 +1,9 @@
 # Pre-registration — experiment `roll`: prequential evaluation with a rotating case base (draft)
 
-Status: **draft by the analyst, 2026-10-30, for the lead's approval**. Written after Phases 0–2 and before any
-prediction along any stream of real data. It is registered with the freeze (Phase 3), and the single run (Phase 4)
-runs on the frozen version only. Design: [design_roll.md](design_roll.md); feasibility:
+Status: **approved by the lead on 2026-10-30**, with a mechanics rehearsal at real size before the freeze (§3) and
+the local registration `LOCAL-PREREG-ROLL-2026-10-30` (§12). Written after Phases 0–2 and before any prediction along
+any stream of real data with the metrics of the run. It is registered with the freeze (Phase 3), and the single run
+(Phase 4) runs on the frozen version only. Design: [design_roll.md](design_roll.md); feasibility:
 [feasibility_roll.md](feasibility_roll.md); dated decisions: [DECISIONS.md](DECISIONS.md); configuration:
 `config/roll.yaml`; code: `src/roll/`.
 
@@ -272,5 +273,6 @@ contrast is PERISIM-FIFO minus arm 5, paired on the same windows.
 
 ## 12. Registration
 
-Proposed: a local registration ID, `LOCAL-PREREG-ROLL-<date>`, as for `hypo` (D6, 2026-10-29). Filing on OSF is
-the lead's action. The freeze tag and commit, pushed to GitHub before the run, are the verifiable timestamp.
+A local registration ID, `LOCAL-PREREG-ROLL-2026-10-30` (the lead, 2026-10-30), as for `hypo` (D6, 2026-10-29).
+Filing on OSF is the lead's action. The freeze tag and commit, pushed to GitHub before the run, are the verifiable
+timestamp.
