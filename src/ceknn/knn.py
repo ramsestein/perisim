@@ -106,6 +106,7 @@ class CaseBase:
         self.alpha = 1.0
         self.ood_threshold = np.inf
         self.loo_kth = np.zeros(0)
+        self.loo_table: list = []
         self.fit_info: dict = {}
 
     def __len__(self) -> int:
@@ -146,32 +147,54 @@ class CaseBase:
         p[bad] = prior[bad]
         return p
 
-    def fit_alpha(self, alpha_grid: list[float], *, n_queries: int = 20000, ood_percentile: float = 99.0,
-                  seed: int = 0) -> dict:
-        """α and the out-of-support threshold by a group-level leave-one-out over a random subset of the rows."""
+    def fit_alpha(self, alpha_grid: list[float], *, k_grid: list[int] | None = None, select_k: bool = False,
+                  n_queries: int = 20000, ood_percentile: float = 99.0, seed: int = 0) -> dict:
+        """α (and, with `select_k`, k) and the out-of-support threshold by a group-level leave-one-out over a random
+        subset of the rows. Every (k, α) of the grids is scored and kept in `loo_table`."""
         rng = np.random.default_rng(seed)
         n = len(self.y)
         rows = rng.choice(n, size=min(int(n_queries), n), replace=False)
-        D, I, valid = search_distinct(self.Ew, self.code, self.Ew[rows], self.code[rows], self.k, self.fetch,
+        ks = sorted({int(min(k, max(n - 1, 1))) for k in (list(k_grid or []) + [self.k])})
+        D, I, valid = search_distinct(self.Ew, self.code, self.Ew[rows], self.code[rows], max(ks), self.fetch,
                                       self.distinct)
         y = self.y[rows]
-        best = (np.inf, 1.0)
-        for a in alpha_grid:
-            p = self.probs(I, valid, self.k, alpha=float(a))
-            ll = float(-np.mean(np.log(np.clip(p[np.arange(len(y)), y], 1e-15, 1))))
-            best = min(best, (ll, float(a)))
-        self.alpha = best[1]
-        nv = valid.sum(1)
+        self.loo_table = []
+        best_k = {}
+        for k in ks:
+            best = (np.inf, 1.0)
+            for a in alpha_grid:
+                p = self.probs(I, valid, k, alpha=float(a))
+                ll = float(-np.mean(np.log(np.clip(p[np.arange(len(y)), y], 1e-15, 1))))
+                self.loo_table.append({"k": k, "alpha": float(a), "loo_logloss": ll})
+                best = min(best, (ll, float(a)))
+            best_k[k] = best
+        if select_k:
+            self.k = min(best_k, key=lambda k: best_k[k][0])
+        self.alpha = best_k[self.k][1]
+        nv = valid[:, :self.k].sum(1)
         kth = np.sqrt(D[np.arange(len(y)), np.maximum(nv - 1, 0)])
         self.loo_kth = np.sort(kth)
         self.ood_threshold = float(np.percentile(kth, float(ood_percentile)))
-        self.fit_info = {"alpha": best[1], "loo_logloss": best[0], "ood_threshold": self.ood_threshold,
-                         "short_neighbourhoods": float((nv < self.k).mean()), "n_queries": int(len(rows))}
+        self.fit_info = {"k": self.k, "k_selected": bool(select_k), "alpha": self.alpha,
+                         "loo_logloss": best_k[self.k][0], "ood_threshold": self.ood_threshold,
+                         "short_neighbourhoods": float((nv < self.k).mean()), "n_queries": int(len(rows)),
+                         "n_rows": int(n), "class_shares": [round(float(x), 4) for x in self.prior]}
         return self.fit_info
 
-    def kth_info(self, D: np.ndarray, valid: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Distance to the k-th valid neighbour, its percentile in the leave-one-out and the out-of-support flag."""
-        nv = np.maximum(valid.sum(1), 1)
+    def vote_table(self, I: np.ndarray, valid: np.ndarray, k: int | None = None) -> dict:
+        """The neighbours' vote: valid neighbours, count and raw share of each class, smoothed probability."""
+        k = self.k if k is None else int(k)
+        n = self.counts(I, valid, k)
+        tot = n.sum(1, keepdims=True)
+        share = np.divide(n, tot, out=np.full_like(n, np.nan), where=tot > 0)
+        return {"n_neighbours": tot[:, 0].astype(int), "counts": n.astype(int), "share": share,
+                "p": self.probs(I, valid, k)}
+
+    def kth_info(self, D: np.ndarray, valid: np.ndarray, k: int | None = None):
+        """Distance to the k-th valid neighbour, its percentile in the leave-one-out and the out-of-support flag
+        (the threshold belongs to the case base's own k)."""
+        k = self.k if k is None else int(k)
+        nv = np.maximum(valid[:, :k].sum(1), 1)
         kth = np.sqrt(D[np.arange(D.shape[0]), nv - 1])
         ref = self.loo_kth
         pct = (np.searchsorted(ref, kth, side="right") / len(ref) * 100.0) if len(ref) else np.full(len(kth), np.nan)

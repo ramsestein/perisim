@@ -6,7 +6,7 @@ vote of the k nearest rows of a case base. The metric (g_j, w_j) can be exported
 with that site's own case base.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .core import CEKNN, EncodingSettings, KNNSettings, LearnSettings, NCASettings  # noqa: E402
 from .models import ModelSpace  # noqa: E402

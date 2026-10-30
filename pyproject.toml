@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ceknn"
-version = "0.1.0"
+version = "0.2.0"
 description = "Consensus effect-space kNN (CE-kNN): kNN on consensus shape functions read from a Rashomon set of models"
 readme = "README.md"
 requires-python = ">=3.10"

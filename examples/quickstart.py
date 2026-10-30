@@ -30,7 +30,9 @@ if __name__ == "__main__":
     space = ModelSpace.default(include=["logreg", "spline_logreg", "random_forest"])
     model = CEKNN(inputs={"age": "continuous", "map_mean": "continuous", "surgery": "nominal",
                           "emergency": "binary", "lactate": "continuous"},
-                  output="event", group="patient", model_space=space, n_models=12, k=50, n_jobs=2)
+                  output="event", group="patient", model_space=space, n_jobs=2,
+                  shapes={"stopping": "stability", "n_min": 8, "n_max": 30, "window": 3, "patience": 4},
+                  knn={"k": 50, "k_grid": [10, 25, 50, 100], "select_k": True})
 
     # 2. fit: the metric (curves g_j and weights w_j) is learned, and dev becomes the case base
     model.fit(dev)
@@ -41,10 +43,17 @@ if __name__ == "__main__":
     print(model.importance()[["variable", "weight", "shaped", "logodds_range"]].round(3).to_string(index=False))
     print(model.rashomon()[["family", "val_logloss", "accepted", "competitive"]].round(4).head(10))
 
-    # 4. export the metric (never the case base) and use it at another site with its own patients
+    # 4. the training, in view: how the loop stopped, its stability, the k and α chosen
+    print(model.stopping())
+    print(model.stability()[["n_accepted", "val_logloss", "delta", "delta_smooth", "spearman_range"]].round(4))
+    cur = model.knn_curve()
+    print(cur[cur["best_alpha"]].round(4).to_string(index=False))
+
+    # 5. export the metric (never the case base) and use it at another site with its own patients
     model.save("metric.json")
     local = synthetic(3000, seed=1, base=-0.5)              # another site, with a higher event rate
     there = CEKNN.load("metric.json").set_case_base(local)
     new = synthetic(500, seed=2, base=-0.5)
-    print("at the other site:", there.evaluate(new))
+    print("at the other site:", there.evaluate(new), there.case_base_info()["k"])
+    print(there.vote(new.head(3)).round(3).T)               # per class: neighbours, share, probability
     print(there.neighbours(new.head(1), k=5)[["rank", "case_index", "distance", "outcome"]])

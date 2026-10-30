@@ -68,6 +68,30 @@ def normalize(values: np.ndarray, se: np.ndarray) -> tuple[np.ndarray, np.ndarra
     return v / s, se / s
 
 
+class InputsOnly:
+    """A model seen by SAGE over the input groups only (a site's nuisance group always present)."""
+
+    def __init__(self, model, n_input_groups: int, n_groups: int):
+        self.model, self.Gi, self.G = model, int(n_input_groups), int(n_groups)
+
+    def predict_proba(self, X: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        if self.G > self.Gi:
+            mask = np.hstack([mask, np.ones((mask.shape[0], self.G - self.Gi), dtype=bool)])
+        return self.model.predict_proba(X, mask)
+
+
+def per_variable(imp_group: np.ndarray, group_of_feature: np.ndarray) -> np.ndarray:
+    """Group importance split equally among the group's variables (sum 1)."""
+    F = len(group_of_feature)
+    imp = np.zeros(F)
+    for g in range(len(imp_group)):
+        members = np.where(group_of_feature == g)[0]
+        if members.size:
+            imp[members] = imp_group[g] / members.size
+    s = imp.sum()
+    return imp / s if s > 0 else np.full(F, 1.0 / max(F, 1))
+
+
 def aggregate(imp: np.ndarray, se: np.ndarray, floor: float = 1e-8) -> np.ndarray:
     """Random-effects weighted mean per group (models × groups → groups). The between-model variance τ² is added
     to every model's variance, so a model that never uses a group (SE = 0) does not dominate."""

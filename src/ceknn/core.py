@@ -29,7 +29,7 @@ from .knn import CaseBase
 from .models import ModelSpace
 from .nca import DiagonalNCA
 from .rashomon import RashomonSet, ShapeSettings, fit_rashomon, site_columns
-from .sage import aggregate, normalize, sage_permutation
+from .sage import InputsOnly, aggregate, normalize, per_variable, sage_permutation
 from .schema import Schema, Table
 
 FORMAT = "ceknn-metric"
@@ -64,12 +64,62 @@ class LearnSettings:
 
 @dataclass
 class KNNSettings:
-    k: int = 50
+    k: int = 50                        # neighbours that vote
+    k_grid: list | None = field(default_factory=lambda: [5, 10, 20, 50, 100, 200])   # scored by leave-one-out
+    select_k: bool = False             # True: k = the best of k_grid (and k) in the leave-one-out
     alpha_grid: list = field(default_factory=lambda: [0.1, 0.5, 1, 2, 5, 10])
-    alpha_queries: int = 20000         # rows of the leave-one-out that picks α
+    alpha_queries: int = 20000         # rows of the leave-one-out that picks α (and k)
     ood_percentile: float = 99.0
     distinct_groups: bool = True       # each group (patient) enters a neighbourhood once
     fetch_factor: int = 6
+
+
+#: what every setting means (shown by `CEKNN.settings()`)
+MEANING = {
+    ("encoding", "max_bins"): "quantile bins of a continuous / ordinal input",
+    ("encoding", "min_bin"): "rows per bin and per kept category",
+    ("encoding", "missing_threshold"): "share missing above which a missing indicator is added",
+    ("encoding", "max_categories"): "categories kept per nominal input",
+    ("encoding", "ecdf_knots"): "quantiles of the neutral rank axis",
+    ("shapes", "stopping"): "'fixed': n_models accepted; 'stability': stop when Δ̃ stops improving",
+    ("shapes", "n_models"): "accepted models (stopping 'fixed')",
+    ("shapes", "n_min"): "at least this many accepted models (stopping 'stability')",
+    ("shapes", "n_max"): "at most this many accepted models (stopping 'stability')",
+    ("shapes", "window"): "W: moving median of Δ, lag of the ranking stability",
+    ("shapes", "patience"): "P: accepted models without Δ̃ improving by more than min_delta",
+    ("shapes", "min_delta"): "improvement of Δ̃ that resets the patience (None: fraction of Δ̃ at n_min)",
+    ("shapes", "min_delta_fraction"): "that fraction",
+    ("shapes", "tol_delta"): "final Δ̃ above this is flagged",
+    ("shapes", "max_attempts_factor"): "models tried ≤ factor × target",
+    ("shapes", "epsilon"): "competitive: validation log-loss ≤ (1 + ε)·best",
+    ("shapes", "augment_copies"): "masked copies of the training rows (feature dropout)",
+    ("shapes", "max_train"): "rows to train each model",
+    ("shapes", "max_val"): "rows to score each model",
+    ("shapes", "n_explain"): "rows the curves (and SAGE) are read on",
+    ("shapes", "subsample"): "fresh subsample of them per model, for the curves",
+    ("shapes", "flat_alpha"): "level of the test that keeps a curve (vs flat)",
+    ("shapes", "corr_cluster_threshold"): "|ρ| above which inputs share a dropout / SAGE group",
+    ("shapes", "site_adjusted"): "the site enters the models as a nuisance column",
+    ("shapes", "n_reference_pairs"): "random pairs for Δ",
+    ("shapes", "sage_in_loop"): "SAGE of every accepted model: importance and its stability",
+    ("shapes", "sage"): "SAGE batch size, passes and convergence threshold",
+    ("nca", "epochs"): "passes over the learning sample",
+    ("nca", "batch_size"): "anchors per step",
+    ("nca", "lr"): "Adam learning rate on log w",
+    ("nca", "refresh_every"): "epochs between candidate searches",
+    ("nca", "n_candidates"): "candidates per anchor (computational, not k)",
+    ("nca", "label_smoothing"): "η: smoothing towards the class shares",
+    ("knn", "k"): "neighbours that vote",
+    ("knn", "k_grid"): "values of k scored by leave-one-out",
+    ("knn", "select_k"): "use the best k of the grid",
+    ("knn", "alpha_grid"): "smoothing α of the vote, chosen by leave-one-out",
+    ("knn", "alpha_queries"): "rows of the leave-one-out",
+    ("knn", "ood_percentile"): "percentile of the k-th distance beyond which a query is out of support",
+    ("knn", "distinct_groups"): "each patient enters a neighbourhood once",
+    ("knn", "fetch_factor"): "rows fetched per neighbour to find distinct patients",
+    ("learn", "max_rows"): "rows of the learning sample per site (None: all)",
+    ("learn", "rows_per_group"): "rows per patient in the learning sample (None: all)",
+}
 
 
 def _settings(cls, value):
@@ -146,8 +196,8 @@ class CEKNN:
                           label_smoothing=s.label_smoothing, seed=self.seed)
         nca.fit(enc.transform(tl), yl, epochs=s.epochs, groups=tl.groups, sites=tl.sites)
         self.enc_, self.w_, self.rashomon_ = enc, nca.weights, rs
-        self.sage_ = None
-        self.info_ = {"n_rows": int(len(t)), "n_learn": int(len(rows)),
+        self.sage_ = rs.sage
+        self.info_ = {"n_rows": int(len(t)), "n_learn": int(len(rows)), "stop": rs.stop,
                       "class_shares": (np.bincount(yl, minlength=sch.n_classes) / len(yl)).round(4).tolist(),
                       "learn_per_site": ({str(v): int((tl.sites == v).sum()) for v in np.unique(tl.sites)}
                                          if tl.sites is not None else None),
@@ -155,7 +205,9 @@ class CEKNN:
                       "seconds_rashomon": round(rs.seconds, 2), "n_attempts": len(rs.attempts),
                       "n_accepted": len(rs.models), "n_competitive": int(rs.competitive.sum()),
                       "fitted": _dt.datetime.now().isoformat(timespec="seconds")}
-        return self._set_case_base(df, t, y)
+        self._set_case_base(df, t, y)
+        self.info_["case_base_at_fit"] = {**self.case_base_.fit_info, "loo_table": self.case_base_.loo_table}
+        return self
 
     def _learning_rows(self, t: Table) -> np.ndarray:
         rng = np.random.default_rng(self.seed)
@@ -187,7 +239,8 @@ class CEKNN:
         ks = self.knn_settings
         cb = CaseBase(self.enc_.transform(t), self.enc_.weights_dims(self.w_), y, self.schema.n_classes, t.groups,
                       k=ks.k, distinct=ks.distinct_groups and self.schema.group is not None, fetch=ks.fetch_factor)
-        cb.fit_alpha(ks.alpha_grid, n_queries=ks.alpha_queries, ood_percentile=ks.ood_percentile, seed=self.seed)
+        cb.fit_alpha(ks.alpha_grid, k_grid=ks.k_grid, select_k=ks.select_k, n_queries=ks.alpha_queries,
+                     ood_percentile=ks.ood_percentile, seed=self.seed)
         self.case_base_ = cb
         self._cb = {"frame": df, "index": df.index.to_numpy(), "groups": t.groups}
         return self
@@ -217,10 +270,32 @@ class CEKNN:
         groups = t.groups if self.schema.group and self.schema.group in df.columns else None
         return self.case_base_.search(self.enc_.transform(t), groups, k=k)
 
-    def predict_proba(self, df: pd.DataFrame, k: int | None = None) -> np.ndarray:
-        """Class probabilities (n × classes, in the order of `classes`): the smoothed vote of the k neighbours."""
+    def predict_proba(self, df: pd.DataFrame, k: int | None = None, as_frame: bool = False):
+        """Class probabilities (n × classes, in the order of `classes`): the smoothed vote of the k neighbours,
+        p_c = (n_c + α·P(c)·C) / (k + α·C). `as_frame` returns a DataFrame with one column per class."""
         D, I, valid = self._search(df, k)
-        return self.case_base_.probs(I, valid, k)
+        p = self.case_base_.probs(I, valid, k)
+        return pd.DataFrame(p, index=df.index, columns=list(self.schema.classes)) if as_frame else p
+
+    def vote(self, df: pd.DataFrame, k: int | None = None) -> pd.DataFrame:
+        """The neighbours' vote for each query: how many valid neighbours, how many of them and what share are of
+        each class (`n[<class>]`, `share[<class>]`), the smoothed probability (`p[<class>]`), the k and α used,
+        the distance to the k-th neighbour, its percentile in the case base's leave-one-out and whether the query
+        is out of support."""
+        D, I, valid = self._search(df, k)
+        cb = self.case_base_
+        kk = cb.k if k is None else int(k)
+        v = cb.vote_table(I, valid, kk)
+        kth, pct, ood = cb.kth_info(D, valid)
+        out = {"n_neighbours": v["n_neighbours"]}
+        for c, lab in enumerate(self.schema.classes):
+            out[f"n[{lab}]"] = v["counts"][:, c]
+        for c, lab in enumerate(self.schema.classes):
+            out[f"share[{lab}]"] = v["share"][:, c]
+        for c, lab in enumerate(self.schema.classes):
+            out[f"p[{lab}]"] = v["p"][:, c]
+        out.update({"k": kk, "alpha": cb.alpha, "kth_distance": kth, "kth_percentile": pct, "ood": ood})
+        return pd.DataFrame(out, index=df.index)
 
     def predict(self, df: pd.DataFrame, k: int | None = None) -> np.ndarray:
         p = self.predict_proba(df, k)
@@ -243,16 +318,26 @@ class CEKNN:
         return self.case_base_.kth_info(D, valid)[2]
 
     def carry(self, df: pd.DataFrame, columns: list[str], k: int | None = None) -> pd.DataFrame:
-        """Mean of other numeric columns of the case base over each query's neighbours (what the neighbours
-        carry: later outcomes, treatments…)."""
+        """What the neighbours carry in other columns of the case base (later outcomes, treatments…): the mean of
+        a numeric column, and the share of each category of any other column (`<column>[<category>]`)."""
         D, I, valid = self._search(df, k)
         kk = I.shape[1] if k is None else min(int(k), I.shape[1])
         frame = self._cb["frame"]
+        Ik, vk = I[:, :kk], valid[:, :kk]
         out = {}
         for c in columns:
-            v = pd.to_numeric(frame[c], errors="coerce").to_numpy(dtype=float)[I[:, :kk]]
-            v = np.where(valid[:, :kk], v, np.nan)
-            out[c] = np.nanmean(v, axis=1)
+            s = frame[c]
+            if pd.api.types.is_numeric_dtype(s) or pd.api.types.is_bool_dtype(s):
+                v = np.where(vk, s.to_numpy(dtype=float)[Ik], np.nan)
+                with np.errstate(invalid="ignore"):
+                    out[c] = np.nanmean(v, axis=1)
+                continue
+            vals = s.to_numpy(dtype=object)[Ik]
+            known = vk & pd.notna(vals)
+            tot = known.sum(1)
+            for cat in pd.unique(s.dropna()):
+                hit = (vals == cat) & known
+                out[f"{c}[{cat}]"] = np.divide(hit.sum(1), tot, out=np.full(len(tot), np.nan), where=tot > 0)
         return pd.DataFrame(out, index=df.index)
 
     def evaluate(self, df: pd.DataFrame, k: int | None = None) -> dict:
@@ -377,17 +462,12 @@ class CEKNN:
         use = [m for m, c in zip(rs.models, rs.competitive) if c or models == "accepted"]
         vals, ses = [], []
         for m in use:
-            model = _InputsOnly(m, G_in, rs.n_groups)
-            r = sage_permutation(model, X, y, G_in, rng, max_passes=max_passes)
+            r = sage_permutation(InputsOnly(m, G_in, rs.n_groups), X, y, G_in, rng, max_passes=max_passes)
             v, s = normalize(r["values"], r["se"])
             vals.append(v)
             ses.append(s)
-        agg = aggregate(np.array(vals), np.array(ses))
-        per = {}
-        for g in range(G_in):
-            members = [self.enc_.blocks[j].name for j in np.where(rs.groups == g)[0]]
-            for n in members:
-                per[n] = float(agg[g] / len(members))
+        imp = per_variable(aggregate(np.array(vals), np.array(ses)), rs.groups)
+        per = {b.name: float(x) for b, x in zip(self.enc_.blocks, imp)}
         self.sage_ = per
         return pd.DataFrame({"variable": list(per), "sage": list(per.values()),
                              "group": [rs.group_names[int(rs.groups[self.enc_.feature_index()[n]])] for n in per]}) \
@@ -443,16 +523,128 @@ class CEKNN:
         ax.set_title(name + ("" if tab.attrs["shaped"] else " (flat: neutral axis)"))
         return ax
 
+    # ------------------------------------------------------------------ the training, in view
+    def settings(self) -> pd.DataFrame:
+        """Every setting: section, name, value and what it does."""
+        rows = [("model", "seed", self.seed, "random seed of every step"),
+                ("model", "model_space", ", ".join(self.model_space.families), "families of the Rashomon set")]
+        for sec, obj in (("encoding", self.encoding), ("shapes", self.shapes_settings), ("nca", self.nca_settings),
+                         ("knn", self.knn_settings), ("learn", self.learn)):
+            for k, v in asdict(obj).items():
+                rows.append((sec, k, v, MEANING.get((sec, k), "")))
+        return pd.DataFrame(rows, columns=["section", "setting", "value", "meaning"])
+
+    def stability(self) -> pd.DataFrame:
+        """One row per accepted model of the Rashomon loop: its validation log-loss, how many models were
+        competitive then, Δ and Δ̃ (stability of the distances), the Spearman correlation of the inputs' curve
+        ranges (and of their SAGE importance, with `sage_in_loop`) against `window` models before, and every
+        input's curve range (`range[<input>]`) and SAGE (`sage[<input>]`) at that point."""
+        self._need_metric()
+        rows = self.rashomon_.stability if self.rashomon_ is not None else getattr(self, "_loaded_stability", [])
+        return pd.DataFrame(rows)
+
+    def stopping(self) -> dict:
+        """How the Rashomon loop ended: rule, reason, models accepted / tried / competitive, final Δ̃."""
+        self._need_metric()
+        return dict(self.rashomon_.stop if self.rashomon_ is not None else self.info_.get("stop", {}))
+
+    def knn_curve(self) -> pd.DataFrame:
+        """Leave-one-out log-loss of the vote for every (k, α) of the grids, on the current case base (or, for a
+        loaded metric without one, on the case base it was fitted with). `best_alpha` marks the best α of each k
+        and `used` the (k, α) in use."""
+        self._need_metric()
+        if self.case_base_ is not None:
+            table, info = self.case_base_.loo_table, self.case_base_.fit_info
+        else:
+            info = self.info_.get("case_base_at_fit", {})
+            table = info.get("loo_table", [])
+        out = pd.DataFrame(table)
+        if out.empty:
+            return out
+        out["best_alpha"] = out.groupby("k")["loo_logloss"].transform("min") == out["loo_logloss"]
+        out["used"] = (out["k"] == info.get("k")) & (out["alpha"] == info.get("alpha"))
+        return out
+
+    def case_base_info(self) -> dict:
+        """The case base in use: rows, class shares, k (chosen or given), α, leave-one-out log-loss and the
+        out-of-support threshold."""
+        self._need_case_base()
+        return dict(self.case_base_.fit_info)
+
+    def training_report(self) -> dict:
+        """Everything about the training in one place: settings, stopping, stability trace, Rashomon record, NCA
+        loss per epoch, the (k, α) leave-one-out curve and the case base."""
+        self._need_metric()
+        return {"settings": self.settings(), "stopping": self.stopping(), "stability": self.stability(),
+                "rashomon": self.rashomon(), "nca_loss": list(self.info_.get("nca_history", [])),
+                "knn": self.knn_curve(),
+                "case_base": dict(self.case_base_.fit_info) if self.case_base_ is not None else
+                {k: v for k, v in self.info_.get("case_base_at_fit", {}).items() if k != "loo_table"},
+                "training": {k: v for k, v in self.info_.items() if k not in ("case_base_at_fit", "nca_history")}}
+
+    def plot_stability(self, inputs: list[str] | None = None, axes=None):
+        """Δ and Δ̃ over the accepted models (left) and the inputs' curve ranges (right; SAGE with
+        `sage_in_loop`)."""
+        import matplotlib.pyplot as plt
+
+        st = self.stability()
+        axes = axes if axes is not None else plt.subplots(1, 2, figsize=(10, 3.5))[1]
+        if "delta" in st:
+            axes[0].plot(st["n_accepted"], st["delta"], ".", alpha=0.5, label="Δ")
+            axes[0].plot(st["n_accepted"], st["delta_smooth"], "-", label="Δ̃")
+            tol = self.shapes_settings.tol_delta
+            axes[0].axhline(tol, color="grey", lw=0.8, ls="--", label="tol_delta")
+            axes[0].set_yscale("log")
+        axes[0].set_xlabel("accepted models")
+        axes[0].set_title(f"stability ({self.stopping().get('reason', '')})")
+        axes[0].legend(fontsize=7)
+        key = "sage" if any(c.startswith("sage[") for c in st.columns) else "range"
+        cols = [c for c in st.columns if c.startswith(f"{key}[")]
+        if inputs is not None:
+            cols = [f"{key}[{n}]" for n in inputs]
+        for c in cols:
+            axes[1].plot(st["n_accepted"], st[c], label=c[len(key) + 1:-1])
+        axes[1].set_xlabel("accepted models")
+        axes[1].set_title("SAGE importance" if key == "sage" else "curve range (log-odds)")
+        axes[1].legend(fontsize=6, ncol=2)
+        return axes
+
+    def plot_knn(self, ax=None):
+        """Leave-one-out log-loss against k (best α of each k), with the k in use marked."""
+        import matplotlib.pyplot as plt
+
+        cur = self.knn_curve()
+        ax = ax or plt.subplots(figsize=(5, 3.5))[1]
+        best = cur[cur["best_alpha"]].drop_duplicates("k")
+        ax.plot(best["k"], best["loo_logloss"], "o-")
+        used = cur[cur["used"]]
+        ax.plot(used["k"], used["loo_logloss"], "s", color="red", label="in use")
+        ax.set_xscale("log")
+        ax.set_xlabel("k")
+        ax.set_ylabel("leave-one-out log-loss")
+        ax.legend(fontsize=7)
+        return ax
+
     def summary(self) -> str:
         if not self.is_fitted:
             return f"CEKNN (not fitted): {len(self.schema.inputs)} inputs → {self.schema.output}"
         imp = self.importance()
+        st = self.stopping()
         lines = [f"CEKNN: {len(self.schema.inputs)} inputs → {self.schema.output} {self.schema.classes}",
-                 f"metric: {self.enc_.n_features} variables, {int(imp['shaped'].sum())} with a shape; "
-                 f"k = {self.knn_settings.k}",
-                 f"case base: {len(self.case_base_) if self.case_base_ is not None else 'none'} rows"]
+                 f"metric: {self.enc_.n_features} variables, {int(imp['shaped'].sum())} with a shape",
+                 f"Rashomon: stopping '{st.get('rule')}' → {st.get('reason')}; {st.get('n_accepted')} accepted of "
+                 f"{st.get('n_attempts')} tried, {st.get('n_competitive')} competitive; final Δ̃ "
+                 f"{_fmt(st.get('delta_smooth_final'))}" + (" (above tol_delta)" if st.get("plateau_above_tol") else "")]
+        if self.case_base_ is not None:
+            ci = self.case_base_.fit_info
+            lines.append(f"case base: {ci['n_rows']} rows, class shares {ci['class_shares']}; k = {ci['k']}"
+                         f"{' (chosen by leave-one-out)' if ci['k_selected'] else ''}, α = {ci['alpha']}, "
+                         f"leave-one-out log-loss {ci['loo_logloss']:.4f}")
+        else:
+            lines.append("case base: none (set_case_base)")
+        has_sage = "sage" in imp
         lines += [f"  {r.variable:<28} weight {r.weight:6.3f}  {'shape' if r.shaped else 'flat '}"
-                  for r in imp.itertuples()]
+                  + (f"  SAGE {r.sage:6.3f}" if has_sage and pd.notna(r.sage) else "") for r in imp.itertuples()]
         return "\n".join(lines)
 
     # ------------------------------------------------------------------ JSON
@@ -483,6 +675,7 @@ class CEKNN:
                            if rs is not None else getattr(self, "_loaded_groups", {})),
                 "site_levels": rs.site_levels if rs is not None else getattr(self, "_loaded_site_levels", None),
                 "sage": self.sage_,
+                "stability": _clean(rs.stability if rs is not None else getattr(self, "_loaded_stability", [])),
                 "training": _clean(self.info_),
             }
         return d
@@ -524,6 +717,7 @@ class CEKNN:
             m._loaded_attempts = met.get("rashomon") or []
             m._loaded_groups = met.get("groups") or {}
             m._loaded_site_levels = met.get("site_levels")
+            m._loaded_stability = met.get("stability") or []
             m.sage_ = met.get("sage")
             m.info_ = met.get("training") or {}
         return m
@@ -541,16 +735,8 @@ class CEKNN:
         return f"CEKNN({len(self.schema.inputs)} inputs → {self.schema.output!r}, {state})"
 
 
-class _InputsOnly:
-    """A surrogate seen by SAGE over the input groups only (the site's nuisance group always present)."""
-
-    def __init__(self, model, n_input_groups: int, n_groups: int):
-        self.model, self.Gi, self.G = model, n_input_groups, n_groups
-
-    def predict_proba(self, X: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        if self.G > self.Gi:
-            mask = np.hstack([mask, np.ones((mask.shape[0], self.G - self.Gi), dtype=bool)])
-        return self.model.predict_proba(X, mask)
+def _fmt(x) -> str:
+    return "—" if x is None else f"{x:.4f}"
 
 
 def _site_constant(enc: Encoder, t: Table) -> list[str]:
