@@ -176,14 +176,15 @@ def ci95(b: np.ndarray) -> list[float]:
 
 
 # --------------------------------------------------------------------------- recovery and saw-tooth
-def recovery(T: dict, windows: list[dict], a: str, metric: str, delta: float, consecutive: int) -> list[dict]:
+def recovery(T: dict, windows: list[dict], a: str, metric: str, delta: float, consecutive: int,
+             start_is_boundary: bool = False) -> list[dict]:
     out = []
     labs = []
     for w in windows:
         if not labs or labs[-1][0] != w["seg"]:
             labs.append((w["seg"], []))
         labs[-1][1].append(w["index"])
-    for lab, idx in labs[1:]:
+    for lab, idx in (labs if start_is_boundary else labs[1:]):
         m = T["m"][a][metric]
         vals = np.array([m[i] if T["valid"][i] else np.nan for i in idx])
         half = vals[len(vals) // 2:]
@@ -217,8 +218,28 @@ def sawtooth(m: np.ndarray, valid: np.ndarray, windows: list[dict], log: list[di
 
 
 # --------------------------------------------------------------------------- one stream
-def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int) -> dict:
-    """Endpoints of one stream (one N, one hospital) from its R orders: [(predictions, log), …]."""
+def rewindow(frame: pl.DataFrame, log: dict, scale: float) -> tuple[pl.DataFrame, dict]:
+    """The same predictions in evaluation windows `scale` times as large (the W sensitivity): the arms' runs, their
+    checks and updates are unchanged; only the windows the endpoints are read on change (H4b is not re-read)."""
+    from .streams import windows_for
+
+    segs, a = [], 0
+    for s in log["stream"]["segments"]:
+        segs.append((s["segment"], a, a + int(s["patients"])))
+        a += int(s["patients"])
+    size = {}
+    for w in log["windows"]:
+        size.setdefault(w["seg"], []).append(w["end"] - w["start"])
+    W = {lab: max(1, int(round(np.median(v) * scale))) for lab, v in size.items()}
+    wins = windows_for(segs, W)
+    ends = np.array([w["end"] for w in wins])
+    wid = np.searchsorted(ends, frame["pos"].to_numpy(), side="right")
+    return frame.with_columns(pl.Series("window", wid)), {**log, "windows": wins, "checks": []}
+
+
+def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int, light: bool = False) -> dict:
+    """Endpoints of one stream (one N, one hospital) from its R orders: [(predictions, log), …]. `light`: the whole
+    stream's arms and contrasts only (the sensitivity analyses)."""
     logs = [lg for _, lg in runs]
     windows = logs[0]["windows"]
     arms = list(logs[0]["arms"])
@@ -236,12 +257,15 @@ def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int
     first = {}
     for w in windows:
         first.setdefault(w["seg"], w["index"])
+    deploy = st.get("kind") == "deploy"                  # stream (b): its start is a boundary (other hospitals → own)
     post = set()
     for s_, i0 in first.items():
-        if i0 != 0:
+        if i0 != 0 or deploy:
             post.update(range(i0, min(i0 + ell, K)))
     sets = {"all": np.arange(K), "control": np.array([i for i in range(K) if i not in post], dtype=int),
             "post_boundary": np.array(sorted(post), dtype=int)}
+    if light:
+        sets = {"all": sets["all"]}
     boot = mbb(seg, ell, int(cfg["endpoints"]["boot"]), seed)
     res = {"stream": st, "orders": len(runs), "windows": K, "block_length": ell,
            "windows_dropped": [int((~T["valid"]).sum()) for T in Ts], "arms": {}, "contrasts": {}, "stretch": {}}
@@ -268,9 +292,16 @@ def stream_endpoints(runs: list[tuple[pl.DataFrame, dict]], cfg: dict, seed: int
             res["arms_ci"] = {a: {k: ci95([x[a][k] for x in B]) for k in STATS} for a in arms}
         else:
             res["stretch"][name] = {"windows": int(idx.size), "arms": S, "contrasts": con}
+    if light:
+        return res
     rc = cfg["endpoints"]["recovery"]
-    res["recovery"] = {a: {m: [recovery(T, windows, a, m, float(rc[m]), int(rc["consecutive"])) for T in Ts]
+    res["recovery"] = {a: {m: [recovery(T, windows, a, m, float(rc[m]), int(rc["consecutive"]), deploy) for T in Ts]
                            for m in ("auroc", "citl")} for a in arms}
+    res["psi"] = {}
+    for name, idx in sets.items():
+        per = [[c.get("psi_mean", np.nan) for c in lg["checks"] if c["window"] in set(idx.tolist())] for lg in logs]
+        vals = [np.nanmean(p) for p in per if np.isfinite(p).any()]
+        res["psi"][name] = float(np.mean(vals)) if vals else np.nan
     res["sawtooth"] = {}
     for a in arms:
         if not ("_realistic" in a or a.endswith("_ideal")):

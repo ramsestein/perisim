@@ -2,7 +2,8 @@
 
 Status: **Phase 1 approved by the lead on 2026-10-30: §16 as proposed (H4 co-primary; no 6-month delay).** Phase 2,
 the implementation, done the same day: `src/roll/`, `config/roll.yaml`, `tests/test_roll.py`, the synthetic dry run
-(`python -m roll dry`). Corrections it led to are marked in §7.4–§7.5. Next: the pre-registration. Branch `roll`.
+(`python -m roll dry`). Corrections it led to are marked in §7.4–§7.5. Phase 3: the pre-registration draft,
+[prereg_roll.md](prereg_roll.md), for the lead's approval before the freeze. Branch `roll`.
 Phase 0:
 [feasibility_roll.md](feasibility_roll.md), gate decided on 2026-10-30 (§3). New measurements for this design:
 `python scripts/feasibility_roll.py phase1` (T2's counts and the noise of the ML monitor; aggregates only, in
@@ -346,7 +347,10 @@ AUROC; AUPRC; normalised AUPRC (AUPRC − window prevalence, and AUPRC ÷ window
 - **Saw-tooth** (arms 5 and 6): for each cycle between two deployments, the drop from the window after the first
   deployment to the window before the next. The number of cycles and the mean amplitude, for AUROC and CITL.
 - **By stretch**: every endpoint on the whole stream, inside the segments (controls), and in the windows after each
-  boundary (the first ⌈N / W⌉ windows, the time the FIFO window needs to turn over).
+  boundary (the first ⌈N / W⌉ windows, the time the FIFO window needs to turn over). In stream (b) the start is a
+  boundary too: the base turns from other hospitals' patients to the hospital's own.
+- **W sensitivity**: the same predictions read in windows of W/2 and 2W. The arms' runs, checks and updates are
+  unchanged; only the evaluation windows change, and H4 (b) is not re-read.
 
 ### 8.4 Recovery
 
@@ -377,8 +381,9 @@ Every prediction is stored locally with its step, arm and order. Never exported.
 
 ### 8.7 The ML monitor's own diagnostics
 
-The monitor of §7.2, plus the PSI of each input between the deployed model's update window and the monitoring window,
-as a reference. The PSI decides nothing.
+The monitor of §7.2, plus the PSI as a reference. At every check, for each continuous input, it compares the window
+against the data that chose arm 5's deployed model, using that data's deciles and a bin for missing values. The mean
+and the maximum over inputs are reported. The PSI decides nothing.
 
 ## 9. Hypotheses and margins (proposed) ⛔
 
@@ -428,6 +433,11 @@ S2), whose AUROC no recalibration changes:
   eICU values are, if anything, a little pessimistic for PERISIM.
 - **This is declared before the freeze, and it is not a reason to change the comparator or the margin.** The
   proposal keeps LightGBM, δ_AUROC = 0.02 and the brief's N. H7 says at which N the accuracy half would hold.
+- **Calibration of small case bases** (`hypo` S1, read before the pre-registration by the lead's decision;
+  DECISIONS 2026-10-30): O/E is within 0.94–1.06 at every n. But a case base of 100 patients is under-confident
+  (slope about 1.4), and its calibration in the large depends on which patients it holds (CITL ±0.4 over 25 case
+  bases; ±0.2 at 250, ±0.05 for the whole pool). In eICU's stream (a), N = 100, this is expected to count against
+  PERISIM in H4a. N is not changed.
 - The AUPRC margin rests on `hypo`'s scale: AUPRC differences between models were about twice the AUROC differences
   (INSPIRE: PERISIM 0.379, LightGBM transported 0.388, logistic transported 0.362; the other sites are being
   computed in `hypo`'s second post hoc round).

@@ -30,7 +30,9 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              block threshold, drift over all five folds (scripts\posthoc_hypo.py; resumable; about 5 h)
   roll       experiment `roll` (prequential evaluation with a rotating case base, docs\design_roll.md):
              python -m roll <command>, e.g. `roll check` (the freezes of T2 and hypo), `roll streams` (the
-             real streams: sizes and windows, nothing fitted), `roll dry` (the Phase 2 dry run, synthetic data)
+             real streams: sizes and windows, nothing fitted), `roll dry` (the Phase 2 dry run, synthetic data),
+             `roll freeze --registration <ID>` (Phase 3), then `roll run`, `roll endpoints`, `roll t2` (Phase 4,
+             frozen version only; resumable)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders

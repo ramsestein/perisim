@@ -161,6 +161,28 @@ def test_the_trigger_the_delay_and_the_refractory_period(ran, env):
     assert seen > 0
 
 
+def test_the_fifo_window_is_rebuilt_from_the_log_alone(ran):
+    from roll.loop import replay
+
+    st, run, res, _ = ran
+    r = replay(run, res["arms"]["perisim_fifo"])
+    assert r["steps"] == len(st.steps(10)) and r["mismatches"] == 0
+    bad = [dict(e) for e in res["arms"]["perisim_fifo"]]
+    k = next(i for i, e in enumerate(bad) if e["event"] == "rotate")
+    bad[k]["state"] = "0" * 16
+    assert replay(run, bad)["mismatches"] == 1
+
+
+def test_rewindowing_keeps_every_prediction_in_one_window(ran):
+    st, run, res, _ = ran
+    fr, lg = EP.rewindow(run.frame(), res, 2.0)
+    w = fr["window"].to_numpy()
+    assert w.min() == 0 and w.max() == len(lg["windows"]) - 1 and len(lg["windows"]) < len(res["windows"])
+    for x in lg["windows"]:
+        pos = fr.filter(fr["window"] == x["index"])["pos"].to_numpy()
+        assert pos.min() >= x["start"] and pos.max() < x["end"]
+
+
 def test_the_run_is_deterministic(env):
     cfg, hcfg, mcfg, cs, fz = env
     st = _stream(env, name="inspire_control")
@@ -328,6 +350,26 @@ def test_t2_stream_arms_and_scores():
     assert set(out["arms"]["rps"]) == set(t2.ARMS)
     assert t2.rps(np.full((1, 4), 0.25), np.array([0]))[0] == pytest.approx((0.75 ** 2 + 0.5 ** 2 + 0.25 ** 2) / 3)
     assert t2.rps(np.eye(4)[[2]], np.array([2]))[0] == 0.0
+
+
+def test_the_freeze_records_and_checks_and_refuses_after_results(tmp_path, monkeypatch):
+    from roll import frozen
+    from roll.config import Stop
+
+    monkeypatch.setattr(frozen, "workdir", lambda: tmp_path)
+    state = {"code": "a", "streams": {"all": "x"}}
+    monkeypatch.setattr(frozen, "hashes", lambda cfg, cs: dict(state))
+    with pytest.raises(Stop, match="no freeze record"):
+        frozen.check({}, {})
+    rec = frozen.freeze("TEST", {}, {}, no_git=True)
+    assert rec["registration"] == "TEST" and frozen.check({}, {})["tag"] == rec["tag"]
+    state["code"] = "b"
+    with pytest.raises(Stop, match="code"):
+        frozen.check({}, {})
+    (tmp_path / "runs" / "s" / "o0").mkdir(parents=True)
+    (tmp_path / "runs" / "s" / "o0" / "log.json").write_text("{}")
+    with pytest.raises(Stop, match="already exist"):
+        frozen.freeze("TEST", {}, {}, no_git=True)
 
 
 def test_endpoints_run_on_a_stream(ran, env):

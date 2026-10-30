@@ -4,8 +4,11 @@
   python -m roll streams                  the real streams (order 0, primary N): sizes, windows, digests (aggregates)
   python -m roll dry [--threads 4]        Phase 2 dry run on synthetic data: every arm, trigger and endpoint
   python -m roll t2-check                 T2's frozen artefacts and MIMIC-IV stays load (counts only, nothing fitted)
+  python -m roll freeze --registration ID the freeze (Phase 3, after the lead approves docs/prereg_roll.md)
+  python -m roll run [--threads 8] [--streams …]   the single real run (Phase 4; frozen version only; resumable)
+  python -m roll endpoints                the endpoints of the real run (aggregates)
+  python -m roll t2                       T2, secondary and descriptive (runs and endpoints)
 
-The single real run (Phase 4) is added with the freeze (Phase 3): it runs only on the frozen version.
 Patient-level outputs stay in <workdir>/experiments/roll; aggregates only are ever exported.
 """
 
@@ -31,8 +34,28 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--threads", type=int, default=4)
     d.add_argument("--streams", nargs="*")
     sub.add_parser("t2-check")
+    f = sub.add_parser("freeze")
+    f.add_argument("--registration", default=None)
+    r = sub.add_parser("run")
+    r.add_argument("--threads", type=int, default=8)
+    r.add_argument("--streams", nargs="*")
+    sub.add_parser("endpoints")
+    sub.add_parser("t2")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    if a.cmd == "freeze":
+        from .frozen import freeze
+        from .run import _real
+
+        cfg, _, _, _, cs = _real()
+        print(json.dumps(freeze(a.registration, cfg, cs), indent=1))
+        return 0
+    if a.cmd in ("run", "endpoints", "t2"):
+        from . import run as R
+
+        out = R.real(a.threads, a.streams) if a.cmd == "run" else R.real_endpoints() if a.cmd == "endpoints" else R.real_t2()
+        print(out)
+        return 0
     if a.cmd == "check":
         print(json.dumps(frozen_guard(), indent=1))
         return 0

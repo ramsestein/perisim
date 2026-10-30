@@ -120,8 +120,29 @@ class Run:
         return model, Xw, hyper, {"hyper": hyper, "seconds": time.perf_counter() - t}
 
     # ------------------------------------------------------------------ the loop
+    def _psi(self, ref: np.ndarray, cur: np.ndarray) -> dict:
+        """The population stability index of each continuous input, the window against the primary realistic arm's
+        reference (deciles of the reference, missing values as their own bin): a reference only, deciding nothing."""
+        ft = self.stream.pool.lm.ft
+        vals = []
+        for sp in ft.specs:
+            if sp.type != "continuous":
+                continue
+            x = ft.num[sp.name]
+            r, c = x[ref], x[cur]
+            fin = r[np.isfinite(r)]
+            edges = np.unique(np.quantile(fin, np.linspace(0.1, 0.9, 9))) if fin.size else np.zeros(0)
+
+            def share(v):
+                b = np.where(np.isfinite(v), np.searchsorted(edges, v, side="right"), edges.size + 1)
+                return np.bincount(b, minlength=edges.size + 2) / max(v.size, 1) + 1e-4
+
+            pr, pc = share(r), share(c)
+            vals.append(float(((pc - pr) * np.log(pc / pr)).sum()))
+        return {"psi_mean": float(np.mean(vals)) if vals else np.nan, "psi_max": float(np.max(vals)) if vals else np.nan}
+
     def _check_all(self, w: dict, pos: int) -> None:
-        """The primary rule on every arm's predictions over the last M evaluated patients (H4b)."""
+        """The primary rule on every arm's predictions over the last M evaluated patients (H4b), and the PSI."""
         M, E = self.M(w["seg"]), int(self.cfg["monitor"]["E"])
         units = [self.rows_of(u) for u in self.stream.seq[max(0, pos - 20 * M):pos]]
         mon = monitoring_rows(units, M, E, self.y)
@@ -130,6 +151,9 @@ class Run:
             for a in self.arms:
                 s = stats(self.pred[a.name][mon], self.y[mon], self.pcode[mon])
                 rec[a.name] = primary_fires(s, self.cfg["triggers"]["primary"])
+        ref = next((a for a in self.arms if a.name == f"{self.cfg['ml']['primary_family']}_realistic"), None)
+        if ref is not None:
+            rec.update(self._psi(ref.ref_rows, np.where(self.window_of == w["index"])[0]))
         self.checks.append(rec)
 
     def execute(self) -> dict:
@@ -198,6 +222,25 @@ class Run:
                 "arms": {a.name: a.log for a in self.arms}, "checks": self.checks,
                 "redeform": self.redeform.results if self.redeform is not None else [],
                 "seconds": self.seconds, "timing": self.timing, "predictions_digest": self.digest()}
+
+
+def replay(run: Run, fifo_log: list[dict]) -> dict:
+    """Governability (design §11): rebuild PERISIM-FIFO's case base at every step from the stream log alone (the
+    starting window, then each step's patients in and out) and compare it with the state hash the arm logged."""
+    units = deque(int(u) for u in run.stream.start)
+    steps = bad = 0
+    for e in fifo_log:
+        if e["event"] != "rotate":
+            continue
+        for u in e["in"]:
+            units.append(int(u))
+        for u in e["out"]:
+            if units.popleft() != int(u):
+                bad += 1
+        rows = np.sort(np.concatenate([run.admitted(u) for u in units]))
+        steps += 1
+        bad += hashlib.sha256(rows.tobytes()).hexdigest()[:16] != e["state"]
+    return {"steps": steps, "mismatches": int(bad)}
 
 
 def save(run: Run, res: dict, out: Path) -> None:

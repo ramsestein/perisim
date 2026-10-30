@@ -116,6 +116,7 @@ class ML(Arm):
     # ------------------------------------------------------------------ helpers
     def _deploy(self, run, model: Model, rec: dict, pos: int, rows: np.ndarray) -> None:
         self.model = model
+        self.ref_rows = rows                          # the data the deployed model was chosen on (the PSI's reference)
         self.since: list[np.ndarray] = []
         self.baseline = rec.get("baseline")
         if self.trigger == "davis":
@@ -141,6 +142,7 @@ class ML(Arm):
         if self.trigger == "davis":
             c = run.cfg["triggers"]["sensitivity"]["davis"]
             self.davis = Davis(c["delta"], c["lr"], c["min_sub"], int(run.cfg["loop"]["step"]))
+        self.ref_rows = start
         if self.policy == "frozen" or self.origin == "window":
             if self.trigger == "davis":
                 self.davis.reset(self.model.predict(start), run.y[start])

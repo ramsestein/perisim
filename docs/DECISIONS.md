@@ -109,7 +109,60 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 
   This is not an analysis, and neither k nor N is changed. Whether it happens on the real data could be read,
   before the freeze, from `hypo`'s saved S1 predictions with case bases of 100 and 250 patients. That would be a new
-  aggregate of examined data, so it is the lead's decision.
+  aggregate of examined data, so it is the lead's decision. (Measured: next entry.)
+
+## 2026-10-30 — `roll` Phase 3: the pre-registration draft and the freeze's code (analyst; for the lead's approval)
+
+- **The draft**: [prereg_roll.md](prereg_roll.md). It holds:
+  - the question;
+  - the data;
+  - what was done and seen before the freeze;
+  - the frozen artefacts;
+  - streams, arms, hypotheses and rules;
+  - the expectations (H1 expected to fail against LightGBM; little drift; the calibration of eICU (a));
+  - the limitations;
+  - the registration.
+- **The freeze's code** (`src/roll/frozen.py`; `python -m roll freeze --registration <ID>`). The record holds:
+  - `roll`'s code and configuration hashes;
+  - `hypo`'s and T2's freezes, and T2's final model;
+  - the digest of all 1,190 stream-orders of the design;
+  - the git tag and commit, and the hash of the pre-registration.
+
+  It refuses to run once real results exist, or with uncommitted changes. The single run (`python -m roll run`,
+  `endpoints`, `t2`) checks the record at its start and its end.
+- **Added so that the draft describes what runs:**
+  - the ML monitor's PSI (a reference);
+  - the W sensitivity, the same predictions read in windows of W/2 and 2W;
+  - stream (b)'s start counted as a boundary (recovery, post-boundary windows);
+  - the determinism and reconstruction check of the first unit (`runs/governability.json`).
+- **Not done, and the lead's decisions:**
+  - approving the draft;
+  - the registration ID;
+  - a mechanics rehearsal at real size before the freeze (cost, faults);
+  - pushing the branch, which the public tag needs.
+
+## 2026-10-30 — `roll`: the calibration of `hypo`'s small case bases, measured before the pre-registration (lead)
+
+- **The lead's decision.** Read the calibration of `hypo`'s S1 case bases (n random patients of the training folds,
+  every fold and draw; external stage). This is a new aggregate of predictions already examined, read before the
+  pre-registration, and declared there. Script: `scripts/feasibility_roll.py s1cal`. Freezes unchanged.
+- **What it shows** (mean over the 25 case bases of each n, and their range):
+
+  | n patients | O/E (INSPIRE / MIMIC-IV / eICU) | calibration slope | CITL range over case bases |
+  |---|---|---|---|
+  | 100 | 1.06 / 0.94 / 0.98 | 1.40 / 1.45 / 1.43 | −0.38 to +0.40 |
+  | 250 | 1.03 / 0.97 / 1.01 | 1.20 / 1.15 / 1.17 | −0.22 to +0.26 |
+  | 500 | 1.04 / 0.99 / 1.01 | 1.11 / 1.09 / 1.11 | −0.20 to +0.27 |
+  | the whole pool | 1.02 / 1.01 / 1.01 | 1.02 / 1.01 / 1.03 | −0.02 to +0.05 |
+
+- **Reading.**
+  - The synthetic under-prediction does not appear on the real data: O/E is within 0.94–1.06 at every n.
+  - Small case bases are under-confident: a slope of about 1.4 at 100 patients, 1.2 at 250.
+  - Their calibration in the large depends on which patients they hold: ±0.4 at 100 patients.
+  - In eICU's stream (a), PERISIM-FIFO's window CITL will vary from window to window for this reason too. That
+    variation is the model's, not sampling noise, so it enters the excess calibration error (H4a) against PERISIM.
+- **What is kept.** N = 100 in stream (a), as approved. Raising it after this reading would favour PERISIM with a
+  choice made on seen data. The expectation is declared in the pre-registration, and H7 shows the curve against N.
 
 ## 2026-10-30 — `roll` Phase 0 gate decided; Phase 1, the design (lead; analyst's proposals for the lead's approval)
 

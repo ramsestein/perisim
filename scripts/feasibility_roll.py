@@ -18,8 +18,12 @@ Added in Phase 1 (`phase1` argument):
 - the noise of the realistic ML arm's monitor: how often each proposed trigger fires in random windows of M
   patients, with no drift.
 
-Usage:  python scripts/feasibility_roll.py [phase1]   (set PERISIM_WORKDIR / PERISIM_DATASETS from a worktree)
-Output: <workdir>/experiments/roll/feasibility/feasibility_roll.json and .md (feasibility_roll_phase1.json)
+Added before the pre-registration, by the lead's decision (`s1cal` argument): the calibration of `hypo`'s S1 case
+bases of n random patients (a new aggregate of examined predictions).
+
+Usage:  python scripts/feasibility_roll.py [phase1 | s1cal]   (set PERISIM_WORKDIR / PERISIM_DATASETS from a worktree)
+Output: <workdir>/experiments/roll/feasibility/feasibility_roll.json and .md (feasibility_roll_phase1.json,
+        feasibility_roll_s1cal.json)
 """
 
 from __future__ import annotations
@@ -346,6 +350,46 @@ def monitor_precision(c: str) -> list[dict]:
     return out
 
 
+def s1_calibration(c: str) -> list[dict]:
+    """Added before the pre-registration (lead, 2026-10-30): the calibration of `hypo`'s S1 case bases of n random
+    patients (external stage, every fold, every draw), a new aggregate of examined predictions. Per n: O/E, CITL and
+    calibration slope over the 5 folds × draws (mean and range), against the whole training pool."""
+    ext = hypo_workdir() / "external"
+    lm = load_lm(c, load_hypo())
+    y_all = lm.y.astype(np.float64)
+    out: dict = {}
+    for f in range(5):
+        cur = pl.read_parquet(ext / f"curve_{c}_f{f}.parquet")
+        tr = pl.read_parquet(ext / f"transported_{c}_f{f}.parquet", columns=["row", "p"])
+        if not np.array_equal(cur["row"].to_numpy(), tr["row"].to_numpy()):
+            raise RuntimeError(f"curve and transported rows differ: {c} fold {f}")
+        rows = cur["row"].to_numpy()
+        y, code = y_all[rows], np.unique(lm.ft.subjects[rows].astype(str), return_inverse=True)[1]
+        cols = {k: cur[k].to_numpy() for k in cur.columns if k.startswith("p_n")}
+        cols["p_pool"] = tr["p"].to_numpy()
+        for k, p in cols.items():
+            n = "pool" if k == "p_pool" else k.split("_")[1][1:]
+            a, se = citl_cluster(p, y, code)
+            lo = np.log(np.clip(p, 1e-6, 1 - 1e-6) / np.clip(1 - p, 1e-6, 1))
+            b = np.array([0.0, 1.0])
+            X = np.column_stack([np.ones_like(lo), lo])
+            for _ in range(50):
+                mu = 1 / (1 + np.exp(-(X @ b)))
+                step = np.linalg.solve(X.T @ (X * (mu * (1 - mu) + 1e-9)[:, None]) + 1e-8 * np.eye(2), X.T @ (y - mu))
+                b += step
+                if np.abs(step).max() < 1e-8:
+                    break
+            out.setdefault(n, []).append({"oe": float(y.sum() / p.sum()), "citl": a, "slope": float(b[1])})
+    res = []
+    for n in sorted(out, key=lambda x: float("inf") if x == "pool" else int(x)):
+        v = out[n]
+        res.append({"n_patients": n, "case_bases": len(v),
+                    **{f"{m}_mean": float(np.mean([x[m] for x in v])) for m in ("oe", "citl", "slope")},
+                    **{f"{m}_range": [float(np.min([x[m] for x in v])), float(np.max([x[m] for x in v]))]
+                       for m in ("oe", "citl", "slope")}})
+    return res
+
+
 def admission_gate(c: str, cfg: dict) -> dict:
     """What the admission gate would refuse among the analysis landmarks: duplicates (stay, L), values outside
     `hypo`'s bounds, impossible values (negative L or ages, MAP summaries out of order)."""
@@ -384,6 +428,13 @@ def main() -> int:
     t = time.perf_counter()
     start = frozen_guard()
     cfg = load_hypo()
+    if sys.argv[1:] == ["s1cal"]:                              # added before the pre-registration (lead)
+        r = {"freeze_start": start, "s1_calibration": {c: s1_calibration(c) for c in ("inspire", "mimic", "eicu")}}
+        r["freeze_end"] = frozen_guard()
+        out_dir().mkdir(parents=True, exist_ok=True)
+        (out_dir() / "feasibility_roll_s1cal.json").write_text(json.dumps(r, indent=1, default=str), encoding="utf-8")
+        print(json.dumps(r, indent=1, default=str))
+        return 0
     if sys.argv[1:] == ["phase1"]:                             # added in Phase 1: T2's counts, the monitor's noise
         r = {"freeze_start": start, "t2": t2(cfg),
              "monitor": {c: monitor_precision(c) for c in ("mimic", "eicu", "inspire")}}
