@@ -60,6 +60,34 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — New experiment `roll`: prequential evaluation with a rotating case base; Phase 0 (lead's brief)
+
+- **The experiment and its thesis (lead).** The thesis put to the test: "CE-kNN is not less accurate than ML managed
+  as a real hospital manages it, and it is more governable". More governable means:
+  - deterministic inference, reproducible by hash;
+  - an update without retraining: new patients enter the case base and the oldest leave it (FIFO);
+  - stable performance along the stream;
+  - diagnostics that flag real changes.
+
+  The experiment is designed so that it can fail. Primary outcome: `hypo`'s, with the same definitions, inputs and
+  cutoff. Secondary, descriptive only: T2. Metrics: `hypo`'s frozen metrics, the rotation that excluded the
+  evaluated cohort; no new metric is learned.
+- **What `roll` is.** A pre-registered retrospective evaluation on data already examined, not a prospective
+  validation. The three cohorts were used with this outcome in `hypo`. What is new is the performance along a
+  prequential stream (Gama et al., 2014).
+- **Where it lives.** Branch `roll`, in its own worktree. T2's and `hypo`'s code and artefacts are only read. Their
+  freezes are checked at the start and the end of every stage (`scripts/feasibility_roll.py`: unchanged).
+- **Phase 0** ([feasibility_roll.md](feasibility_roll.md)):
+  - MIMIC-IV has five `anchor_year_group` blocks (2008–2010 … 2020–2022);
+  - 16 % of stays fall ≥ 3 years after their patient's anchor year;
+  - the eMAR → prescriptions change reaches no `hypo` input;
+  - eICU has 196 hospitals, 35 with ≥ 150 patients in each of 2014 and 2015;
+  - `patientunitstayid` carries no calendar order;
+  - INSPIRE has no calendar field;
+  - the admission gate refuses nothing in these data;
+  - a window needs about 100 patients (MIMIC-IV, eICU) or 150 (INSPIRE) for an AUROC within ±0.05.
+- **The gate.** The decisions listed at the end of feasibility_roll.md are the lead's.
+
 ## 2026-10-30 — Name of the technique: consensus effect-space kNN, CE-kNN (lead)
 
 - The technique is named **consensus effect-space kNN (CE-kNN)**. The project and the software keep the name
