@@ -1,6 +1,7 @@
 # Experiment `roll`, Phase 0: feasibility of the prequential streams
 
-Status: **Phase 0 done on 2026-10-30; waiting for the lead's decisions (gate ⛔, end of this document).** Branch `roll`.
+Status: **Phase 0 done on 2026-10-30; gate decided by the lead the same day: every proposal accepted, with five
+MIMIC-IV blocks (end of this document).** Next: the design, [design_roll.md](design_roll.md). Branch `roll`.
 Script: `scripts/feasibility_roll.py` (aggregates only; output in `work/experiments/roll/feasibility/`).
 
 `roll` is a **pre-registered retrospective evaluation on data already examined**. The three cohorts (INSPIRE,
@@ -170,7 +171,7 @@ INSPIRE → eICU (13 → 19 %, ext-eicu) is the alternative to the third pair.
   - eICU: N = 250 is close to a median hospital's year (277); N = 100 is the only size that leaves most of 2014 to
     the stream.
 - **T2 (secondary, descriptive).** T2's unit is the ICU discharge, not the landmark. Its counts per block and year
-  are added in Phase 1.
+  were added in Phase 1 ([design_roll.md](design_roll.md) §12).
 
 ## Where the confirmatory weight can be
 
@@ -189,6 +190,8 @@ there and `hypo` found the metric transportable with a small hospital effect. So
 - differences, if any, are expected in the cross-cohort streams and in calibration rather than discrimination.
 
 ## Gate ⛔: decisions for the lead
+
+**Decided by the lead on 2026-10-30:** every proposal below accepted, with option (a) for decision 1 (five blocks).
 
 1. **MIMIC-IV blocks.** Option (a): five blocks including 2020–2022, four boundaries; the last block is small and
    COVID-era. Option (b): four blocks ending in 2019, as first planned.

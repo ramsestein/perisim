@@ -13,8 +13,13 @@ by size, as in `hypo`). Nothing is fitted. The freezes of T2 and `hypo` are chec
   read from `hypo`'s own transported predictions (random windows of W patients); the admission gate (bounds,
   duplicates, impossible values) on the analysis landmarks.
 
-Usage:  python scripts/feasibility_roll.py        (set PERISIM_WORKDIR / PERISIM_DATASETS when run from a worktree)
-Output: <workdir>/experiments/roll/feasibility/feasibility_roll.json and .md
+Added in Phase 1 (`phase1` argument):
+- T2 (secondary, descriptive): its analysis stays per block, year and hospital;
+- the noise of the realistic ML arm's monitor: how often each proposed trigger fires in random windows of M
+  patients, with no drift.
+
+Usage:  python scripts/feasibility_roll.py [phase1]   (set PERISIM_WORKDIR / PERISIM_DATASETS from a worktree)
+Output: <workdir>/experiments/roll/feasibility/feasibility_roll.json and .md (feasibility_roll_phase1.json)
 """
 
 from __future__ import annotations
@@ -126,21 +131,31 @@ def mimic() -> dict:
 
 
 # --------------------------------------------------------------------------- eICU
-def eicu(cfg: dict) -> dict:
+def eicu_patient() -> pl.DataFrame:
     src = data_root() / "eicu"
-    lm = landmarks("eicu")
     con = duckdb.connect()
-    p = con.execute(f"SELECT patientunitstayid AS stay_id, hospitalid, hospitaldischargeyear AS year FROM read_csv_auto('{(src / 'patient.csv.gz').as_posix()}')").pl()
-    df = lm.join(p.rename({"stay_id": "stay_n"}), on="stay_n", how="left")
+    return con.execute(f"SELECT patientunitstayid AS stay_n, hospitalid, hospitaldischargeyear AS year FROM read_csv_auto('{(src / 'patient.csv.gz').as_posix()}')").pl()
+
+
+def eicu_labels(cfg: dict, lm: pl.DataFrame) -> dict:
+    """Hospital → label: `hypo`'s labels (H1, H2, … by size among hospitals with ≥ 300 patients), then the smaller
+    hospitals by size."""
     hl = load_lm("eicu", cfg)
     labels = hospital_labels(hl, int(cfg["external"]["hospitals"]["min_patients"]))
-    allh = df.group_by("hospital").agg(pl.col("subject_id").n_unique().alias("p")).sort("p", descending=True)
+    allh = lm.group_by("hospital").agg(pl.col("subject_id").n_unique().alias("p")).sort("p", descending=True)
     lab_all = {h: labels.get(str(h)) for h in allh["hospital"].to_list()}
     k = len(labels)
     for h in allh["hospital"].to_list():                      # hospitals below hypo's threshold: labelled after
         if lab_all[h] is None:
             k += 1
             lab_all[h] = f"H{k}"
+    return lab_all
+
+
+def eicu(cfg: dict) -> dict:
+    lm = landmarks("eicu")
+    df = lm.join(eicu_patient(), on="stay_n", how="left")
+    lab_all = eicu_labels(cfg, lm)
     df = df.with_columns(pl.col("hospital").replace_strict(lab_all, return_dtype=pl.Utf8).alias("H"))
     hy = counts(df, ["H", "year"])
     wide = hy.pivot(on="year", index="H", values=["patients", "patients_with_event"])
@@ -168,6 +183,53 @@ def eicu(cfg: dict) -> dict:
                          "auc_q10": float(np.quantile(mono, 0.1)) if mono.size else None,
                          "share_auc_gt_0.9": float(np.mean(mono > 0.9)) if mono.size else None},
             "totals": table(counts(df.with_columns(pl.lit("all").alias("cohort")), ["cohort"]))[0]}
+
+
+# --------------------------------------------------------------------------- T2 (secondary, descriptive)
+def t2(cfg: dict) -> dict:
+    """T2's analysis stays (its frozen targets: one row per ICU discharge) per MIMIC-IV block, eICU year and
+    hospital, and cohort: stays, patients and deaths (T2's fourth class). For eICU, how many of `hypo`'s eligible
+    hospitals (≥ 150 patients with landmarks in each year) also have enough T2 stays."""
+    root = work() / "experiments" / "t2" / "derived" / "main"
+    out = {}
+    for c in ("inspire", "mimic", "eicu"):
+        t = pl.read_parquet(root / c / "targets.parquet", columns=["stay_id", "subject_id", "survivor"])
+        s = pl.read_parquet(work() / "common" / c / "stays_index.parquet", columns=["stay_id", "year", "year_group"])
+        d = t.join(s, on="stay_id", how="left").with_columns((~pl.col("survivor")).cast(pl.Int64).alias("death"))
+        d = d.with_columns(pl.col("stay_id").cast(pl.Utf8).str.extract(r"(\d+)$").cast(pl.Int64).alias("stay_n"))
+
+        def cnt(df: pl.DataFrame, by: list[str]) -> list[dict]:
+            a = df.group_by(by).agg(pl.len().alias("stays"), pl.col("subject_id").n_unique().alias("patients"),
+                                    pl.col("death").sum().alias("deaths")).sort(by)
+            return [{k: (cell(v) if k in ("stays", "patients", "deaths") else v) for k, v in r.items()}
+                    for r in a.to_dicts()]
+
+        r = {"totals": cnt(d.with_columns(pl.lit("all").alias("cohort")), ["cohort"])[0]}
+        if c == "mimic":
+            r["blocks"] = cnt(d, ["year_group"])
+        if c == "eicu":
+            lm = landmarks("eicu")
+            lab = {str(h): v for h, v in eicu_labels(cfg, lm).items()}
+            d = d.drop("year").join(eicu_patient(), on="stay_n", how="left") \
+                .with_columns(pl.col("hospitalid").cast(pl.Utf8).replace_strict(lab, default=None).alias("H"))
+            r["years"] = cnt(d, ["year"])
+            r["stays_without_hypo_label"] = int(d["H"].null_count())
+            hy = d.filter(pl.col("H").is_not_null()).group_by(["H", "year"]).agg(pl.len().alias("n"))
+            wide = hy.pivot(on="year", index="H", values="n").fill_null(0)
+            lmp = lm.join(eicu_patient(), on="stay_n", how="left").with_columns(
+                pl.col("hospital").replace_strict(eicu_labels(cfg, lm), return_dtype=pl.Utf8).alias("H"))
+            hp = lmp.group_by(["H", "year"]).agg(pl.col("subject_id").n_unique().alias("p")) \
+                .pivot(on="year", index="H", values="p").fill_null(0)
+            elig = hp.filter((pl.col("2014") >= 150) & (pl.col("2015") >= 150))["H"].to_list()
+            w = wide.filter(pl.col("H").is_in(elig))
+            r["hypo_eligible_hospitals"] = {
+                "hospitals": len(elig),
+                "t2_stays_per_year_median": float(np.median(np.concatenate([w["2014"].to_numpy(), w["2015"].to_numpy()]))),
+                "t2_stays_per_year_min": int(min(w["2014"].min(), w["2015"].min())),
+                **{f"with_t2_stays>={n}_each_year": int(w.filter((pl.col("2014") >= n) & (pl.col("2015") >= n)).height)
+                   for n in (100, 150)}}
+        out[c] = r
+    return out
 
 
 # --------------------------------------------------------------------------- INSPIRE
@@ -222,6 +284,68 @@ def window_precision(c: str) -> list[dict]:
     return out
 
 
+def citl_cluster(p: np.ndarray, y: np.ndarray, g: np.ndarray, iters: int = 30) -> tuple[float, float]:
+    """Calibration in the large (intercept with logit(p) as offset) and its patient-cluster robust SE."""
+    off = np.log(np.clip(p, 1e-12, 1 - 1e-12) / np.clip(1 - p, 1e-12, 1))
+    a = 0.0
+    for _ in range(iters):
+        mu = 1 / (1 + np.exp(-(a + off)))
+        step = float((y - mu).sum()) / (float((mu * (1 - mu)).sum()) + 1e-12)
+        a += step
+        if abs(step) < 1e-10:
+            break
+    mu = 1 / (1 + np.exp(-(a + off)))
+    score = np.bincount(g, weights=y - mu)
+    return a, float(np.sqrt((score ** 2).sum()) / (mu * (1 - mu)).sum())
+
+
+def monitor_precision(c: str) -> list[dict]:
+    """Added in Phase 1: how often each proposed trigger of the realistic ML arm fires on noise alone. Random
+    monitoring windows of M patients (no drift by construction) of hypo's transported PERISIM predictions, which
+    are calibrated in every site (hypo H2): the spread of O/E and CITL and the share of windows in which each rule
+    would fire. Baselines (AUROC, log-loss) are the whole site's."""
+    from sklearn.metrics import roc_auc_score
+
+    ext = hypo_workdir() / "external"
+    T = pl.concat([pl.read_parquet(f, columns=["row", "p"]) for f in sorted(ext.glob(f"transported_{c}_f*.parquet"))]).sort("row")
+    lm = load_lm(c, load_hypo())
+    rows = T["row"].to_numpy()
+    y, subj, p = lm.y[rows].astype(float), lm.ft.subjects[rows].astype(str), T["p"].to_numpy()
+    uniq, inv = np.unique(subj, return_inverse=True)
+    order = np.argsort(inv, kind="stable")
+    starts = np.r_[0, np.flatnonzero(np.diff(inv[order])) + 1, len(inv)]
+    pc = np.clip(p, 1e-12, 1 - 1e-12)
+    ll_all = float(-(y * np.log(pc) + (1 - y) * np.log(1 - pc)).mean())
+    auc_all = float(roc_auc_score(y, p))
+    rng = np.random.default_rng(20261031)
+    out = []
+    for M in (50, 100, 200, 300, 500, 1000):
+        r = {k: [] for k in ("oe", "citl", "se", "auc", "ll", "ev")}
+        for _ in range(N_DRAWS):
+            pick = rng.choice(uniq.size, size=M, replace=False)
+            idx = np.concatenate([order[starts[i]:starts[i + 1]] for i in pick])
+            yy, pp = y[idx], p[idx]
+            a, se = citl_cluster(pp, yy, np.unique(inv[idx], return_inverse=True)[1])
+            r["oe"].append(yy.sum() / pp.sum())
+            r["citl"].append(a)
+            r["se"].append(se)
+            r["auc"].append(roc_auc_score(yy, pp) if 0 < yy.sum() < yy.size else np.nan)
+            q = np.clip(pp, 1e-12, 1 - 1e-12)
+            r["ll"].append(float(-(yy * np.log(q) + (1 - yy) * np.log(1 - q)).mean()))
+            r["ev"].append(yy.sum())
+        oe, ci, se, auc, ll = (np.array(r[k]) for k in ("oe", "citl", "se", "auc", "ll"))
+        lo, hi = ci - 1.96 * se, ci + 1.96 * se
+        out.append({"M_patients": M, "event_landmarks_mean": float(np.mean(r["ev"])),
+                    "oe_sd": float(oe.std(ddof=1)), "citl_sd": float(ci.std(ddof=1)), "citl_se_mean": float(se.mean()),
+                    "fires": {"oe_outside_0.9_1.1": float(np.mean((oe < 0.9) | (oe > 1.1))),
+                              "citl_ci_excludes_band_0.10": float(np.mean((lo > 0.10) | (hi < -0.10))),
+                              "citl_ci_not_inside_band_0.10": float(np.mean((lo < -0.10) | (hi > 0.10))),
+                              "auroc_drop_5pct": float(np.nanmean(auc < 0.95 * auc_all)),
+                              "auroc_drop_10pct": float(np.nanmean(auc < 0.90 * auc_all)),
+                              "logloss_rise_10pct": float(np.mean(ll > 1.10 * ll_all))}})
+    return out
+
+
 def admission_gate(c: str, cfg: dict) -> dict:
     """What the admission gate would refuse among the analysis landmarks: duplicates (stay, L), values outside
     `hypo`'s bounds, impossible values (negative L or ages, MAP summaries out of order)."""
@@ -260,6 +384,14 @@ def main() -> int:
     t = time.perf_counter()
     start = frozen_guard()
     cfg = load_hypo()
+    if sys.argv[1:] == ["phase1"]:                             # added in Phase 1: T2's counts, the monitor's noise
+        r = {"freeze_start": start, "t2": t2(cfg),
+             "monitor": {c: monitor_precision(c) for c in ("mimic", "eicu", "inspire")}}
+        r["freeze_end"] = frozen_guard()
+        out_dir().mkdir(parents=True, exist_ok=True)
+        (out_dir() / "feasibility_roll_phase1.json").write_text(json.dumps(r, indent=1, default=str), encoding="utf-8")
+        print(json.dumps(r, indent=1, default=str))
+        return 0
     r = {"freeze_start": start, "mimic": mimic(), "eicu": eicu(cfg), "inspire": inspire(),
          "windows": {c: window_precision(c) for c in ("mimic", "eicu", "inspire")},
          "gate": {c: admission_gate(c, cfg) for c in ("mimic", "eicu", "inspire")}}

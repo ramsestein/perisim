@@ -60,6 +60,35 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-30 — `roll` Phase 0 gate decided; Phase 1, the design (lead; analyst's proposals for the lead's approval)
+
+- **Phase 0 gate (lead).** Every proposal of feasibility_roll.md accepted:
+  - MIMIC-IV with five blocks, 2008–2010 to 2020–2022 (four boundaries);
+  - eICU hospitals with ≥ 150 patients in each of 2014 and 2015 (35);
+  - INSPIRE as a random-order control and a starting cohort;
+  - no sensitivity analysis ordering eICU by `patientunitstayid`;
+  - cross-cohort pairs INSPIRE → MIMIC-IV, eICU → MIMIC-IV, MIMIC-IV → INSPIRE;
+  - confirmatory weight on MIMIC-IV and eICU (H6 in eICU only); cross-cohort streams secondary.
+- **Phase 1** ([design_roll.md](design_roll.md)). Two measurements were added to `scripts/feasibility_roll.py`
+  (`phase1`, aggregates only):
+  - T2's analysis stays per block, year and hospital;
+  - how often each proposed ML trigger fires on noise alone, in random windows of M patients.
+
+  The freezes of T2 and `hypo` were unchanged at the start and the end.
+- **What the measurements changed in the proposals:**
+  - the CITL rule of the primary trigger is read as "the CI entirely outside ±0.10": the other reading fires on every
+    check;
+  - the confirmatory calibration endpoint is the excess calibration error: the share of windows with CITL outside
+    ±0.10 is 40–60 % for a calibrated model at these window sizes;
+  - in an eICU hospital the monitor fires on noise in about 1 check in 10 (M = 200). This is declared as the limit of
+    monitoring a small hospital.
+- **Declared before the freeze.** `hypo`'s own numbers predict that H1 fails against LightGBM at the primary N in every
+  confirmatory stream. The proposal keeps LightGBM, the margin and the brief's N.
+- **Fairness.** α fixed on the starting window; a go-live update for the realistic ML arm; H6 against the ML monitor at
+  a matched nominal level (design §14).
+- **Waiting for the lead**: design §16 (windows, monitor, delay, triggers, closed testing, comparator, margins, the
+  calibration endpoint, α, T2).
+
 ## 2026-10-30 — New experiment `roll`: prequential evaluation with a rotating case base; Phase 0 (lead's brief)
 
 - **The experiment and its thesis (lead).** The thesis put to the test: "CE-kNN is not less accurate than ML managed
