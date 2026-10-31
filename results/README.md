@@ -2,7 +2,9 @@
 
 One folder per experiment (`t2/`, then `t1/`, `t3/`), copied from the pipeline's export package by
 `python scripts/publish_results.py <experiment>`. The separate experiment `hypo` (hypotension in the ICU after
-surgery) has its own folder, [`hypo/`](hypo/README.md), with its report and a layout of its own (described there).
+surgery) has its own folder, [`hypo/`](hypo/README.md), with its report and a layout of its own (described there),
+and so does the experiment `roll` (a rotating case base along prequential streams, on `hypo`'s outcome):
+[`roll/`](roll/README.md).
 What is in the pipeline's folders:
 
 | folder | content |
@@ -21,4 +23,7 @@ copied here. The per-fold CV artifacts are left out because of their size; they 
 (commit `c4cc8b7`; the k sweep by the same commit). The external validation and transport results, when added, come
 from that frozen version: see `t2/docs/OSF_registration.md`. `hypo`'s results come from its own freeze tag
 `perisim-freeze-hypo-2026-10-29-120652` (commit `b0c9a02`; [docs/freeze_hypo.md](../docs/freeze_hypo.md)), and its
-post hoc follow-ups from `scripts/posthoc_hypo.py`, which only reads the frozen artefacts.
+post hoc follow-ups from `scripts/posthoc_hypo.py`, which only reads the frozen artefacts. `roll`'s results come
+from its freeze tag `perisim-freeze-roll-2026-10-30-173256` (commit `a9cc6d0`;
+[docs/freeze_roll.md](../docs/freeze_roll.md)), through `scripts/roll_deviation_pooling.py` (the declared deviation)
+and `scripts/roll_report.py`, which only read the frozen output.
