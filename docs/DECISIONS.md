@@ -60,6 +60,52 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-31 — `roll`: a declared deviation in the eICU pooling, after the single run (lead's decision)
+
+- **The single run ended** on 2026-10-30 at 23:09, with all 1,190 units and no failure. The freeze was checked at the
+  end of each of the four parts and of `endpoints` and `t2`.
+  - Determinism: the first unit, rerun with 1 thread, gave the same predictions digest.
+  - Reconstruction: rebuilding the FIFO window from the log gave 0 mismatches in 159 steps.
+  - The interim numbers of MIMIC-IV temporal (previous entry) are identical to the final ones.
+- **The defect.**
+  - The frozen DerSimonian–Laird pooling (`roll.endpoints.dersimonian_laird`) leaves out hospitals whose bootstrap SE
+    is zero (`se > 0`).
+  - In a few hospitals every resample gives the same trigger share, so the SE is zero up to floating-point noise
+    (~1e-16). Such a hospital passes the filter and gets an almost infinite weight.
+  - The pooled H4 (b) then becomes that one hospital's value, with a CI of zero width: −0.900 [−0.900, −0.900] in
+    eICU (a) (hospital H28) and −0.700 [−0.700, −0.700] in eICU (b) (H36).
+- **The deviation** (prereg §9: a change after results exist is reported as one, and the original output is kept).
+  - Every SE ≤ 1e-12 is treated as zero before the same frozen function is called. Those hospitals are then left out,
+    as the frozen code intends.
+  - It is done by `scripts/roll_deviation_pooling.py`, outside `src/roll`. It reads the frozen per-hospital estimates
+    and SEs from `endpoints.json` and writes `endpoints_deviation.json`. The freeze is checked at its start and end.
+  - The report gives both outputs, the frozen one first.
+- **What changes:** 30 pooled results, all of them H4 (b) (one to two hospitals left out each). H6 (a) and every other
+  endpoint are unchanged.
+  - Confirmatory, PERISIM-FIFO minus arm 5: −0.54 [−0.61, −0.47] in eICU (a) and −0.53 [−0.58, −0.48] in eICU (b). The
+    rule (upper bound < 0) is met either way, so the verdict on H4 does not change.
+  - Against arm 5′ in eICU (a), reported and not tested: +0.20 [0.20, 0.20] frozen, −0.21 [−0.31, −0.11] corrected.
+- **Seen in the same function, not changed:** in H2, a hospital where neither arm has any excess variance (a ratio
+  of exactly 1, SE exactly 0) is left out by the frozen filter. H2 fails in every confirmatory stream, and a tie at 1
+  cannot meet its rule (upper bound < 1), so this cannot change the verdict. The report counts these hospitals.
+
+## 2026-10-30 — `roll` Phase 4: an interim look at MIMIC-IV temporal, N = 500, during the single run (lead's decision)
+
+- **When.** The single run started at 17:55 in four parts. Part 1 (MIMIC-IV temporal, N 250 and 500) had finished,
+  and 797 of the 1,190 units were done. The lead asked to see that stream's results before the run ended.
+- **What was computed.**
+  - The frozen `roll.run.endpoints`, called on the job `mimic_temporal|all|N500` only, from a script outside the
+    repository. No code was changed.
+  - The freeze was checked before and after. The computation finished at 21:54 and took 28 min, beside the three
+    running parts.
+  - The seed is fixed per stream, so `python -m roll endpoints` will give the same numbers for this stream.
+  - Output: `<workdir>/experiments/roll/interim_mimic_temporal_N500.json`, an aggregate kept on the workstation.
+- **What was read:** every endpoint of that stream.
+- **What it cannot change.**
+  - The code, the configuration and the streams are frozen, and the remaining parts go on unchanged.
+  - Nothing was tuned, and no stream, hospital, N or window was added or dropped (prereg §9).
+  - The numbers are reported with all the others in the report; they are not repeated here.
+
 ## 2026-10-30 — `roll` Phase 2: the implementation, its tests and the synthetic dry run (analyst; for the lead)
 
 - **The code.**
