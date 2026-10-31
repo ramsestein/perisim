@@ -60,6 +60,253 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 - The antibiotic-course rule now reads every record as an interval [start, end]: an order covers its days, an eMAR
   administration is one instant (identical result for point records).
 
+## 2026-10-31 — `roll`: a declared deviation in the eICU pooling, after the single run (lead's decision)
+
+- **The single run ended** on 2026-10-30 at 23:09, with all 1,190 units and no failure. The freeze was checked at the
+  end of each of the four parts and of `endpoints` and `t2`.
+  - Determinism: the first unit, rerun with 1 thread, gave the same predictions digest.
+  - Reconstruction: rebuilding the FIFO window from the log gave 0 mismatches in 159 steps.
+  - The interim numbers of MIMIC-IV temporal (previous entry) are identical to the final ones.
+- **The defect.**
+  - The frozen DerSimonian–Laird pooling (`roll.endpoints.dersimonian_laird`) leaves out hospitals whose bootstrap SE
+    is zero (`se > 0`).
+  - In a few hospitals every resample gives the same trigger share, so the SE is zero up to floating-point noise
+    (~1e-16). Such a hospital passes the filter and gets an almost infinite weight.
+  - The pooled H4 (b) then becomes that one hospital's value, with a CI of zero width: −0.900 [−0.900, −0.900] in
+    eICU (a) (hospital H28) and −0.700 [−0.700, −0.700] in eICU (b) (H36).
+- **The deviation** (prereg §9: a change after results exist is reported as one, and the original output is kept).
+  - Every SE ≤ 1e-12 is treated as zero before the same frozen function is called. Those hospitals are then left out,
+    as the frozen code intends.
+  - It is done by `scripts/roll_deviation_pooling.py`, outside `src/roll`. It reads the frozen per-hospital estimates
+    and SEs from `endpoints.json` and writes `endpoints_deviation.json`. The freeze is checked at its start and end.
+  - The report gives both outputs, the frozen one first.
+- **What changes:** 30 pooled results, all of them H4 (b) (one to two hospitals left out each). H6 (a) and every other
+  endpoint are unchanged.
+  - Confirmatory, PERISIM-FIFO minus arm 5: −0.54 [−0.61, −0.47] in eICU (a) and −0.53 [−0.58, −0.48] in eICU (b). The
+    rule (upper bound < 0) is met either way, so the verdict on H4 does not change.
+  - Against arm 5′ in eICU (a), reported and not tested: +0.20 [0.20, 0.20] frozen, −0.21 [−0.31, −0.11] corrected.
+- **Seen in the same function, not changed:** in H2, a hospital where neither arm has any excess variance (a ratio
+  of exactly 1, SE exactly 0) is left out by the frozen filter. H2 fails in every confirmatory stream, and a tie at 1
+  cannot meet its rule (upper bound < 1), so this cannot change the verdict. The report counts these hospitals.
+
+## 2026-10-30 — `roll` Phase 4: an interim look at MIMIC-IV temporal, N = 500, during the single run (lead's decision)
+
+- **When.** The single run started at 17:55 in four parts. Part 1 (MIMIC-IV temporal, N 250 and 500) had finished,
+  and 797 of the 1,190 units were done. The lead asked to see that stream's results before the run ended.
+- **What was computed.**
+  - The frozen `roll.run.endpoints`, called on the job `mimic_temporal|all|N500` only, from a script outside the
+    repository. No code was changed.
+  - The freeze was checked before and after. The computation finished at 21:54 and took 28 min, beside the three
+    running parts.
+  - The seed is fixed per stream, so `python -m roll endpoints` will give the same numbers for this stream.
+  - Output: `<workdir>/experiments/roll/interim_mimic_temporal_N500.json`, an aggregate kept on the workstation.
+- **What was read:** every endpoint of that stream.
+- **What it cannot change.**
+  - The code, the configuration and the streams are frozen, and the remaining parts go on unchanged.
+  - Nothing was tuned, and no stream, hospital, N or window was added or dropped (prereg §9).
+  - The numbers are reported with all the others in the report; they are not repeated here.
+
+## 2026-10-30 — `roll` Phase 2: the implementation, its tests and the synthetic dry run (analyst; for the lead)
+
+- **The code.**
+  - `src/roll/` and `config/roll.yaml`;
+  - the command `python -m roll` (`check`, `streams`, `dry`, `t2-check`), also `run_local.ps1 roll`.
+
+  It reads `hypo`'s frozen metrics and comparators and T2's frozen artefacts, and changes nothing of either. Both
+  freezes are checked at the start and the end of every command. The single real run is added with the freeze
+  (Phase 3).
+- **The tests** (`tests/test_roll.py`, synthetic data):
+  - each patient is evaluated once and before entering; FIFO; exclusion by patient; the same sequence for every arm;
+  - the trigger, the delay and the refractory period work as declared;
+  - determinism;
+  - a `hypo` case base is reproduced exactly;
+  - the closed test picks the needed update; ADWIN; the gate; the metrics against scikit-learn; the block bootstrap;
+    DerSimonian–Laird; T2's scores.
+
+  On the real data (`PERISIM_TEST_ROLL_REAL=1`), a window equal to `hypo`'s fold-0 INSPIRE case base reproduces
+  `hypo`'s transported predictions bit for bit.
+- **The real streams, built** (`python -m roll streams`; counts only, nothing fitted or predicted):
+  - 35 hospitals in each eICU stream, as decided at the gate;
+  - 240 evaluation windows in MIMIC-IV, 74 in INSPIRE;
+  - the admission gate refuses no landmark;
+  - 142 eICU patients have landmarks in two hospitals.
+
+  T2's artefacts load: 24,768 stays, 23,162 patients, all labelled.
+- **Corrections the dry run found** (design updated):
+  - the order of the closed test (design §7.5): the approved order, from the refit down, kept a badly miscalibrated
+    model every time. Now: the nested recalibrations top-down, then the refit;
+  - ADWIN in the variance form of its cut (§7.4): the Hoeffding cut missed a tripling of the calibration error;
+  - the prevalence arm gets no discrimination metrics (its rate is the same for every patient of a step).
+- **Implementation choices, declared in the design:**
+  - a step never crosses an evaluation window's end (§5);
+  - an eICU patient belongs to the hospital holding most of their landmarks and to their first year (§5);
+  - a trigger whose closed test keeps the model still completes its cycle (§7.2);
+  - the delay in a cross-cohort stretch uses the cohort's rate (§7.6);
+  - the bootstrap's blocks are capped at half a segment (§10);
+  - D2's anchors and schedule (§8.6);
+  - T2's artefacts (§12).
+- **Seen on synthetic data only: a risk for the real run.**
+  - With a window of 120 patients and k = 50, PERISIM-FIFO under-predicted: O/E 1.17–1.28, calibration slope about
+    1.5. With 60 patients (most of them neighbours), O/E was 1.9–2.3. The cumulative arm was close to calibrated
+    (O/E 0.96–1.30).
+  - The neighbours are distinct patients, each at its closest landmark. When k is a large share of the window's
+    patients, the vote shrinks.
+  - eICU's stream (a) has N = 100 with k = 50. This could count against PERISIM in H4 there.
+
+  This is not an analysis, and neither k nor N is changed. Whether it happens on the real data could be read,
+  before the freeze, from `hypo`'s saved S1 predictions with case bases of 100 and 250 patients. That would be a new
+  aggregate of examined data, so it is the lead's decision. (Measured: next entry.)
+
+## 2026-10-30 — `roll`: the rehearsal at real size before the freeze (lead's decision)
+
+- **What ran** (`python -m roll rehearse --threads 16`, in the lead's terminal; 61 min):
+  - one unit of each stream kind at the primary N, order 0: MIMIC-IV temporal; eICU (a) and (b) in the
+    median-sized eligible hospital (H18); INSPIRE → MIMIC-IV; the INSPIRE control;
+  - all 24 arms;
+  - in-sample artefacts: MIMIC-IV served by ext-eicu, eICU by ext-inspire, INSPIRE by ext-mimic, the cross-cohort
+    stream by ext-eicu.
+
+  Nothing of the single run was computed.
+- **What was read**: time per unit and per arm, the endpoints' time, determinism and reconstruction. No metric was
+  read; the outputs stay in `work/experiments/roll/rehearsal/` and are not used.
+- **Findings**:
+  - no fault;
+  - predictions identical with 1 and 16 threads;
+  - the FIFO window rebuilt from the log at all 44 steps, with no mismatch;
+  - the freezes of T2 and `hypo` unchanged.
+- **Time**:
+
+  | unit | run | slowest arms |
+  |---|---|---|
+  | MIMIC-IV temporal | 35 min | PERISIM cumulative 375 s, FIFO 209 s, LightGBM ideal 112 s |
+  | INSPIRE control | 9 min | |
+  | INSPIRE → MIMIC-IV | 8 min | |
+  | an eICU hospital | 0.2–0.3 min | |
+
+  Scaled to the design, the runs need about 27 hours in one process. The endpoints needed about 18 hours.
+- **Changes, for cost only** (the results are the same; tested):
+  - the bootstrap over windows vectorised;
+  - the per-window metrics computed in parallel threads (one window per thread);
+  - the W sensitivity read for PERISIM-FIFO and arm 5 only, as the pre-registration reports it.
+
+  The endpoints now need about 2 hours.
+- **Running the single run in parts.** `roll run --streams … --N …` selects a part. Parts never write the same unit,
+  so several can run side by side in separate terminals.
+
+## 2026-10-30 — `roll` Phase 3: the pre-registration draft and the freeze's code (analyst; for the lead's approval)
+
+- **The draft**: [prereg_roll.md](prereg_roll.md). It holds:
+  - the question;
+  - the data;
+  - what was done and seen before the freeze;
+  - the frozen artefacts;
+  - streams, arms, hypotheses and rules;
+  - the expectations (H1 expected to fail against LightGBM; little drift; the calibration of eICU (a));
+  - the limitations;
+  - the registration.
+- **The freeze's code** (`src/roll/frozen.py`; `python -m roll freeze --registration <ID>`). The record holds:
+  - `roll`'s code and configuration hashes;
+  - `hypo`'s and T2's freezes, and T2's final model;
+  - the digest of all 1,190 stream-orders of the design;
+  - the git tag and commit, and the hash of the pre-registration.
+
+  It refuses to run once real results exist, or with uncommitted changes. The single run (`python -m roll run`,
+  `endpoints`, `t2`) checks the record at its start and its end.
+- **Added so that the draft describes what runs:**
+  - the ML monitor's PSI (a reference);
+  - the W sensitivity, the same predictions read in windows of W/2 and 2W;
+  - stream (b)'s start counted as a boundary (recovery, post-boundary windows);
+  - the determinism and reconstruction check of the first unit (`runs/governability.json`).
+- **Approved by the lead the same day**:
+  - the pre-registration as drafted;
+  - the local registration `LOCAL-PREREG-ROLL-2026-10-30`;
+  - a mechanics rehearsal at real size before the freeze, with in-sample artefacts and without looking at results;
+  - pushing the branch `roll`.
+
+## 2026-10-30 — `roll`: the calibration of `hypo`'s small case bases, measured before the pre-registration (lead)
+
+- **The lead's decision.** Read the calibration of `hypo`'s S1 case bases (n random patients of the training folds,
+  every fold and draw; external stage). This is a new aggregate of predictions already examined, read before the
+  pre-registration, and declared there. Script: `scripts/feasibility_roll.py s1cal`. Freezes unchanged.
+- **What it shows** (mean over the 25 case bases of each n, and their range):
+
+  | n patients | O/E (INSPIRE / MIMIC-IV / eICU) | calibration slope | CITL range over case bases |
+  |---|---|---|---|
+  | 100 | 1.06 / 0.94 / 0.98 | 1.40 / 1.45 / 1.43 | −0.38 to +0.40 |
+  | 250 | 1.03 / 0.97 / 1.01 | 1.20 / 1.15 / 1.17 | −0.22 to +0.26 |
+  | 500 | 1.04 / 0.99 / 1.01 | 1.11 / 1.09 / 1.11 | −0.20 to +0.27 |
+  | the whole pool | 1.02 / 1.01 / 1.01 | 1.02 / 1.01 / 1.03 | −0.02 to +0.05 |
+
+- **Reading.**
+  - The synthetic under-prediction does not appear on the real data: O/E is within 0.94–1.06 at every n.
+  - Small case bases are under-confident: a slope of about 1.4 at 100 patients, 1.2 at 250.
+  - Their calibration in the large depends on which patients they hold: ±0.4 at 100 patients.
+  - In eICU's stream (a), PERISIM-FIFO's window CITL will vary from window to window for this reason too. That
+    variation is the model's, not sampling noise, so it enters the excess calibration error (H4a) against PERISIM.
+- **What is kept.** N = 100 in stream (a), as approved. Raising it after this reading would favour PERISIM with a
+  choice made on seen data. The expectation is declared in the pre-registration, and H7 shows the curve against N.
+
+## 2026-10-30 — `roll` Phase 0 gate decided; Phase 1, the design (lead; analyst's proposals for the lead's approval)
+
+- **Phase 0 gate (lead).** Every proposal of feasibility_roll.md accepted:
+  - MIMIC-IV with five blocks, 2008–2010 to 2020–2022 (four boundaries);
+  - eICU hospitals with ≥ 150 patients in each of 2014 and 2015 (35);
+  - INSPIRE as a random-order control and a starting cohort;
+  - no sensitivity analysis ordering eICU by `patientunitstayid`;
+  - cross-cohort pairs INSPIRE → MIMIC-IV, eICU → MIMIC-IV, MIMIC-IV → INSPIRE;
+  - confirmatory weight on MIMIC-IV and eICU (H6 in eICU only); cross-cohort streams secondary.
+- **Phase 1** ([design_roll.md](design_roll.md)). Two measurements were added to `scripts/feasibility_roll.py`
+  (`phase1`, aggregates only):
+  - T2's analysis stays per block, year and hospital;
+  - how often each proposed ML trigger fires on noise alone, in random windows of M patients.
+
+  The freezes of T2 and `hypo` were unchanged at the start and the end.
+- **What the measurements changed in the proposals:**
+  - the CITL rule of the primary trigger is read as "the CI entirely outside ±0.10": the other reading fires on every
+    check;
+  - the confirmatory calibration endpoint is the excess calibration error: the share of windows with CITL outside
+    ±0.10 is 40–60 % for a calibrated model at these window sizes;
+  - in an eICU hospital the monitor fires on noise in about 1 check in 10 (M = 200). This is declared as the limit of
+    monitoring a small hospital.
+- **Declared before the freeze.** `hypo`'s own numbers predict that H1 fails against LightGBM at the primary N in every
+  confirmatory stream. The proposal keeps LightGBM, the margin and the brief's N.
+- **Fairness.** α fixed on the starting window; a go-live update for the realistic ML arm; H6 against the ML monitor at
+  a matched nominal level (design §14).
+- **Approved by the lead the same day**: design §16 as proposed:
+  - windows, monitor, triggers, closed testing, comparator and margins;
+  - H4 co-primary, on the excess calibration error;
+  - α fixed on the starting window;
+  - T2 in the MIMIC-IV stream only, descriptive;
+  - the delay scenarios L = 0 and 3 months (no 6-month sensitivity).
+
+## 2026-10-30 — New experiment `roll`: prequential evaluation with a rotating case base; Phase 0 (lead's brief)
+
+- **The experiment and its thesis (lead).** The thesis put to the test: "CE-kNN is not less accurate than ML managed
+  as a real hospital manages it, and it is more governable". More governable means:
+  - deterministic inference, reproducible by hash;
+  - an update without retraining: new patients enter the case base and the oldest leave it (FIFO);
+  - stable performance along the stream;
+  - diagnostics that flag real changes.
+
+  The experiment is designed so that it can fail. Primary outcome: `hypo`'s, with the same definitions, inputs and
+  cutoff. Secondary, descriptive only: T2. Metrics: `hypo`'s frozen metrics, the rotation that excluded the
+  evaluated cohort; no new metric is learned.
+- **What `roll` is.** A pre-registered retrospective evaluation on data already examined, not a prospective
+  validation. The three cohorts were used with this outcome in `hypo`. What is new is the performance along a
+  prequential stream (Gama et al., 2014).
+- **Where it lives.** Branch `roll`, in its own worktree. T2's and `hypo`'s code and artefacts are only read. Their
+  freezes are checked at the start and the end of every stage (`scripts/feasibility_roll.py`: unchanged).
+- **Phase 0** ([feasibility_roll.md](feasibility_roll.md)):
+  - MIMIC-IV has five `anchor_year_group` blocks (2008–2010 … 2020–2022);
+  - 16 % of stays fall ≥ 3 years after their patient's anchor year;
+  - the eMAR → prescriptions change reaches no `hypo` input;
+  - eICU has 196 hospitals, 35 with ≥ 150 patients in each of 2014 and 2015;
+  - `patientunitstayid` carries no calendar order;
+  - INSPIRE has no calendar field;
+  - the admission gate refuses nothing in these data;
+  - a window needs about 100 patients (MIMIC-IV, eICU) or 150 (INSPIRE) for an AUROC within ±0.05.
+- **The gate.** The decisions listed at the end of feasibility_roll.md are the lead's.
+
 ## 2026-10-30 — `hypo` post hoc, second round: ablation and the missing metrics (lead; plan fixed before running)
 
 Asked for after an external read of the work (ablation and TRIPOD+AI metrics). It is exploratory, not

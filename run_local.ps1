@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|hypo|hypo-posthoc|hypo-ablation|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|hypo|hypo-posthoc|hypo-ablation|roll|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -30,6 +30,11 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              block threshold, drift over all five folds (scripts\posthoc_hypo.py; resumable; about 5 h)
   hypo-ablation  exploratory, second round: AUPRC, Brier, calibration and decision curves of the external
              stage, and the ablation of the metric (scripts\posthoc_hypo_ablation.py; resumable)
+  roll       experiment `roll` (prequential evaluation with a rotating case base, docs\design_roll.md):
+             python -m roll <command>, e.g. `roll check` (the freezes of T2 and hypo), `roll streams` (the
+             real streams: sizes and windows, nothing fitted), `roll dry` (the Phase 2 dry run, synthetic data),
+             `roll freeze --registration <ID>` (Phase 3), then `roll run`, `roll endpoints`, `roll t2` (Phase 4,
+             frozen version only; resumable)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
@@ -169,7 +174,8 @@ switch ($Command) {
     "hypo" { Invoke-Setup; & $Py -m hypo @Rest; exit $LASTEXITCODE }
     "hypo-posthoc" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_hypo.py") @Rest; exit $LASTEXITCODE }
     "hypo-ablation" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_hypo_ablation.py") @Rest; exit $LASTEXITCODE }
+    "roll" { Invoke-Setup; & $Py -m roll @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | hypo | hypo-posthoc | hypo-ablation | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | hypo | hypo-posthoc | hypo-ablation | roll | resources)" }
 }

@@ -6,6 +6,8 @@ One folder per experiment:
   `t3/` will follow the same way);
 - [`hypo/`](hypo/README.md), the separate experiment `hypo` (hypotension in the ICU after surgery), with its report
   and a layout of its own, described there;
+- [`roll/`](roll/README.md), the separate experiment `roll` (a rotating case base along prequential streams, on
+  `hypo`'s outcome), with its report and a layout of its own, described there;
 - `feasibility/`, the two feasibility studies that came before `hypo`.
 
 `python scripts/publish_supplement.py` adds what the export package and the hand copies leave out: T2's cohort
@@ -35,6 +37,9 @@ them. The per-fold CV artifacts are left out because of their size; they are sum
   [docs/freeze_hypo.md](../docs/freeze_hypo.md)).
 - The post hoc analyses come from `scripts/posthoc_*.py`. Each one only reads the frozen artefacts and checks the
   freeze record at its start and end.
+- `roll`'s results come from its freeze tag `perisim-freeze-roll-2026-10-30-173256` (commit `a9cc6d0`;
+  [docs/freeze_roll.md](../docs/freeze_roll.md)), through `scripts/roll_deviation_pooling.py` (the declared
+  deviation) and `scripts/roll_report.py`, which only read the frozen output.
 
 ## Where each part of a manuscript is
 
@@ -42,12 +47,13 @@ them. The per-fold CV artifacts are left out because of their size; they are sum
 |---|---|
 | Methods: data and harmonisation | `t2/reports/schema_*.md`, `t2/reports/completeness_*.html`, `t2/flow/flow.md`; `hypo/reports/landmarks_summary.md`, `hypo/reports/audit.md`; [docs/AUDIT.md](../docs/AUDIT.md) |
 | Methods: the method (CE-kNN) | [SPECS.md](../SPECS.md) §5; the library on the branch `ceknn` |
-| Methods: pre-registration and freezes | [docs/prereg_hypo.md](../docs/prereg_hypo.md), [docs/freeze_hypo.md](../docs/freeze_hypo.md), [docs/prereg_amendment_transport.md](../docs/prereg_amendment_transport.md), `t2/docs/OSF_registration.md` |
+| Methods: pre-registration and freezes | [docs/prereg_hypo.md](../docs/prereg_hypo.md), [docs/freeze_hypo.md](../docs/freeze_hypo.md), [docs/prereg_amendment_transport.md](../docs/prereg_amendment_transport.md), `t2/docs/OSF_registration.md`; [docs/prereg_roll.md](../docs/prereg_roll.md), [docs/freeze_roll.md](../docs/freeze_roll.md) |
 | Results: T2, internal, with the comparators of SPECS §6.4 | `t2/reports/results_main.html`, `t2/artifacts/main/results.json`. The comparators are Euclidean, HVDM, mean \|SHAP\|, RF importance, ReliefF, NCA only, SAGE only, RF-GAP, logistic regression and LightGBM. Also the sensitivity reports and the k sweep |
 | Results: T2, external and transport | `t2/reports/external.html`, `t2/reports/transport.html`, `t2/results/transport/` |
 | Results: `hypo`, by rotation | `hypo/REPORT.md`, `hypo/reports/cv.md`, `hypo/reports/external.md` |
 | Results: `hypo`, metrics and ablation | `hypo/reports/posthoc_ablation.md` and its figures |
+| Results: `roll`, prequential streams | `roll/REPORT.md`, `roll/reports/endpoints.md`, `roll/figures/`, `roll/results/` |
 | Results: drift and shapes | `hypo/REPORT.md` §7 and §13, `hypo/reports/posthoc.md`; `t2/reports/posthoc_drift*.html` |
 | Supplement: post hoc analyses (exploratory) | T2: `posthoc_transport`, `posthoc_drift`, `posthoc_drift_missing`, `posthoc_case_base`; `hypo`: `posthoc.md`, `posthoc_ablation.md` |
-| Supplement: chronology | [docs/DECISIONS.md](../docs/DECISIONS.md) (dated entries), the two freeze records and tags, `hypo/results/external_dryrun_alpha0/` |
+| Supplement: chronology | [docs/DECISIONS.md](../docs/DECISIONS.md) (dated entries), the three freeze records and tags, `hypo/results/external_dryrun_alpha0/` |
 | Background: choice of the use case | `feasibility/icu_trajectory.md`, `feasibility/hypotension.md`, [docs/design_hypotension.md](../docs/design_hypotension.md) |

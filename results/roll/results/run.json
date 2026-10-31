@@ -1,0 +1,27 @@
+{
+ "tag": "perisim-freeze-roll-2026-10-30-173256",
+ "started": "2026-10-30 17:55:11",
+ "code_hash": "b630267b6518",
+ "units": {
+  "eicu_deploy": 700,
+  "eicu_mimic": 20,
+  "eicu_within": 390,
+  "inspire_control": 20,
+  "inspire_mimic": 20,
+  "mimic_inspire": 20,
+  "mimic_temporal": 20
+ },
+ "units_total": 1190,
+ "compute_hours": {
+  "eicu_deploy": 3.07,
+  "eicu_mimic": 1.28,
+  "eicu_within": 1.42,
+  "inspire_control": 1.47,
+  "inspire_mimic": 1.27,
+  "mimic_inspire": 1.19,
+  "mimic_temporal": 6.44
+ },
+ "windows_total": 21930,
+ "windows_dropped": 32,
+ "w_sensitivity_errors": []
+}

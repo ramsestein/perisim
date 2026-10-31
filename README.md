@@ -16,6 +16,10 @@ with T2), **T3** (both). Select one with `PERISIM_EXPERIMENT` (default `t2`); th
 the ICU after surgery, learned on two cohorts and tested on the third by rotation. It has its own package
 (`src/hypo`), configuration, pre-registration and freeze, and is run locally: see [Experiment `hypo`](#experiment-hypo).
 
+**A second separate experiment, `roll`**, keeps `hypo`'s outcome and frozen metrics and asks how CE-kNN fares along a
+stream of patients with a rotating case base, against ML managed as a hospital manages it. It too has its own package
+(`src/roll`), configuration, pre-registration and freeze: see [Experiment `roll`](#experiment-roll).
+
 > **Public repository.** Code and configuration only: never data, outputs or secrets. Before every
 > `git push`: `python scripts/check_public_safety.py --all` (the `.githooks/pre-commit` hook runs it too).
 
@@ -228,6 +232,57 @@ as T2's freeze does. Post hoc code lives in `scripts/`.
 **Results** (aggregates only) are copied by hand to `results/hypo/`; see
 [results/hypo/README.md](results/hypo/README.md).
 
+## Experiment `roll`
+
+A prequential (test-then-train) evaluation on `hypo`'s outcome. Patients arrive in time order. Each is predicted
+first, and joins the case base only once its outcome is known. PERISIM-FIFO keeps the last N patients in its case
+base, with `hypo`'s frozen metric, and nothing is refitted. Its comparator, arm 5, is a LightGBM managed as a hospital
+manages it: a monitor, a trigger, a closed-test update and a deployment delay of 3 months. The question is whether
+CE-kNN is not less accurate than that, and more governable.
+
+- **Design.**
+  - **Streams:** three are confirmatory:
+    - MIMIC-IV in time order, five blocks from 2008–2010 to 2020–2022;
+    - eICU (a), within each of 35 hospitals, 2014 → 2015;
+    - eICU (b), from the other hospitals to each one, pooled over the 35.
+
+    Three cross-cohort streams are secondary, and an INSPIRE stream in random order is the control.
+  - **Arms 1–7:** PERISIM with a FIFO, cumulative or static case base; ML frozen, realistic (arm 5) and ideal (updated
+    with no trigger or delay, a ceiling); and the prevalence. Arm 5 has variants with no delay, four other triggers
+    and a model trained on the starting window. LightGBM is primary, logistic regression secondary.
+  - **T2:** a secondary part on T2's outcome.
+- **Documents.**
+  - [design](docs/design_roll.md) and [feasibility](docs/feasibility_roll.md);
+  - [pre-registration](docs/prereg_roll.md) and [freeze record](docs/freeze_roll.md) (tag
+    `perisim-freeze-roll-2026-10-30-173256`);
+  - the decisions, in [docs/DECISIONS.md](docs/DECISIONS.md) (entries marked `roll`), among them a declared deviation
+    in the eICU pooling after the single run.
+- **Results.** The report is [results/roll/REPORT.md](results/roll/REPORT.md). Of the confirmatory hypotheses, only
+  calibration (H4) holds, in all three streams. Accuracy (H1) is not inferior in MIMIC-IV only. Stability (H2), the
+  low tail (H3) and the out-of-support signal (H6) do not hold. Part of the calibration advantage in eICU comes from
+  the transported model that the go-live update left in place, and the report flags it.
+
+It reads `hypo`'s landmark tables and frozen artefacts, and keeps its own work folder, `work/experiments/roll/`
+(patient level, git-ignored). It runs in phases, each a command:
+
+```powershell
+.\run_local.ps1 roll check            # the freezes of T2 and hypo it stands on
+.\run_local.ps1 roll streams          # the real streams: sizes and windows (nothing fitted)
+.\run_local.ps1 roll dry              # Phase 2: the dry run on synthetic data
+.\run_local.ps1 roll freeze --registration <ID>
+.\run_local.ps1 roll run              # Phase 4: the single run on the frozen version (resumable)
+.\run_local.ps1 roll endpoints        # Phase 4: the endpoints; roll t2 for the T2 part
+```
+
+`.\run_local.ps1 roll` runs `python -m roll`. After the run, `scripts/roll_deviation_pooling.py` (the declared
+deviation) and `scripts/roll_report.py` (the report's tables, figures and aggregate JSON) only read its output.
+
+**Freeze.** `roll`'s code hash covers `src/roll` and `hypo`'s code hash, which covers `src/hypo` and `src/perisim`.
+Its configuration hash covers `config/roll.yaml`. Every stage checks T2's, `hypo`'s and its own freeze at its start and
+its end, and refuses to run on anything that differs.
+
+**Results** (aggregates only) are in `results/roll/`; see [results/roll/README.md](results/roll/README.md).
+
 ## Export (KHDP §3.2)
 
 `<workdir>/export/` (copied after every run to `updown/perisim/<user>/results/experiments/<t>/export/`) contains aggregates only: HTML reports, metrics, w_j weights, importances and VDM tables with
@@ -275,9 +330,19 @@ src/hypo/          experiment `hypo` (config/hypo.yaml), its own command line (p
   run.py, cv.py, report.py   Phase 1 smoke run, Phase 2 validation by rotation and its report
   frozen.py        Phase 3: frozen artefacts, freeze record and its check
   external.py, drift.py, stats.py, external_report.py   Phase 4: the external stage, drift, bootstrap, report
-tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets; test_hypo_*.py for `hypo`
-docs/              OPEN_QUESTIONS.md and DECISIONS.md; design, feasibility, pre-registration and freeze of `hypo`
-results/           published aggregate results per experiment (t2/, hypo/: reports, tables, figures, aggregate JSON)
+src/roll/          experiment `roll` (config/roll.yaml), its own command line (python -m roll)
+  data.py, streams.py        `hypo`'s landmarks grouped by patient → the streams (starting window, order, windows)
+  knn.py, ml.py, arms.py     PERISIM's case base, the ML models and their update hierarchy, the arms
+  monitor.py, loop.py        the monitor and triggers of the realistic ML arm; the test-then-train loop
+  endpoints.py, metrics.py, diagnostics.py, t2.py   endpoints and statistics, per-window metrics, PERISIM's
+                             diagnostics, the T2 part
+  frozen.py, run.py          the freeze record and its check; the single run (or the dry run on synthetic data)
+tests/             anti-leakage, patient-level split, VDM in the fold, metric and targets; test_hypo_*.py for `hypo`,
+                   test_roll.py for `roll`
+docs/              OPEN_QUESTIONS.md and DECISIONS.md; design, feasibility, pre-registration and freeze of `hypo` and
+                   of `roll`
+results/           published aggregate results per experiment (t2/, hypo/, roll/: reports, tables, figures, aggregate
+                   JSON)
 scripts/           public-safety check (pre-commit hook), publish_results.py, the post-hoc posthoc_*.py (posthoc_hypo.py
-                   for `hypo`) and feasibility_hypotension.py
+                   for `hypo`), roll_deviation_pooling.py and roll_report.py for `roll`, and the feasibility_*.py
 ```
