@@ -1,0 +1,974 @@
+# PERISIM `hypo`: hypotension in the next 6 h after surgery — report
+
+Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../docs/prereg_hypo.md), frozen on
+2026-10-29 (tag `perisim-freeze-hypo-2026-10-29-120652`, registration `LOCAL-PREREG-HYPO-2026-10-29`; record
+[docs/freeze_hypo.md](../../docs/freeze_hypo.md)). Every figure is from the reports in [reports/](reports/), mainly
+[external.md](reports/external.md). Aggregates only.
+
+## Summary
+
+- **All five pre-registered hypotheses hold.** H1–H3 hold in each of the three external sites, H4–H5 in eICU. H5
+  holds formally, but its gain (0.0001 nats) is of no practical use.
+- **The metric transports.**
+  - A metric learned on two cohorts and applied to the third discriminates as well as one learned on the third:
+    ΔAUROC −0.001 to −0.003.
+  - With the site's own case base it is calibrated (calibration in the large 0.008–0.023, slope 1.01–1.03).
+  - The transported comparators trained in the same way are not calibrated: calibration in the large −0.40 to +0.50,
+    because the three sites' rates differ (13 %, 31 %, 19 %).
+- **Few local patients are needed.** A case base of 250 patients is within 0.02 nats of the whole site, and 500
+  patients within 0.01, in all three sites.
+- **The hospital matters in eICU, but less than in T2.** A hospital's own patients make a better case base than as
+  many patients from other hospitals, after correcting the base rates: −0.0043 nats, against −0.0001 for random
+  groups. T2's effect was about ten times larger (−0.041). Weighting own-hospital neighbours up adds nothing.
+- **Drift: the shapes do not need to deform.**
+  - Refitting every g_j to the external site gains nothing (Δ −0.0004 to +0.0007; every CI includes 0). The same holds
+    in the development sites used as controls.
+  - Not one of the 85 one-variable refits in the external sites has a CI below 0.
+  - Re-deforming only the missing-value points gains nothing either.
+- **What does differ between sites** does not cost prediction:
+  - the base rate and case mix, which the local case base absorbs;
+  - how the credit is split among the correlated MAP summaries (last, 6-h mean, 6-h minimum), which moves the
+    per-variable MAP thresholds by as much as 5–8 mmHg (MIMIC-IV's `map_last`: 67 mmHg against 73 transported);
+  - the shapes of low-weight inputs (heart rate, temperature, SpO₂).
+- **Against general models**: PERISIM beats the last-MAP bar by 0.021–0.042 nats (H3) and is the best of the
+  transported methods. It is level with logistic regression refitted locally (−0.001 to +0.004) and below LightGBM
+  refitted locally (+0.011 to +0.016). That was expected: the experiment is centred on transfer and explainability,
+  not on beating general models (design, opening paragraph).
+- **Post hoc (exploratory, §13):**
+  - the drift null holds over all five folds;
+  - a threshold for the MAP block as a whole is about 78 mmHg in every site (eICU hospitals: interquartile range
+    77–79);
+  - MIMIC-IV gains a little from weighting a running vasopressor infusion (−0.0017 nats). This is a lead for a
+    pre-registered test.
+- **Post hoc, second round (exploratory, §14):**
+  - AUPRC, Brier score, calibration curves and decision curves agree with S2.
+    - PERISIM transported is calibrated, and its net benefit is above treating everyone or no one at thresholds
+      0.05–0.50 in every site.
+    - On the Brier score it beats every transported comparator as it is. Recalibrated on 500 local patients, the
+      transported LightGBM overtakes it.
+    - LightGBM refitted locally stays the best.
+  - The ablation: against a standardised Euclidean kNN the frozen metric gains 0.010–0.025 nats, and most of that
+    comes from the learned weights.
+    - With learned weights the shapes add nothing to prediction (within 0.001 nats).
+    - The source of the weights (NCA, SAGE, SHAP, permutation) changes log-loss by 0.0015 nats or less.
+    - The shapes stay as the layer for interpretation and drift.
+- **Post hoc, third round (exploratory, §15):**
+  - MIMIC-IV's transport cost (0.0028 nats) sits for half in the 21 % of landmarks with a vasopressor running. That
+    is an input INSPIRE cannot see and eICU rarely has. The arterial line does not explain the cost.
+  - On those landmarks MIMIC-IV's MAP–risk relation keeps its form with about half the amplitude, beyond the noise.
+    A high MAP protects much less under a vasopressor. eICU does not show the change (§15.2).
+  - Two local metrics learned on disjoint patients share more neighbours the more patients they learn on (Huh et
+    al.'s convergence, within a site). The transported metric shares about as many with the local one as two local
+    metrics of 2,000–4,000 patients do. In MIMIC-IV and eICU the local metrics then keep converging without it. The
+    predictions still agree (r 0.78–0.91): other neighbours, the same vote (§15.3).
+- **Transport equivalence (exploratory, §16)**, by the bioequivalence convention (90 % CI of R, lower limit 0.80;
+  criterion fixed with the point estimates known):
+  - the transported metric is **equivalent** to the local one in INSPIRE (R 0.91, 90 % CI 0.83–0.99) and eICU (0.96,
+    0.93–1.00), and **not equivalent** in MIMIC-IV (0.74, 0.68–0.80);
+  - in MIMIC-IV, landmarks with a vasopressor running keep 0.44; the others reach 0.84, with a lower limit of 0.77,
+    just short of the margin. In eICU, where the development pair saw vasopressors through MIMIC-IV, the same
+    stratum is equivalent (0.90, 0.84–0.96);
+  - T2, for contrast, is not equivalent in either site (MIMIC-IV 0.49, eICU 0.72).
+
+## 1. Question and design
+
+- **Use case** (design §1): every 2 h during the first 48 h of a postoperative ICU stay, for a patient who is
+  normotensive now:
+  - the probability of hypotension in the next 6 h (an hour with median MAP < 65 mmHg);
+  - the k = 50 most similar moments of other patients of the same site;
+  - the reasons, read from the metric.
+- **Metric**: a weighted distance over shape functions g_j learned once and shared; the case base stays in each site.
+- **Leave one site out** (D1): for each external site X, the metric and the transported comparators are learned on
+  all patients of the other two cohorts (`reports/final.md`). X is then predicted on its Phase 2 folds: case base =
+  X's training folds, test = the fold. Every landmark of X is predicted once, out of fold.
+- **Comparisons**:
+  - the same metric learned on X's own training folds (local);
+  - the Phase 2 local comparators (last MAP, logistic, LightGBM, Euclidean kNN, prevalence);
+  - the transported comparators;
+  - the Phase 2 in-sample PERISIM.
+- **CIs**: 95 % from patient-level bootstraps (2,000 resamples for H1–H5, 500 for the rest), the same resamples for
+  every method of a site.
+
+## 2. Data
+
+| | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| landmarks (patients) | 148,293 (11,631) | 387,159 (24,464) | 466,385 (32,032) |
+| hypotension in the next 6 h | 13.2 % | 30.7 % | 19.3 % |
+| landmarks with an arterial line | none (non-invasive only) | 70.5 % | 61.3 % |
+| hospitals with ≥ 300 patients | — | — | 36 |
+
+Phase 0 (`reports/landmarks_summary.md`, `reports/audit.md`) built the landmarks from the original tables and passed
+the completeness audit. INSPIRE measures MAP non-invasively, about once an hour, and cannot tell whether an infusion
+is running (D7). Its three infusion inputs are a source gap, constant within the site, so they add nothing to any
+distance there (prereg §8).
+
+## 3. Confirmatory results
+
+| | INSPIRE | MIMIC-IV | eICU | rule |
+|---|---|---|---|---|
+| **H1** ΔAUROC transported − local | −0.003 (−0.005 to −0.001) ✔ | −0.003 (−0.004 to −0.002) ✔ | −0.001 (−0.001 to 0.000) ✔ | lower bound > −0.02 |
+| **H2** calibration in the large | 0.023 (−0.006 to 0.050) | 0.021 (0.007 to 0.035) | 0.008 (−0.006 to 0.022) | CI inside ±0.10 |
+| **H2** calibration slope | 1.019 (0.993 to 1.045) ✔ | 1.011 (0.999 to 1.024) ✔ | 1.025 (1.013 to 1.038) ✔ | lower bound ≥ 0.90 |
+| **H3** Δlog-loss vs last MAP, local | −0.0213 (−0.0232 to −0.0196) ✔ | −0.0418 (−0.0432 to −0.0403) ✔ | −0.0250 (−0.0264 to −0.0237) ✔ | CI < 0 |
+
+**H4 (eICU)** holds:
+- own-hospital case base − other hospitals' (same size, base rates corrected): Δ_hosp −0.0043 (−0.0051 to −0.0035);
+- random-group control: Δ_ctrl −0.0001 (−0.0008 to 0.0006);
+- difference −0.0042 (−0.0052 to −0.0031).
+
+**H5 (eICU)** holds formally. Δlog-loss against the plain vote, 98.33 % CIs:
+
+| γ | Δlog-loss |
+|---|---|
+| 2 | −0.0001 (−0.0002 to −0.0001) |
+| 4 | +0.0003 (0.0000 to 0.0005) |
+| 8 | +0.0029 (0.0026 to 0.0034) |
+
+The γ = 2 gain is a ten-thousandth of a nat, and larger γ make the predictions worse. The hospital's information is
+in *which* neighbours a query has (H4), not in weighting them differently.
+
+The calibration in the large is above 0 in every site, and its CI excludes 0 in MIMIC-IV. That is a slight
+under-prediction (mean predicted 30.3 % against 30.7 % observed), well inside the margin. The slopes slightly
+above 1 mean the predictions are, if anything, a little under-confident.
+
+## 4. Transport and calibration (S2, S3)
+
+Log-loss of PERISIM transported minus each method (negative: PERISIM better), on the same rows:
+
+| method | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| PERISIM local (H1's arm) | +0.0010 (0.0000 to 0.0021) | +0.0028 (0.0021 to 0.0035) | +0.0005 (−0.0000 to 0.0011) |
+| PERISIM in-sample, Phase 2 (two partners) | −0.0006 / −0.0001 | +0.0025 / +0.0017 | +0.0001 / −0.0003 |
+| last MAP transported | −0.0308 | −0.0651 | −0.0374 |
+| logistic transported | −0.0110 | −0.0121 | −0.0113 |
+| LightGBM transported | −0.0020 | −0.0052 | −0.0021 |
+| last MAP local | −0.0213 | −0.0418 | −0.0250 |
+| logistic local | −0.0013 | +0.0044 | +0.0004 |
+| LightGBM local | +0.0115 | +0.0155 | +0.0115 |
+| Euclidean kNN local (same case base) | −0.0105 | −0.0079 | −0.0135 |
+
+- **Transport costs nothing in INSPIRE and eICU**: the transported metric equals the local one and the in-sample
+  ones (the Phase 2 rows, learned with the site and one partner).
+- **In MIMIC-IV it costs 0.002–0.003 nats.** Every metric that saw MIMIC-IV beats the transported one by about that
+  much: the local metric and both Phase 2 pairs. Re-deforming the shapes on MIMIC-IV does not recover the cost
+  (§7.1), so it is not in the shapes. The weight differences of §7.4 are the candidate.
+  - The post hoc follow-ups narrow it down.
+  - Swapping in all the local weights recovers nothing; only the weight of a running vasopressor gains a little
+    (§13.1).
+  - Half the cost sits in the 21 % of landmarks with a vasopressor running, an input INSPIRE cannot see (§15.1).
+  - The arterial line does not explain it (§8, §15.1).
+- **Calibration comes from the case base.** The transported comparators carry their training sites' rates, so their
+  calibration in the large is −0.26 / +0.50 / −0.39 for last MAP, −0.15 / +0.35 / −0.37 for logistic, and
+  −0.34 / +0.41 / −0.40 for LightGBM (INSPIRE / MIMIC-IV / eICU). PERISIM's is 0.008–0.023 with nothing refitted:
+  the neighbours' outcomes are local.
+- **Learned against neutral axes**: the learned metric beats a Euclidean kNN with the same case base and vote by
+  0.008–0.014 nats.
+
+## 5. How many local patients (S1)
+
+Case bases of n local patients drawn at random, with the frozen metric (mean over draws):
+
+| n patients | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| 50 | +0.042 | +0.080 | +0.057 |
+| 100 | +0.023 | +0.030 | +0.025 |
+| 250 | +0.010 | +0.012 | +0.011 |
+| 500 | +0.006 | +0.008 | +0.007 |
+| 1,000 | +0.004 | +0.005 | +0.005 |
+| 8,000 | +0.001 | +0.001 | +0.001 |
+
+Each cell is the log-loss minus that of the whole training pool (9,300–25,600 patients).
+
+- 250 patients come within 0.02 nats of the whole site, and 500 within 0.01, in every site.
+- At equal local data PERISIM beats the last-MAP model recalibrated on the same patients, by 0.013–0.031 at n = 250
+  and 0.017–0.035 at n = 500.
+- Logistic regression recalibrated on 500 patients is level with or slightly better than PERISIM (+0.000 to +0.006).
+  Recalibrated LightGBM is better (+0.010 to +0.016).
+- T2 needed thousands of patients. Here a few hundred suffice: the outcome is frequent, so a neighbourhood of 50
+  holds 6–15 events.
+
+## 6. Hospitals in eICU (H4, H5, S6)
+
+- **Own hospital is better in 16 of the 36 eligible hospitals** (CI below 0); in none is it worse (CI above 0). The
+  hospital-level Δ ranges from −0.0115 to +0.0051.
+- **The control is null** (−0.0001): the effect is not an artefact of drawing a smaller, more homogeneous case base.
+- **Own-hospital neighbours are scarce in a pooled case base**: 2–11 % of a query's neighbours come from its own
+  hospital, against 1–6 % of the case base. The pooled metric already prefers them slightly, and weighting them up
+  (H5) changes nothing.
+- **Reading**: hospital-specific relations exist, but they are small (0.004 nats, about a tenth of T2's).
+  - The advantage of a hospital's own patients is smaller than what a larger case base gains: 0.006 nats from 500 to
+    8,000 patients (S1). So for accuracy alone, a large pooled case base and a hospital's own should be close; that
+    comparison was not run directly.
+  - Keeping the case base in each hospital (design §1) is then a matter of governance, and of showing a clinician
+    their own patients, more than of accuracy.
+
+## 7. Drift: how the shapes deform across sites (S4, S5)
+
+### 7.1 Re-deforming the frozen shapes to each site (S4, fold 0)
+
+Gain from re-deforming the frozen metric to each site (negative = better than frozen). Every point of every g_j is
+refitted ("all variables"), or only the missing-value points ("missing only"):
+
+| rotation : site | role | all variables | missing only | one-variable refits with CI < 0 |
+|---|---|---|---|---|
+| external-INSPIRE : INSPIRE | external | −0.0004 (−0.0024 to 0.0015) | +0.0001 (−0.0004 to 0.0006) | 0 / 29 |
+| external-MIMIC-IV : MIMIC-IV | external | −0.0004 (−0.0027 to 0.0018) | −0.0003 (−0.0008 to 0.0001) | 0 / 29 |
+| external-eICU : eICU | external | +0.0007 (−0.0010 to 0.0021) | 0.0000 (0.0000 to 0.0000) | 0 / 27 |
+| the six development-site controls | in-sample | −0.0002 to +0.0012 | −0.0002 to +0.0007 | 0–2 per site (5 in all) |
+
+- The external sites behave like the development sites: refitting gains nothing in either. The frozen shapes are
+  already as good for the external site as for the sites they were learned on.
+- The split-half reproducibility of the one-variable refits is near 0 (median r 0.10–0.22). The small changes the
+  fits make are noise.
+- The largest one-variable gains are under 0.001 nats: MIMIC-IV `map_last` −0.0008, eICU `age` −0.0008, INSPIRE
+  `hr_slope_6h` −0.0004.
+- eICU's "missing only" is exactly 0 by construction. The inputs eICU misses (lactate) have zero weight in its
+  frozen metric, and a zero-weight point cannot move (prereg §9).
+
+### 7.2 The shapes learned in each site (S5)
+
+Each site's own shapes, learned on its fold-0 training patients alone, compared with the frozen shapes that served
+it. Weighted correlation and slope of the site's log-odds curve on the transported one:
+
+| | INSPIRE r / slope | MIMIC-IV r / slope | eICU r / slope |
+|---|---|---|---|
+| `map_last` | 0.99 / 1.29 | 0.99 / 0.58 | 0.96 / 1.23 |
+| `map_mean_6h` | 0.99 / 0.93 | 1.00 / 1.91 | 1.00 / 0.90 |
+| `map_min_6h` | 0.95 / 1.07 | 0.93 / 0.40 | 0.96 / 1.35 |
+| `map_sd_6h` | 0.91 / 2.06 | 0.97 / 0.92 | 0.97 / 1.07 |
+| `hb_last` | 0.84 / 1.08 | 0.95 / 0.94 | 0.98 / 0.96 |
+| `hr_last` | 0.69 / 1.19 | −0.02 / −0.00 | 0.57 / 0.93 |
+| `temp_last` | 0.36 / 0.93 | 0.94 / 0.95 | 0.21 / 0.29 |
+
+- **The MAP shapes have the same form everywhere** (r 0.93–1.00). What changes is how much of the risk each summary
+  carries. MIMIC-IV's own models give the 6-h mean almost twice the transported amplitude (slope 1.91), and the last
+  and the minimum about half (0.58, 0.40). The three are strongly correlated, so the models can trade credit among
+  them, and different training data split it differently.
+- **Heart rate's shape differs in every site** (r 0.69, −0.02, 0.57), and temperature's in INSPIRE and eICU (r 0.36,
+  0.21). Both carry ≤ 2 % of the weight in every transported metric, and ≤ 3 % in any locally learned fold. The
+  method can see these differences, and they do not matter for the prediction.
+
+MAP threshold: the highest MAP below 85 mmHg where the odds of hypotension double (median and 10–90 % over the 40
+models).
+
+| | site's own models | transported metric |
+|---|---|---|
+| INSPIRE `map_last` | 73.1 (71.2–74.6) | 69.9 (68.3–70.6) |
+| INSPIRE `map_mean_6h` | 71.8 (67.4–74.6) | 72.2 (69.5–76.8) |
+| INSPIRE `map_min_6h` | 69.8 (65.7–72.8) | 64.4 (60.9–68.4) |
+| MIMIC-IV `map_last` | 67.3 (66.2–68.1) | 72.9 (70.8–73.8) |
+| MIMIC-IV `map_mean_6h` | 75.5 (73.4–78.6) | 70.3 (68.5–74.6) |
+| MIMIC-IV `map_min_6h` | 60.4 (55.0–63.4); only 15 of 40 models reach a doubling | 68.0 (62.1–70.9) |
+| eICU `map_last` | 70.9 (68.2–71.5) | 70.4 (69.2–71.2) |
+| eICU `map_mean_6h` | 73.1 (70.6–77.9) | 73.7 (71.1–76.8) |
+| eICU `map_min_6h` | 66.9 (63.0–68.8) | 62.0 (59.4–64.6) |
+
+- **eICU's thresholds agree with the transported ones for the last and mean MAP.** eICU is the largest site.
+- **INSPIRE's thresholds for the last and the minimum MAP are 3–5 mmHg higher** than the transported ones. It is
+  the site with hourly non-invasive readings. eICU's minimum is also 5 mmHg higher.
+- **MIMIC-IV's thresholds move in opposite directions**: last and minimum lower, mean higher. That is the credit
+  trade above, not a different physiology.
+- **Per-variable thresholds should therefore be read as a set.** The MAP block as a whole carries 55–73 % of the
+  weight in every metric, local or transported.
+
+### 7.3 Hospitals (S5, S6)
+
+- **Thresholds across the 36 eICU hospitals:**
+  - `map_last` median 70.6 mmHg, interquartile range 69.3–71.8, range 67.9–76.9;
+  - the spread between hospitals (SD 2.1 mmHg) is the same size as the spread among the 40 models inside one
+    hospital (median 10–90 % width 3.4 mmHg);
+  - `map_mean_6h` and `map_min_6h` are noisier (SD 2.1 and 4.3; within-hospital widths 9.0 and 10.1).
+- **Hospital shapes have the transported form** (median r 0.92 for `map_last`, 0.99 for `map_mean_6h`, 0.97 for
+  `map_min_6h`), with the same trading of amplitude among the three summaries.
+- **Re-deforming the shapes with each hospital's own case base gains nothing on average** (mean Δ +0.0001). 3 of 36
+  hospitals gain (CI < 0) and 1 loses (CI > 0), about what chance gives with 36 tests.
+
+### 7.4 The weights learned locally (descriptive, not pre-registered as a comparison)
+
+The H1 arm learns a whole metric on each site's own training folds, once per fold. Its weights differ from the
+transported ones well beyond the fold-to-fold range:
+
+| site | variable | local, mean (range over 5 folds) | transported |
+|---|---|---|---|
+| MIMIC-IV | L (hours since ICU admission) | 0.10 (0.02–0.16) | 0.28 |
+| MIMIC-IV | `map_mean_6h` | 0.37 (0.30–0.50) | 0.15 |
+| MIMIC-IV | `map_min_6h` | 0.05 (0.00–0.09) | 0.21 |
+| MIMIC-IV | `age` | 0.06 (0.05–0.08) | 0.01 |
+| MIMIC-IV | `vaso_on` | 0.04 (0.01–0.13) | 0.00 |
+| eICU | `map_min_6h` | 0.30 (0.19–0.41) | 0.08 |
+| eICU | `map_mean_6h` | 0.21 (0.14–0.32) | 0.39 |
+| INSPIRE | `age` | 0.02 (0.01–0.04) | 0.11 |
+
+- The weights differ this much and yet change discrimination by ≤ 0.003 AUROC (H1) and log-loss by ≤ 0.003 nats.
+  The kNN is insensitive to how credit is shared among correlated inputs. A site's weights are therefore not, by
+  themselves, a measure of how that site differs.
+- **Two differences are not a trade among MAP summaries:**
+  - The weight of time since ICU admission: low in MIMIC-IV's own metric, high in the one learned on INSPIRE + eICU.
+  - Vasopressors running now: weighted in MIMIC-IV's own metric, where 22.6 % of the landmarks are on vasopressors.
+    In the transported metric it is near zero. That metric was learned on INSPIRE, which cannot tell whether an
+    infusion is running, and eICU, where 7.9 % of the landmarks are on vasopressors.
+- These two are the candidate site differences for a follow-up. They are not tested here; §13.1 tests them post hoc.
+
+### 7.5 Reading
+
+For this outcome, PERISIM's drift tools agree:
+- a metric learned elsewhere needs no deformation to serve a new site;
+- the null is measured with the same precision in the development sites (CIs of ±0.002 nats);
+- the differences that exist live in the base rate and case mix (absorbed by the local case base), in the split of
+  credit among correlated MAP summaries, and in low-weight inputs.
+
+This contrasts with T2, where drift sat in case mix, coding and the meaning of missing values, and where
+re-deformation explained the transport loss. Here there is almost no transport loss to explain: the inputs are dense
+physiology measured the same way everywhere.
+
+## 8. Measurement and outcome definition (S7)
+
+- **Arterial line** (MIMIC-IV and eICU): transported and local PERISIM are within 0.004 nats of each other in both
+  strata.
+  - Discrimination is higher without an arterial line: AUROC 0.80–0.82 against 0.77–0.78.
+  - Neighbours share the query's stratum 80 % / 68 % of the time with a line (MIMIC-IV / eICU), and 50–52 % without
+    one.
+- **One reading per hour** instead of the hourly median: the outcome becomes more frequent (15–32 %). The same
+  neighbours vote it with the same AUROC (0.78 / 0.78 / 0.80) and calibration in the large 0.02–0.03.
+- **Three MAP bands**: transported equals local in INSPIRE and eICU (Δ 0.0000, 0.0002) and is 0.003 nats worse in
+  MIMIC-IV, as for the binary outcome.
+
+## 9. Explainability (S8)
+
+- **What a neighbour differs in.** The query–neighbour distance is spread over many inputs: no input takes more than
+  11 % of it. Age takes the most in every site (9–11 %). The MAP summaries, haemoglobin and L take 7–9 % each.
+- **What puts a query nearer its event neighbours.** The pull is the squared distance in one input to the non-event
+  neighbours minus that to the event neighbours. It is small for every input, because within a neighbourhood the
+  event and non-event neighbours are about equally far. The largest pulls are the 6-h minimum MAP and age in
+  INSPIRE, sex and creatinine in MIMIC-IV, and sex and age in eICU (0.001–0.002 in squared-distance units).
+- **What the neighbours carry beyond the label**, read from what happened to them:
+  - vasopressor start in the next 6 h: AUROC 0.68 (INSPIRE), 0.67 (MIMIC-IV), 0.79 (eICU);
+  - ICU discharge within 24 h: AUROC 0.73 / 0.74 / 0.65;
+  - the lowest MAP of the next 6 h: Spearman 0.63 / 0.64 / 0.70.
+
+  The neighbourhood is a usable forecast of the course, not only of the event.
+- **Out of support**: 1.0–1.1 % of the external queries, the same as with the local metric (Δ ≤ 0.001). The
+  external sites sit inside the case bases' support.
+
+## 10. What T2 predicted, and what happened
+
+| T2 finding | Set here | Result |
+|---|---|---|
+| The rare class fails (~0.5 events per neighbourhood) | a frequent outcome, 13–31 % | calibrated in every site (H2) |
+| The case base needs thousands of patients | 12,000–32,000 patients per site | 250–500 patients suffice (S1) |
+| Relations are hospital-specific (−0.041) | H4 | real but ten times smaller (−0.0043) |
+| A two-site metric transports like a local one | H1, every site external once | yes, in all three (ΔAUROC ≥ −0.003) |
+| Drift sits in case mix, coding and missing values | missing-only re-deformation pre-registered | missing values move nothing (Δ ≤ 0.0003) |
+| Re-deformation explained the transport loss | re-deformation pre-registered with in-sample controls | no loss to explain; the controls look the same |
+
+## 11. Deviations and limitations
+
+**Deviations**:
+- None after the freeze. The external stage ran once (2026-10-29 12:07–19:18), and the freeze gate passed at its
+  start and its end.
+- Before the freeze, the dry run found that the LOO could choose α = 0 in small case bases, which gives predictions
+  of exactly 0 or 1. The grid lost its 0 (prereg §3, §5; DECISIONS 2026-10-29).
+- Eligibility for H4 counts patients after the landmark exclusions: 36 hospitals, against the design's 37 (prereg §6).
+
+**Limitations**:
+- **Declared in advance (prereg §9):**
+  - the outcome is close to an input, which bounds discrimination;
+  - INSPIRE measures differently;
+  - the rotations are three different questions, not replicates;
+  - drift and shapes use fold 0 only, so their CIs leave out the variation between splits;
+  - re-deformation cannot move zero-weight points.
+- **Arising from the results:**
+  - Per-variable MAP thresholds and weights are not identifiable one by one, because credit moves among the
+    correlated MAP summaries (§7.2, §7.4). A threshold for the MAP block as a whole would be the robust quantity; it
+    was not pre-registered.
+  - The weight comparison in §7.4 is descriptive and was not planned as a test.
+  - H5's formal success is not a practical one.
+
+## 12. Conclusions
+
+1. For postoperative hypotension, a PERISIM metric learned on two cohorts serves a third. Discrimination is level
+   with a locally learned metric, and calibration is good without refitting anything, because the outcomes come
+   from the local case base. A few hundred local patients are enough.
+2. As a drift tool, PERISIM gives a clear and checkable answer here: the shapes do not need to deform. The CIs bound
+   any gain at about 0.002 nats, and the development-site controls behave the same way.
+3. What differs between sites and hospitals (base rates, time-since-admission weighting, vasopressor use) is visible
+   in the metric's pieces. It is absorbed by the case base rather than requiring a new metric.
+4. Three follow-ups were run post hoc, outside the frozen code (§13). They support points 2 and 3:
+   - the drift null holds over all five folds;
+   - a MAP-block threshold of about 78 mmHg agrees across sites (eICU hospitals: interquartile range 77–79);
+   - of the two weight differences named in §7.4, only MIMIC-IV's vasopressor weight gains anything (−0.0017 nats).
+     That gain is exploratory.
+
+## 13. Post hoc follow-ups (exploratory, not pre-registered)
+
+The lead asked for these follow-ups after the first draft of this report. They ran on 2026-10-29/30 with
+`scripts/posthoc_hypo.py`, outside the frozen code. The frozen artefacts are only read, and the freeze record was
+checked at the start and at the end. Nothing here changes H1–H5 or S1–S8. Full tables:
+[reports/posthoc.md](reports/posthoc.md).
+
+### 13.1 The weight differences of §7.4 (fold 0)
+
+The weights of the H1 arm's local fold-0 metric are swapped into the transported metric. The transported shapes and
+the site's own case base are kept. Δ log-loss is measured on S4's test sample (negative = better than frozen):
+
+| site | the H1 local metric itself | all weights local, shapes transported |
+|---|---|---|
+| INSPIRE | −0.0016 (−0.0048 to 0.0018) | −0.0019 (−0.0048 to 0.0008) |
+| MIMIC-IV | −0.0022 (−0.0051 to 0.0009) | −0.0001 (−0.0026 to 0.0029) |
+| eICU | −0.0012 (−0.0036 to 0.0009) | −0.0008 (−0.0028 to 0.0012) |
+
+- **Swapping all the weights at once gains nothing**, and neither does the whole local metric. As a whole, the weight
+  differences of §7.4 are a sharing of credit that the kNN does not feel.
+- **One variable at a time** (25 swaps, every variable whose weight differs by ≥ 0.02):
+  - **One swap has a CI below 0: MIMIC-IV's `vaso_on`** (weight 0.000 → 0.133), −0.0017 nats (−0.0031 to −0.0002).
+    It is one of the two candidates §7.4 named before this analysis. It is small (0.3 % of MIMIC-IV's log-loss of
+    0.503), and it is one of 25 tests. It is a lead, not a finding.
+  - The other candidate gains nothing: lowering the weight of time since admission in MIMIC-IV (L 0.281 → 0.133)
+    gives −0.0007 (−0.0016 to 0.0004).
+  - Two swaps have a CI above 0: INSPIRE `map_mean_6h` (+0.0010) and eICU `map_min_6h` (+0.0013). Each moves one
+    MAP summary alone, which breaks the split of credit among the three (§7.2).
+- **Re-deforming the shapes after a swap gains nothing further.** The swap moved some weights a lot, or started from
+  a (near-)zero weight that S4 cannot move. Every "fitted − start" CI includes 0.
+
+### 13.2 A threshold for the MAP block (fold 0)
+
+The per-variable thresholds of §7.2 move between sites because the models split credit differently among the three
+correlated MAP summaries. Adding the three log-odds curves along a steady MAP (last = 6-h mean = 6-h minimum)
+removes that split. The block threshold is the highest steady MAP below 85 mmHg where the odds double relative to a
+steady 85. Adding the curves is exact for the additive surrogate models and an approximation for the trees. Median
+(10–90 %) over the 40 models:
+
+| site | block threshold, own shapes | block threshold, transported | OR 70 vs 85, own / transported | per-variable `map_last`, own |
+|---|---|---|---|---|
+| INSPIRE | 79.1 (77.9–80.1) | 78.5 (76.7–79.7) | 10.2 / 6.9 | 73.1 |
+| MIMIC-IV | 77.6 (76.8–79.4) | 79.2 (77.4–79.9) | 6.8 / 9.5 | 67.3 |
+| eICU | 79.2 (78.5–80.0) | 78.1 (76.5–79.0) | 8.3 / 8.1 | 70.9 |
+
+- **The block threshold is about 78 mmHg in every site.** It spans 1.6 mmHg across the three sites (77.6–79.2), and own
+  and transported shapes differ by at most 1.6 mmHg in any site. The per-variable `map_last` thresholds of the same
+  models span 5.8 mmHg (67.3–73.1).
+- It sits above every per-variable threshold because a steady MAP lowers all three summaries at once.
+- **Odds ratios** of a steady 70 mmHg against 85 are 6.8–10.2 (own) and 6.9–9.5 (transported). At 65 against 85 they
+  are 17.6–29.1 and 18.0–24.2. The ranges over the models are wide (INSPIRE own, OR 70 vs 85: 4.4–14.8).
+- **eICU hospitals (36)**: block threshold median 77.8 mmHg, interquartile range 77.1–79.0, range 74.1–81.9.
+  - The spread between hospitals (SD 1.6 mmHg) is smaller than for `map_last` (2.1).
+  - The spread among the models inside a hospital is the same for both (10–90 % width 3.5 and 3.4 mmHg).
+- The refitted site shapes reproduce S5's nine per-variable thresholds exactly (difference 0.00 mmHg).
+
+### 13.3 Drift over the five folds (external role)
+
+S4's re-deformation is repeated on folds 1–4, with each fold's case base and test sample. Gain from re-deforming
+every g_j (negative = better than frozen):
+
+| site | fold 0 | fold 1 | fold 2 | fold 3 | fold 4 | mean (SD) |
+|---|---|---|---|---|---|---|
+| INSPIRE | −0.0004 | −0.0010 | −0.0003 | +0.0014 | −0.0011 | −0.0003 (0.0010) |
+| MIMIC-IV | −0.0004 | −0.0024 | −0.0013 | +0.0020 | −0.0001 | −0.0004 (0.0017) |
+| eICU | +0.0007 | +0.0013 | +0.0015 | +0.0020 | +0.0017 | +0.0015 (0.0005) |
+
+- **One of the 15 refits has a CI below 0**: MIMIC-IV fold 1 (−0.0042 to −0.0007). MIMIC-IV's mean over the folds is
+  −0.0004.
+- **In eICU every fold is slightly worse after refitting**, and every CI includes 0. The refit adds a little variance
+  and finds no signal.
+- **"Missing only"** stays within ±0.0004 in every fold.
+- **One-variable refits**: 8 of 425 CIs are below 0 and 10 above 0, about the 11 per side that chance gives. No
+  variable has a CI below 0 in two folds. Median split-half r is 0.17–0.21, close to fold 0's 0.10–0.22.
+- **Fold 0's null (§7.1) is therefore not a property of one fold.**
+
+### 13.4 Reading
+
+- **The drift null of §7 holds over all five folds.**
+- **The one site difference with a measurable gain is a weight, not a shape.** MIMIC-IV has 22.6 % of its landmarks
+  on vasopressors. It gains a little from weighting a running infusion, which the transported metric leaves out
+  because it was learned where infusions are rare (eICU) or cannot be seen (INSPIRE). This is the kind of drift
+  PERISIM is meant to show. Confirming it would need a pre-registered test.
+- **MAP thresholds are better reported for the block than per variable.** The block threshold is about 78 mmHg in
+  every site, own or transported. Across eICU's hospitals the interquartile range is 77–79 mmHg.
+
+## 14. Post hoc, second round (exploratory, not pre-registered)
+
+These analyses were asked for after an external read of the work. The plan was written in
+[docs/DECISIONS.md](../../docs/DECISIONS.md) (2026-10-30) before any of them ran, and was not changed after.
+They run with `scripts/posthoc_hypo_ablation.py`, outside the frozen code. The frozen artefacts are only read, and
+the freeze record was checked at the start and at the end. Nothing here changes H1–H5 or S1–S8.
+Full tables: [reports/posthoc_ablation.md](reports/posthoc_ablation.md).
+
+### 14.1 The metrics the external report lacked
+
+These are the external stage's own predictions, scored on S2's rows (every landmark of the five folds) with no
+refit. The figures are [reports/posthoc_ablation/](reports/posthoc_ablation/), one per site
+(`calibration_dca_<site>.png`).
+
+AUPRC, with its 95 % CI from 500 patient-level resamples. The prevalence is the AUPRC of a model with no
+information:
+
+| method | INSPIRE (13.2 %) | MIMIC-IV (30.7 %) | eICU (19.3 %) |
+|---|---|---|---|
+| PERISIM transported | 0.379 (0.366–0.390) | 0.598 (0.593–0.602) | 0.493 (0.487–0.498) |
+| PERISIM local | 0.379 | 0.604 | 0.495 |
+| last MAP, transported | 0.340 | 0.540 | 0.458 |
+| logistic regression, transported | 0.362 | 0.594 | 0.487 |
+| LightGBM, transported | 0.388 | 0.614 | 0.510 |
+| LightGBM, transported and recalibrated on 500 local patients | 0.387 | 0.613 | 0.510 |
+| logistic regression, local | 0.370 | 0.609 | 0.494 |
+| LightGBM, local | 0.410 | 0.626 | 0.519 |
+
+Brier score (lower is better):
+
+| method | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| PERISIM transported | 0.0974 | 0.1683 | 0.1249 |
+| PERISIM local | 0.0972 | 0.1671 | 0.1248 |
+| last MAP, transported | 0.1041 | 0.1908 | 0.1360 |
+| logistic regression, transported | 0.0999 | 0.1731 | 0.1290 |
+| logistic regression, transported and recalibrated (500) | 0.0989 | 0.1687 | 0.1257 |
+| LightGBM, transported | 0.0988 | 0.1702 | 0.1269 |
+| LightGBM, transported and recalibrated (500) | 0.0967 | 0.1657 | 0.1229 |
+| logistic regression, local | 0.0980 | 0.1662 | 0.1246 |
+| LightGBM, local | 0.0946 | 0.1628 | 0.1217 |
+
+- **AUPRC follows AUROC.**
+  - PERISIM transported is level with PERISIM local (differences 0.000 to −0.006).
+  - It is above the last MAP (+0.034 to +0.058) and the transported logistic regression (+0.003 to +0.018).
+  - It is below the transported LightGBM (−0.009 to −0.018) and the local LightGBM (−0.026 to −0.030).
+  - Every one of these CIs excludes 0, except PERISIM local in INSPIRE.
+- **The Brier score adds calibration to discrimination.**
+  - PERISIM transported beats every transported comparator as it is (by 0.0015 to 0.0226), because those comparators
+    are not calibrated.
+  - Recalibrating them on 500 local patients turns that around for LightGBM (+0.0006 to +0.0026 in its favour), not
+    for the logistic regression.
+  - LightGBM refitted locally is the best in every site.
+- **Calibration curves (10 equal-count bins).** PERISIM transported stays within 0.012–0.027 of the diagonal in every
+  bin. The transported LightGBM and logistic regression stray by up to 0.068–0.119, because they carry the
+  development sites' rates. The local LightGBM stays within 0.003–0.006.
+- **Decision curves.**
+  - From thresholds 0.05 to 0.50, PERISIM transported has a higher net benefit than treating everyone or no one, in
+    every site.
+  - Its net benefit at 0.10 / 0.20 / 0.30 is 0.067 / 0.039 / 0.022 in INSPIRE, 0.239 / 0.183 / 0.132 in MIMIC-IV and
+    0.127 / 0.086 / 0.056 in eICU.
+  - Over 0.05–0.50 it is above the last MAP (by 0.001–0.053) and level with PERISIM local (within 0.003).
+  - It is below the local LightGBM by 0.001–0.010: 1 to 10 fewer net true positives per 1,000 landmarks.
+  - It is above the transported logistic regression at almost every threshold, by up to 0.013. The one exception is
+    eICU at 0.05 (−0.0006).
+  - Against the transported LightGBM it is below at the low thresholds and above beyond them (−0.0018 to +0.0053). The
+    switch comes after 0.10 in INSPIRE, after 0.06 in MIMIC-IV and after 0.18 in eICU.
+
+### 14.2 The weights compared
+
+For each rotation the frozen metric's learning sample was rebuilt: 60,000 landmarks from the two development sites,
+seed 20262028. It matched the frozen one in every rotation. Four other kinds of weights were computed on it:
+- **SAGE**, over the competitive models of the frozen Rashomon set.
+  - The set was refitted with its seed and checked model by model against the frozen record. In every rotation:
+    43–47 attempts, 40 competitive models, the same families, the same variables kept and dropped, and validation
+    log-loss within 1.1 × 10⁻¹⁶ of the record.
+  - SAGE is measured per family of inputs, so a family's share is split equally among its members.
+- **mean |SHAP|** and **permutation importance** of one LightGBM (T2's comparator recipe).
+- **diagonal NCA** with `hypo`'s settings, on the three other geometries (neutral axes, HVDM, z-score).
+
+The table gives three things for each kind of weights:
+- MAP: the share of the distance carried by the five MAP summaries;
+- L: the share carried by time since ICU admission;
+- ρ: the rank correlation (Spearman, 29 inputs) with the frozen weights.
+
+Each column is the external site of a rotation; the weights were learned on the other two sites.
+
+| weights | INSPIRE: MAP / L / ρ | MIMIC-IV: MAP / L / ρ | eICU: MAP / L / ρ |
+|---|---|---|---|
+| NCA on shapes (frozen) | 0.58 / 0.10 / — | 0.60 / 0.28 / — | 0.71 / 0.12 / — |
+| SAGE | 0.83 / 0.02 / 0.59 | 0.95 / 0.01 / 0.45 | 0.84 / 0.02 / 0.60 |
+| mean \|SHAP\| | 0.53 / 0.07 / 0.74 | 0.55 / 0.09 / 0.63 | 0.55 / 0.09 / 0.61 |
+| permutation | 0.78 / 0.05 / 0.62 | 0.79 / 0.09 / 0.58 | 0.76 / 0.09 / 0.62 |
+| NCA on neutral axes | 0.67 / 0.16 / 0.87 | 0.77 / 0.13 / 0.76 | 0.71 / 0.18 / 0.91 |
+| NCA on HVDM | 0.56 / 0.15 / 0.62 | 0.82 / 0.10 / 0.68 | 0.74 / 0.14 / 0.79 |
+| NCA on z-score | 0.53 / 0.24 / 0.64 | 0.78 / 0.09 / 0.67 | 0.56 / 0.33 / 0.80 |
+
+- **All seven put the MAP summaries first** (0.53–0.95 of the distance), but they split that share differently:
+  - SAGE spreads it evenly over the five summaries, because it is measured per family. That includes the 6-h slope,
+    which every NCA sets near 0 (≤ 0.012).
+  - Permutation importance puts about half of the distance on `map_mean_6h` in two rotations (0.49 and 0.52).
+- **Time since ICU admission** gets 0.01–0.02 from SAGE, 0.05–0.09 from SHAP and permutation, and 0.09–0.33 from NCA.
+  Its large share in the frozen metric of the MIMIC-IV rotation (0.28, §7.4) appears only on the shapes.
+- The rank correlations with the frozen weights are 0.45–0.91. §14.3 measures what these differences do to
+  prediction.
+
+### 14.3 Ablation of the metric
+
+Each variant was run the way the external stage runs the transported metric:
+- the rotation's development sites give the learning sample;
+- in each of the external site's five folds, the training folds are the case base and the held-out fold is scored;
+- α is chosen by leave-one-out.
+
+The frozen metric (shapes × NCA) reproduced the external stage's predictions exactly in every site (max |Δp| = 0).
+
+The table gives each variant's log-loss minus the frozen metric's (positive = worse than the frozen metric). The 95 %
+CIs come from 500 paired patient-level resamples. The frozen row gives its own log-loss.
+
+| geometry | weights | INSPIRE | MIMIC-IV | eICU | AUROC (INSPIRE / MIMIC-IV / eICU) |
+|---|---|---|---|---|---|
+| z-score | uniform | +0.0096 (+0.0080 to +0.0112) | +0.0251 (+0.0237 to +0.0266) | +0.0168 (+0.0160 to +0.0179) | 0.767 / 0.750 / 0.779 |
+| z-score | NCA | +0.0019 (+0.0008 to +0.0029) | −0.0006 (−0.0014 to +0.0001) | +0.0035 (+0.0029 to +0.0041) | 0.778 / 0.781 / 0.795 |
+| neutral | uniform | +0.0074 (+0.0060 to +0.0089) | +0.0186 (+0.0173 to +0.0200) | +0.0106 (+0.0097 to +0.0115) | 0.768 / 0.759 / 0.789 |
+| neutral | SAGE | +0.0003 (−0.0007 to +0.0014) | −0.0021 (−0.0028 to −0.0014) | +0.0001 (−0.0005 to +0.0006) | 0.778 / 0.783 / 0.799 |
+| neutral | mean \|SHAP\| | +0.0002 (−0.0007 to +0.0013) | −0.0002 (−0.0010 to +0.0006) | +0.0007 (+0.0001 to +0.0012) | 0.779 / 0.782 / 0.800 |
+| neutral | permutation | +0.0007 (−0.0003 to +0.0017) | −0.0031 (−0.0037 to −0.0024) | −0.0003 (−0.0009 to +0.0002) | 0.777 / 0.784 / 0.800 |
+| neutral | NCA | −0.0004 (−0.0013 to +0.0005) | −0.0009 (−0.0014 to −0.0002) | −0.0007 (−0.0012 to −0.0002) | 0.780 / 0.782 / 0.800 |
+| HVDM | uniform | +0.0096 (+0.0079 to +0.0111) | +0.0260 (+0.0247 to +0.0275) | +0.0172 (+0.0163 to +0.0182) | 0.767 / 0.748 / 0.779 |
+| HVDM | NCA | +0.0030 (+0.0020 to +0.0041) | −0.0011 (−0.0018 to −0.0004) | +0.0026 (+0.0020 to +0.0032) | 0.775 / 0.782 / 0.796 |
+| shapes | uniform | +0.0069 (+0.0056 to +0.0082) | +0.0143 (+0.0131 to +0.0155) | +0.0072 (+0.0066 to +0.0080) | 0.769 / 0.765 / 0.792 |
+| shapes | SAGE | +0.0010 (+0.0000 to +0.0019) | −0.0015 (−0.0022 to −0.0009) | +0.0002 (−0.0004 to +0.0008) | 0.777 / 0.782 / 0.799 |
+| shapes | mean \|SHAP\| | +0.0004 (−0.0004 to +0.0012) | −0.0003 (−0.0010 to +0.0003) | +0.0004 (−0.0001 to +0.0009) | 0.779 / 0.781 / 0.799 |
+| shapes | permutation | +0.0003 (−0.0005 to +0.0012) | −0.0016 (−0.0022 to −0.0011) | +0.0004 (−0.0001 to +0.0008) | 0.778 / 0.782 / 0.799 |
+| **shapes** | **NCA (frozen)** | **0.3276** (0.3210–0.3336) | **0.5059** (0.5023–0.5093) | **0.3965** (0.3927–0.4000) | **0.779 / 0.781 / 0.799** |
+
+The contrasts of the plan, in log-loss (a − b; negative favours a):
+
+| contrast | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| shapes − neutral, uniform weights | −0.0005 (−0.0016 to +0.0005) | −0.0044 (−0.0051 to −0.0037) | −0.0033 (−0.0039 to −0.0028) |
+| shapes − neutral, SAGE weights | +0.0007 (−0.0001 to +0.0015) | +0.0006 (+0.0001 to +0.0012) | +0.0001 (−0.0004 to +0.0006) |
+| shapes − neutral, NCA weights | +0.0004 (−0.0005 to +0.0013) | +0.0009 (+0.0002 to +0.0014) | +0.0007 (+0.0002 to +0.0012) |
+| SAGE − uniform, neutral axes | −0.0071 (−0.0084 to −0.0057) | −0.0207 (−0.0219 to −0.0196) | −0.0105 (−0.0114 to −0.0097) |
+| SAGE − uniform, shapes | −0.0060 (−0.0072 to −0.0046) | −0.0158 (−0.0168 to −0.0148) | −0.0071 (−0.0078 to −0.0063) |
+| NCA − uniform, neutral axes | −0.0078 (−0.0092 to −0.0063) | −0.0195 (−0.0208 to −0.0182) | −0.0113 (−0.0121 to −0.0105) |
+| NCA − uniform, shapes | −0.0069 (−0.0082 to −0.0056) | −0.0143 (−0.0155 to −0.0131) | −0.0072 (−0.0080 to −0.0066) |
+| NCA − SAGE, shapes | −0.0010 (−0.0019 to −0.0000) | +0.0015 (+0.0009 to +0.0022) | −0.0002 (−0.0008 to +0.0004) |
+| SHAP − SAGE, shapes | −0.0006 (−0.0014 to +0.0003) | +0.0012 (+0.0005 to +0.0018) | +0.0002 (−0.0004 to +0.0008) |
+| permutation − SAGE, shapes | −0.0007 (−0.0015 to +0.0001) | −0.0001 (−0.0007 to +0.0004) | +0.0002 (−0.0004 to +0.0007) |
+| HVDM − neutral, uniform | +0.0021 (+0.0012 to +0.0032) | +0.0074 (+0.0067 to +0.0082) | +0.0066 (+0.0060 to +0.0072) |
+| HVDM − neutral, NCA | +0.0034 (+0.0025 to +0.0044) | −0.0002 (−0.0009 to +0.0004) | +0.0033 (+0.0027 to +0.0039) |
+| shapes − HVDM, NCA | −0.0030 (−0.0041 to −0.0020) | +0.0011 (+0.0004 to +0.0018) | −0.0026 (−0.0032 to −0.0020) |
+
+- **Against the standardised Euclidean kNN** (z-score axes, uniform weights), the frozen metric is better in INSPIRE /
+  MIMIC-IV / eICU:
+  - by 0.0096 / 0.0251 / 0.0168 nats;
+  - by 0.012 / 0.031 / 0.020 in AUROC;
+  - by 0.036 / 0.059 / 0.052 in AUPRC.
+- **Most of that gain comes from the weights.**
+  - NCA weights alone, on the z-score axes, give 80 %, 102 % and 79 % of it.
+  - At any one geometry, learned weights (SAGE or NCA) in place of uniform ones gain 0.006–0.027 nats and
+    0.007–0.034 AUROC.
+- **The shapes help only while the weights are uniform.**
+  - With uniform weights they gain −0.0005 (CI includes 0) / −0.0044 / −0.0033 nats over the neutral axes.
+  - With SAGE or NCA weights they add nothing: +0.0001 to +0.0009 nats against the neutral axes, and −0.001 AUROC.
+    Three of those six CIs lie above 0.
+- **The source of the weights barely matters.**
+  - With the shapes, NCA, SHAP and permutation weights differ from SAGE by 0.0015 nats or less and by 0.002 AUROC or
+    less. The sign changes from site to site.
+  - That holds although the weights themselves differ (§14.2). The kNN is insensitive to how the credit is shared
+    among the correlated MAP summaries, as §7.4 found for the local weights.
+- **HVDM adds nothing.**
+  - With uniform weights it is within 0.0010 nats of the z-score and worse than the neutral axes (+0.0021 to
+    +0.0074).
+  - With NCA weights it is worse than the neutral axes in INSPIRE and eICU (+0.0034, +0.0033) and level in MIMIC-IV.
+- **The frozen metric is not the best variant, but the best is within 0.0031 nats of it.**
+  - The best is the neutral axes with NCA weights in INSPIRE (−0.0004, CI includes 0) and eICU (−0.0007), and the
+    neutral axes with permutation weights in MIMIC-IV (−0.0031).
+  - In MIMIC-IV all nine other learned-weight variants are a little better than the frozen metric, by 0.0002–0.0031
+    (six CIs below 0). There the frozen metric gives more weight to time since ICU admission than any of them: 0.28,
+    against 0.01–0.13.
+- **Calibration.**
+  - With uniform weights the calibration slope is 1.14–1.20: the predictions are too close to the mean.
+  - With learned weights it is 1.00–1.09, and the frozen metric's is 1.01–1.03.
+
+### 14.4 Reading
+
+- **In this outcome, CE-kNN's gain over a standardised Euclidean kNN comes from the learned weights.**
+  - Once the weights are learned, the consensus shapes neither help nor hurt prediction (within 0.001 nats).
+  - Which importance supplies the weights hardly matters either.
+- **A likely reason, not tested here.** The inputs that carry the weight are MAP summaries, whose risk changes steadily
+  with pressure, so ranking them already orders the patients almost as the shapes do. Whether the shapes add accuracy
+  where inputs are non-monotone, sparse or coded, as in T2, is not tested here.
+- **The shapes keep the role the design gives them**, at no cost in prediction:
+  - they are the axes on which drift is measured (§7, §13.3);
+  - they are where the MAP thresholds are read (§13.2).
+- **So a paper on `hypo` should credit its accuracy to the weights**, and present the shapes as the layer for
+  interpretation and drift.
+
+## 15. Post hoc, third round (exploratory, not pre-registered)
+
+The lead asked for these analyses after an external read of the work. The plans were written in
+[docs/DECISIONS.md](../../docs/DECISIONS.md) (2026-11-04) before any of them ran, and were not changed after. The one
+exception is a reproduction check of §15.3, relaxed for a floating-point tie and logged there before the rerun. They
+run outside the frozen code; the frozen artefacts are only read, and the freeze record was checked at the start and at
+the end. Nothing here changes H1–H5 or S1–S8. Full tables: [reports/posthoc_strata.md](reports/posthoc_strata.md).
+
+> **Audit of 2026-11-05 (docs/DECISIONS.md, entry v0.6).** Two findings bear on this section and on §16.
+> 1. **The vasopressor strata are partly defined with information after the landmark.** In v0.5's landmark builder,
+>    charted support points were merged into runs over the whole stay before the cut at L, so a record after L could
+>    set `vaso_on` (and `vent_on`, `sedation_on`, `vaso_hours`) at L. eICU's infusions are charted points, so its
+>    `vaso_on` is the most affected; MIMIC-IV's vasopressors are intervals and are hardly affected. The inputs weigh
+>    0.00–0.02 in the frozen metrics, so H1–H5 do not change, but the strata of §15.1, §15.2 and §16 are not
+>    strictly "a vasopressor running now", above all in eICU. Fixed in v0.6; the published numbers are v0.5's.
+> 2. **Shares with an unstable denominator.** A share of a cost or a gain whose own CI includes 0 is not
+>    interpretable: eICU's shares of the cost by stratum below, and the "59 %" and "96 %" of the swap gains, are of
+>    that kind and are kept for the record only. v0.6's script reports them as not evaluable.
+
+### 15.1 Where MIMIC-IV's transport cost sits
+
+In MIMIC-IV the transported metric costs 0.0028 nats against the local one (§4). Put another way, it keeps 74 % of
+the local metric's gain over the Euclidean kNN, against 91 % in INSPIRE and 96 % in eICU.
+
+The arterial line does not explain it (§8, S7):
+- with a line the cost is 0.0025 nats, and without one 0.0034;
+- the share kept is 74 % and 73 %.
+
+`scripts/posthoc_hypo_strata.py` splits the cost by the two inputs left as candidates by §7.4: vasopressors running
+now and time since ICU admission (L). It uses the external stage's own predictions over the five folds, with nothing
+refitted. Δ is transported − local, so positive = cost:
+
+| stratum | landmarks | prevalence | Δ log-loss | share of the cost | share of the gain kept |
+|---|---|---|---|---|---|
+| all | 387,159 | 30.7 % | +0.0028 (+0.0021 to +0.0036) | 1 | 0.74 (0.67–0.81) |
+| vasopressor running | 21.1 % | 45.6 % | +0.0070 (+0.0052 to +0.0088) | 0.53 (0.41–0.68) | 0.44 (0.25–0.59) |
+| no vasopressor | 78.9 % | 26.7 % | +0.0017 (+0.0009 to +0.0025) | 0.47 (0.32–0.59) | 0.84 (0.76–0.91) |
+| L 0–6 h | 8.5 % | 31.8 % | +0.0030 (+0.0004 to +0.0055) | 0.09 (0.01–0.17) | 0.45 (−0.09–0.92) |
+| L 6–12 h | 16.4 % | 32.5 % | +0.0047 (+0.0031 to +0.0064) | 0.27 (0.19–0.38) | 0.46 (0.24–0.63) |
+| L 12–24 h | 31.0 % | 32.1 % | +0.0029 (+0.0015 to +0.0041) | 0.32 (0.19–0.45) | 0.74 (0.64–0.87) |
+| L 24–48 h | 44.1 % | 28.8 % | +0.0020 (+0.0009 to +0.0031) | 0.31 (0.17–0.44) | 0.83 (0.74–0.92) |
+
+- **Half the cost sits in the fifth of the landmarks with a vasopressor running.**
+  - There the cost is four times larger: +0.0054 (+0.0035 to +0.0073) over the other landmarks.
+  - There the transported metric keeps 44 % of the gain, against 84 % elsewhere.
+- **That is the input the transported metric could not learn to weigh.**
+  - It was learned on INSPIRE, which cannot see whether an infusion is running, and on eICU, where 7.6 % of the
+    landmarks are on vasopressors.
+  - Its weight on `vaso_on` is 0.00. MIMIC-IV's own metric gives it 0.04 (0.01–0.13 over the five folds, §7.4).
+- **The weight swap of §13.1 points the same way.** On S4's test sample (fold 0, 20,000 landmarks), the `vaso_on`
+  swap gains:
+  - −0.0046 (−0.0101 to +0.0005) on landmarks with an infusion;
+  - −0.0009 (−0.0019 to +0.0002) on the others.
+
+  59 % of its gain comes from 22 % of the landmarks, but both CIs include 0 on this smaller sample.
+- **Time since admission shows no gradient** (last − first bin −0.0010, −0.0037 to +0.0017). The small gain of the L
+  swap (−0.0007, CI includes 0) comes almost entirely from the first 12 h (96 %).
+- **eICU, descriptive**, where the whole cost is 0.0005 nats: the same direction. The cost is +0.0031 on landmarks
+  with a vasopressor running and +0.0003 on the others.
+- **Reading.** MIMIC-IV's small transport cost is mostly a difference in what an input can show, not in how a
+  variable's effect is shaped, and not in how MAP is measured. Whether an infusion is running is invisible in one
+  development site and rare in the other.
+  - Patients on vasopressors are also the hardest to predict (AUROC 0.72 against 0.78), which inflates any log-loss
+    difference among them. The share kept, which scales by the Euclidean kNN's own gain there, still falls from 84 %
+    to 44 %.
+  - This analysis locates the cost; confirming the mechanism would need a pre-registered test.
+
+### 15.2 The MAP–risk relation with and without a vasopressor running
+
+Does a MAP held up by a vasopressor carry another risk? `scripts/posthoc_hypo_map_vaso.py` splits fold 0's training
+landmarks by `vaso_on` and learns the shapes in each stratum by S5's procedure, on samples of equal size. The
+no-vasopressor patients are split into two random halves, so the difference between the halves measures the noise.
+Full tables and figures: [reports/posthoc_map_vaso.md](reports/posthoc_map_vaso.md).
+
+**MIMIC-IV.** The MAP block (§13.2): consensus, then median and 10–90 % over the 40 models.
+
+| | vasopressor running | no vasopressor, half a | no vasopressor, half b |
+|---|---|---|---|
+| landmarks (patients) | 22,628 (8,687) | 22,628 (9,127) | 22,628 (9,130) |
+| block threshold, mmHg | 75.1 (75.2; 73.7–78.9) | 78.1 (78.7; 76.7–79.9) | 77.4 (77.4; 76.1–79.6) |
+| OR, steady 70 vs 85 mmHg | 3.6 (5.1; 4.3–5.6) | 6.2 (7.5; 5.4–8.7) | 6.3 (7.7; 6.0–10.2) |
+| OR, steady 65 vs 85 mmHg | 6.3 (9.9; 8.9–12.8) | 16.3 (20.3; 13.4–38.2) | 12.6 (18.1; 10.4–27.5) |
+
+The slope of the vasopressor curve on each no-vasopressor curve is the amplitude ratio (1 = the same):
+
+| MAP summary | against half a | against half b | half a against half b (noise) |
+|---|---|---|---|
+| last | 0.54 | 0.65 | 1.01 |
+| 6-h mean | 0.83 | 0.90 | 1.01 |
+| 6-h minimum | 0.56 | 0.79 | 1.41 |
+| 6-h SD | 0.56 | 0.61 | 1.07 |
+| 6-h slope | 0.59 | 0.65 | 1.16 |
+
+- **The form is the same, with about half the amplitude.**
+  - The correlations are 0.93–1.00 throughout.
+  - All five MAP summaries flatten at once, beyond the noise between the halves. That is not the trading of credit
+    among correlated summaries seen in §7.2.
+  - The odds ratio of a steady 70 against 85 mmHg falls from about 6 to 3.6.
+- **A high MAP protects much less under a vasopressor.** The observed rate is higher at every bin of the last MAP,
+  and the gap grows as the MAP rises:
+  - 65 % against 56 % at 65–70 mmHg;
+  - 26.5 % against 13.0 % at 85–90 mmHg;
+  - 23 % against 8 % at 100 mmHg or more.
+
+**eICU (descriptive)**: the block does not change.
+- The threshold is 77.6 mmHg against 78.1 and 78.7, and the odds ratio of a steady 70 against 85 is 5.0 against 5.2
+  and 5.8.
+- With a vasopressor running the observed rates are 3–5 points higher between 65 and 85 mmHg, and similar above.
+- Per summary, the last and the mean MAP steepen a little (1.14–1.35, against noise of 1.04–1.08) and the minimum
+  flattens (0.15–0.19). That is a trade among correlated summaries, and the block cancels it.
+
+**Reading.**
+- **MIMIC-IV:** with a vasopressor running, the MAP–risk relation keeps its form and loses about half its
+  amplitude. This fits a MAP that is the controlled variable of a titration: a MAP held up by the drug, or followed by
+  weaning, says less about what comes next.
+- **The two analyses fit together.** The relation changes where §15.1 found the cost: in MIMIC-IV, on the landmarks
+  with a vasopressor running. That is where a metric that cannot see the infusion pays.
+- **eICU does not show the change.**
+  - Its cost on those landmarks is smaller (+0.0031), and its transported metric, learned with MIMIC-IV, gives the
+    infusion a small weight (0.008).
+  - Why the sites differ is open: the share of landmarks on vasopressors (21 % against 7.6 %), the drugs and the
+    targets, how eICU charts infusions, or case mix.
+- **The stratum is not randomised.** Patients on vasopressors are sicker in ways the inputs may not capture.
+- A pre-registered test in another cohort would be needed to call it a finding.
+
+### 15.3 Do metrics learned apart retrieve the same neighbours?
+
+Huh et al. (2024) found that models trained apart converge towards one representation as data and scale grow. They
+measured it by how many nearest neighbours two models share. `scripts/posthoc_alignment.py` takes the same measure
+to `hypo`, on fold 0 of each site. It uses the external stage's case base, with one landmark per test patient as the
+queries. Full tables: [../alignment/posthoc_alignment.md](../alignment/posthoc_alignment.md).
+
+- **Two versions of the measure.**
+  - **Within a sample**, Huh et al.'s recipe: 1,000 queries, k = 10, neighbours among themselves. A permutation null
+    (Gröger et al., 2026) gives 0.01. The numbers below are this version unless stated.
+  - **In the case base**: the k = 50 neighbours CE-kNN votes with. Chance is 0.002–0.005 there.
+- **Every refitted metric reproduced the stage's or the ablation's predictions**, with one exception: eICU's local
+  refit differs at 1 of 6,431 queries. That is a float32 tie at the 50th neighbour (DECISIONS, 2026-11-04).
+- **What is compared.**
+  - The transported metric. For each site it was learned on the other two sites (D1).
+  - The local metric of the H1 arm.
+  - Local metrics learned on n patients of the fold's training set, two disjoint draws at each n.
+  - The ablation's 14 variants (§14.3).
+
+![n axis](../alignment/posthoc_alignment_n.png)
+
+| neighbours shared (k = 10) | INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| two local metrics, disjoint draws of 500 patients | 0.13 | 0.13 | 0.17 |
+| the same, 2,000 patients | 0.19 | 0.29 | 0.23 |
+| the same, 4,000 patients | 0.22 | 0.32 | 0.37 |
+| the same, half the patients (4,671 / 9,765 / 12,800) | 0.28 | 0.46 | 0.48 |
+| transported – local | 0.21 | 0.31 | 0.37 |
+| a half – transported | 0.27 | 0.27 | 0.35 |
+| Euclidean (z-score, uniform weights) – local | 0.21 | 0.14 | 0.14 |
+| transported – local: correlation of the predictions' logits | 0.78 | 0.91 | 0.90 |
+
+- **The more patients, the more neighbours two local metrics share.** In every site the two draws align more as n
+  grows. They go from 0.13–0.17 at 500 patients to 0.28–0.48 at half the site, and the rise has not levelled off.
+  Within a site, Huh et al.'s convergence with data holds.
+- **The transported metric aligns with the local one about as much as two local draws of 2,000–4,000 patients do.**
+  - Transported–local is 0.21, 0.31 and 0.37.
+  - In the case base it is below the two halves in all three sites: −0.030 (INSPIRE), −0.024 (MIMIC-IV) and −0.073
+    (eICU), with every CI excluding 0.
+  - The local metric learns on all the fold's training patients and the halves on half of them. The halves' alignment
+    is therefore, if anything, a low reference.
+- **In MIMIC-IV and eICU, the local metrics converge as n grows on something the transported metric lacks.**
+  - A half aligns 0.27 (MIMIC-IV) and 0.35 (eICU) with the transported metric. The two halves align 0.46 and 0.48
+    with each other.
+  - With more data, a site's metrics pull together on structure of that site.
+  - Whether that structure sits on §15.1's vasopressor landmarks was not measured.
+- **INSPIRE is the exception: there the local structure is weakly determined.**
+  - Two draws of 4,000 patients align 0.22, against 0.32 and 0.37 elsewhere.
+  - Up to 4,000 patients a draw aligns more with the transported metric than with the other draw, and about as much
+    at the half (0.27 against 0.28).
+  - The transported metric is no closer to the local one than the Euclidean metric is. Both align 0.21; in the case
+    base the transported metric is 0.007 lower (CI −0.010 to −0.004).
+  - In MIMIC-IV and eICU the Euclidean metric aligns 0.14 with the local one. There the transported metric is closer
+    by 0.10–0.11 in the case base.
+- **Other neighbours, the same vote.**
+  - The predictions agree far more than the neighbourhoods. The logits of the transported and the local metric
+    correlate 0.90–0.91 in MIMIC-IV and eICU, yet the two share 14 % of their 50 neighbours in the case base.
+  - eICU has the smallest transport cost in log-loss (0.0005 nats, §4) and the largest neighbourhood gap to the halves
+    (−0.073). Many neighbourhoods give the same estimate of risk.
+- **Weights count more than geometry, and the more competent variants align more** (the ablation's 14 variants,
+  §14.3).
+
+  | the two variants share | variant pairs | INSPIRE | MIMIC-IV | eICU |
+  |---|---|---|---|---|
+  | their weights, not their geometry | 12 | 0.50 | 0.56 | 0.53 |
+  | their geometry, not their weights | 18 | 0.37 | 0.28 | 0.35 |
+  | neither | 48 | 0.27 | 0.21 | 0.24 |
+
+  - The variants with uniform weights are the least aligned with the others.
+  - The lower a variant's log-loss, the more it aligns with the others: Spearman −0.71, −0.31 and −0.81. This is
+    Huh et al.'s relation between competence and alignment.
+  - The figures are descriptive: 14 variants, no test. The variants share weights and geometries by design, so a
+    variant's mean alignment partly reflects its family.
+- **`hypo` and T2.** The same measure on T2, with T2's own split and k:
+  - **T2's transported metric aligns with the local refit about as `hypo`'s does:** 0.30 (MIMIC-IV) and 0.26 (eICU),
+    against 0.21–0.37. T2's weaker signal does not show as fewer shared neighbours.
+  - **T2 has no local–local reference.** Its distance from its own noise is therefore unknown.
+  - **Re-deforming T2's shapes to the site changes half the neighbours** (the drift analyses' joint fit; frozen–joint
+    0.50 and 0.55). It moves them only a little towards the local metric's (0.34 and 0.33, against 0.30 and 0.26).
+    The re-deformation keeps the frozen weights and the local refit learns its own, which fits `hypo`'s ablation:
+    the weights set the neighbourhoods more than the shapes do.
+
+**Reading.**
+- **Convergence with data holds, within a site.** Two metrics learned on disjoint patients of one site share more
+  neighbours the more patients they learn on.
+- **Across sites there is no single shared representation.** The transported metric reaches about the alignment of a
+  local metric learned on a few thousand patients. In MIMIC-IV and eICU, the site's own metrics then keep converging
+  without it. Part of what a site's metric learns belongs to that site.
+- **What is shared is enough for the vote.** The predictions agree (r 0.78–0.91) and the transport costs little (§4).
+  What carries over between sites is the estimate of risk, not the neighbourhood.
+- **The weights are what the variants' neighbourhoods agree on most.**
+- **Limits.** Exploratory, one fold, no decision rule.
+
+## 16. Transport equivalence (exploratory, not pre-registered)
+
+The criterion was fixed with the point estimates of `hypo` and T2 already known, and is reported with that label
+([docs/DECISIONS.md](../../docs/DECISIONS.md), 2026-11-05). It comes from an external convention, not from these
+results. The intervals had not been computed when it was fixed. `scripts/posthoc_equivalence.py` reads the external
+stage's predictions over the five folds (T2: the transport stage's, rebuilt from the frozen artefacts and checked
+against transport.json), and refits nothing. The `hypo` part checked `hypo`'s freeze record at the start and the end;
+the T2 part checked only that the frozen artefacts did not change during the run, not that the code matched T2's
+freeze (audit 2026-11-05), but its rebuilt predictions reproduced the transport stage's log-loss to 1e-6. Full tables:
+[reports/posthoc_equivalence.md](reports/posthoc_equivalence.md) and, for T2,
+[../t2/reports/posthoc_equivalence.md](../t2/reports/posthoc_equivalence.md).
+
+**The estimand.** On the same rows, the same local case base and the same k,
+R = (L_euclidean − L_transported) / (L_euclidean − L_local), the share of the local metric's gain over the Euclidean
+kNN that the transported metric keeps.
+
+**The criterion.** The transported metric is read as a generic of the local one: **equivalent** when the lower limit
+of R's 90 % CI is ≥ 0.80 (the bioequivalence convention: FDA, 2001; EMA, 2010; the upper limit of 1.25 does not
+apply, since R > 1 means the transported metric does better). **Not evaluable** when the local gain over the Euclidean
+kNN is below 0.005 nats or its 95 % CI includes 0; no unit was. 2,000 patient-level resamples.
+
+| unit | landmarks | R | 90 % CI | local gain (nats) | cost (nats) | verdict |
+|---|---|---|---|---|---|---|
+| INSPIRE | 148,293 | 0.911 | 0.830–0.988 | 0.0116 | +0.0010 (−0.0001 to +0.0022) | equivalent |
+| MIMIC-IV | 387,159 | 0.738 | 0.682–0.796 | 0.0107 | +0.0028 (+0.0020 to +0.0035) | not equivalent |
+| MIMIC-IV, no vasopressor (79 %) | 305,428 | 0.837 | 0.773–0.903 | 0.0102 | +0.0017 (+0.0008 to +0.0025) | not equivalent |
+| MIMIC-IV, vasopressor running (21 %) | 81,731 | 0.437 | 0.278–0.577 | 0.0124 | +0.0070 (+0.0052 to +0.0088) | not equivalent |
+| eICU | 466,385 | 0.963 | 0.931–0.998 | 0.0140 | +0.0005 (−0.0000 to +0.0011) | equivalent |
+| eICU, no vasopressor (92 %) | 431,041 | 0.976 | 0.935–1.016 | 0.0126 | +0.0003 (−0.0003 to +0.0009) | equivalent |
+| eICU, vasopressor running (8 %) | 35,344 | 0.900 | 0.839–0.961 | 0.0314 | +0.0031 (+0.0008 to +0.0056) | equivalent |
+| *T2, MIMIC-IV* | *4,963 stays* | *0.494* | *0.288–0.681* | *0.0416* | *+0.0211 (+0.0109 to +0.0315)* | *not equivalent* |
+| *T2, eICU* | *4,725 stays* | *0.724* | *0.587–0.858* | *0.0582* | *+0.0161 (+0.0060 to +0.0260)* | *not equivalent* |
+
+- **Two sites of three are equivalent.** In INSPIRE and eICU the transported metric keeps more than 0.83 of the local
+  metric's gain at the lower limit, and its absolute cost is 0.0005–0.0010 nats, with CIs that include 0.
+- **MIMIC-IV is not equivalent, and half of it is located.** The landmarks with a vasopressor running keep 0.44 of
+  the gain (§15.1). Without them MIMIC-IV reaches 0.84, but its lower limit (0.77) stays short of 0.80. The vasopressor
+  accounts for about half the non-equivalence, not all of it.
+- **The eICU contrast points the same way.** eICU's transported metric was learned on INSPIRE and MIMIC-IV, so it saw
+  vasopressors running through MIMIC-IV; its vasopressor stratum is equivalent (0.90, 0.84–0.96). MIMIC-IV's was
+  learned on INSPIRE, which cannot see an infusion, and on eICU, where it is rare; its vasopressor stratum keeps 0.44.
+  An input transports where the development sites could observe it. The strata are post hoc: this locates the
+  non-equivalence and is consistent with that reading; it does not confirm it. eICU's vasopressor stratum is also
+  the one most affected by the support leak of v0.5's landmarks (box at the head of §15), which weakens this contrast.
+- **T2 is not equivalent in either site**, with an absolute cost about an order of magnitude larger (0.016–0.021 nats, against 0.0005–0.0028 in `hypo`). Where the inputs
+  carry little information about the outcome (ICU discharge), the learned geometry transports less; where physiology
+  is dense (`hypo`), it is equivalent where the inputs are observable.
+- **Precision.** The vasopressor strata are smaller, so their intervals are wider; MIMIC-IV's without vasopressor
+  misses the margin by 0.03 at the lower limit, with a point estimate above it.
+
+## Reproducibility
+
+- **Code and configuration**: tag `perisim-freeze-hypo-2026-10-29-120652`, commit `b0c9a02`, code `cf0d0b80c70a`,
+  configuration `772940e4ed77`.
+- **Commands**, from the frozen checkout: `python -m hypo landmarks`, `audit`, `cv`, `final`,
+  `freeze --registration <ID>`, `external`, `external-report`.
+- **Post hoc** (§13): `python scripts/posthoc_hypo.py` (or `run_local.ps1 hypo-posthoc`), outside the frozen code.
+  It reads the frozen artefacts and checks the freeze record at the start and at the end.
+- **Post hoc, second round** (§14): `python scripts/posthoc_hypo_ablation.py` (or `run_local.ps1 hypo-ablation`),
+  run the same way.
+- **Post hoc, third round** (§15): `scripts/posthoc_hypo_strata.py`, `scripts/posthoc_hypo_map_vaso.py` and
+  `scripts/posthoc_alignment.py` (or `run_local.ps1 hypo-strata`, `hypo-map-vaso`, `alignment`), run the same way.
+  The alignment refits the local metrics, and refits them exactly only with `run_local.ps1`'s thread settings (4 BLAS
+  threads), the stage's.
+- **Compute**: one workstation, 16 threads. The external stage took 7 h 11 min, the post hoc follow-ups 4 h 58 min,
+  and the second round 2 h 36 min.
+- **Data**: patient-level data stay on that computer under the PhysioNet data use agreements.
+  The per-unit summaries are in [results/](results/), and the frozen hashes in
+  [results/freeze.json](results/freeze.json).

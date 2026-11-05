@@ -1,0 +1,441 @@
+{
+ "site": "eicu",
+ "fold": 0,
+ "groups": {
+  "hospital:H1": {
+   "n_test": 6118,
+   "n_case_base": 22046,
+   "patients": 1318,
+   "alpha": 1.0
+  },
+  "hospital:H2": {
+   "n_test": 2885,
+   "n_case_base": 10740,
+   "patients": 875,
+   "alpha": 2.0
+  },
+  "hospital:H3": {
+   "n_test": 2353,
+   "n_case_base": 9804,
+   "patients": 757,
+   "alpha": 1.0
+  },
+  "hospital:H4": {
+   "n_test": 2775,
+   "n_case_base": 10856,
+   "patients": 654,
+   "alpha": 0.1
+  },
+  "hospital:H5": {
+   "n_test": 2417,
+   "n_case_base": 9860,
+   "patients": 620,
+   "alpha": 0.5
+  },
+  "hospital:H6": {
+   "n_test": 2123,
+   "n_case_base": 9506,
+   "patients": 605,
+   "alpha": 1.0
+  },
+  "hospital:H7": {
+   "n_test": 2153,
+   "n_case_base": 8711,
+   "patients": 580,
+   "alpha": 0.5
+  },
+  "hospital:H8": {
+   "n_test": 2208,
+   "n_case_base": 9351,
+   "patients": 572,
+   "alpha": 1.0
+  },
+  "hospital:H9": {
+   "n_test": 2199,
+   "n_case_base": 8985,
+   "patients": 555,
+   "alpha": 1.0
+  },
+  "hospital:H10": {
+   "n_test": 1685,
+   "n_case_base": 7638,
+   "patients": 531,
+   "alpha": 0.1
+  },
+  "hospital:H11": {
+   "n_test": 1697,
+   "n_case_base": 6428,
+   "patients": 523,
+   "alpha": 0.0
+  },
+  "hospital:H12": {
+   "n_test": 1709,
+   "n_case_base": 6232,
+   "patients": 525,
+   "alpha": 0.5
+  },
+  "hospital:H13": {
+   "n_test": 2138,
+   "n_case_base": 7864,
+   "patients": 516,
+   "alpha": 0.5
+  },
+  "hospital:H14": {
+   "n_test": 1738,
+   "n_case_base": 7634,
+   "patients": 522,
+   "alpha": 2.0
+  },
+  "hospital:H15": {
+   "n_test": 1644,
+   "n_case_base": 7677,
+   "patients": 495,
+   "alpha": 0.0
+  },
+  "hospital:H16": {
+   "n_test": 1634,
+   "n_case_base": 6504,
+   "patients": 461,
+   "alpha": 0.5
+  },
+  "hospital:H17": {
+   "n_test": 2017,
+   "n_case_base": 7921,
+   "patients": 437,
+   "alpha": 2.0
+  },
+  "hospital:H18": {
+   "n_test": 1652,
+   "n_case_base": 5702,
+   "patients": 429,
+   "alpha": 0.0
+  },
+  "hospital:H19": {
+   "n_test": 1529,
+   "n_case_base": 5711,
+   "patients": 415,
+   "alpha": 0.0
+  },
+  "hospital:H20": {
+   "n_test": 1352,
+   "n_case_base": 5701,
+   "patients": 416,
+   "alpha": 0.5
+  },
+  "hospital:H21": {
+   "n_test": 1552,
+   "n_case_base": 6110,
+   "patients": 406,
+   "alpha": 0.5
+  },
+  "hospital:H22": {
+   "n_test": 1376,
+   "n_case_base": 5884,
+   "patients": 398,
+   "alpha": 2.0
+  },
+  "hospital:H23": {
+   "n_test": 1498,
+   "n_case_base": 6072,
+   "patients": 382,
+   "alpha": 0.5
+  },
+  "hospital:H24": {
+   "n_test": 1227,
+   "n_case_base": 5061,
+   "patients": 381,
+   "alpha": 0.5
+  },
+  "hospital:H25": {
+   "n_test": 1443,
+   "n_case_base": 6250,
+   "patients": 382,
+   "alpha": 0.5
+  },
+  "hospital:H26": {
+   "n_test": 1272,
+   "n_case_base": 5293,
+   "patients": 372,
+   "alpha": 0.0
+  },
+  "hospital:H27": {
+   "n_test": 1565,
+   "n_case_base": 5934,
+   "patients": 343,
+   "alpha": 2.0
+  },
+  "hospital:H28": {
+   "n_test": 1272,
+   "n_case_base": 5386,
+   "patients": 339,
+   "alpha": 1.0
+  },
+  "hospital:H29": {
+   "n_test": 1150,
+   "n_case_base": 5122,
+   "patients": 321,
+   "alpha": 0.0
+  },
+  "hospital:H30": {
+   "n_test": 1016,
+   "n_case_base": 4101,
+   "patients": 310,
+   "alpha": 0.0
+  },
+  "hospital:H31": {
+   "n_test": 1027,
+   "n_case_base": 4092,
+   "patients": 299,
+   "alpha": 0.0
+  },
+  "hospital:H32": {
+   "n_test": 1432,
+   "n_case_base": 4739,
+   "patients": 282,
+   "alpha": 2.0
+  },
+  "hospital:H33": {
+   "n_test": 1540,
+   "n_case_base": 4985,
+   "patients": 273,
+   "alpha": 1.0
+  },
+  "hospital:H34": {
+   "n_test": 780,
+   "n_case_base": 4239,
+   "patients": 275,
+   "alpha": 2.0
+  },
+  "hospital:H35": {
+   "n_test": 817,
+   "n_case_base": 3505,
+   "patients": 262,
+   "alpha": 1.0
+  },
+  "hospital:H36": {
+   "n_test": 798,
+   "n_case_base": 3259,
+   "patients": 247,
+   "alpha": 0.0
+  },
+  "control:H1": {
+   "n_test": 4558,
+   "n_case_base": 19508,
+   "patients": 1353,
+   "alpha": 1.0
+  },
+  "control:H2": {
+   "n_test": 3006,
+   "n_case_base": 13213,
+   "patients": 895,
+   "alpha": 1.0
+  },
+  "control:H3": {
+   "n_test": 2587,
+   "n_case_base": 11354,
+   "patients": 754,
+   "alpha": 1.0
+  },
+  "control:H4": {
+   "n_test": 2491,
+   "n_case_base": 9607,
+   "patients": 651,
+   "alpha": 1.0
+  },
+  "control:H5": {
+   "n_test": 2073,
+   "n_case_base": 8807,
+   "patients": 625,
+   "alpha": 2.0
+  },
+  "control:H6": {
+   "n_test": 2415,
+   "n_case_base": 8643,
+   "patients": 585,
+   "alpha": 0.5
+  },
+  "control:H7": {
+   "n_test": 2205,
+   "n_case_base": 8492,
+   "patients": 582,
+   "alpha": 1.0
+  },
+  "control:H8": {
+   "n_test": 2108,
+   "n_case_base": 8161,
+   "patients": 566,
+   "alpha": 0.5
+  },
+  "control:H9": {
+   "n_test": 2177,
+   "n_case_base": 7768,
+   "patients": 540,
+   "alpha": 0.5
+  },
+  "control:H10": {
+   "n_test": 1846,
+   "n_case_base": 7729,
+   "patients": 538,
+   "alpha": 1.0
+  },
+  "control:H11": {
+   "n_test": 2187,
+   "n_case_base": 7461,
+   "patients": 518,
+   "alpha": 1.0
+  },
+  "control:H12": {
+   "n_test": 1524,
+   "n_case_base": 8076,
+   "patients": 542,
+   "alpha": 0.5
+  },
+  "control:H13": {
+   "n_test": 2167,
+   "n_case_base": 7156,
+   "patients": 502,
+   "alpha": 1.0
+  },
+  "control:H14": {
+   "n_test": 1873,
+   "n_case_base": 7487,
+   "patients": 516,
+   "alpha": 1.0
+  },
+  "control:H15": {
+   "n_test": 2103,
+   "n_case_base": 6878,
+   "patients": 467,
+   "alpha": 1.0
+  },
+  "control:H16": {
+   "n_test": 1320,
+   "n_case_base": 6976,
+   "patients": 479,
+   "alpha": 0.1
+  },
+  "control:H17": {
+   "n_test": 1828,
+   "n_case_base": 6226,
+   "patients": 428,
+   "alpha": 0.5
+  },
+  "control:H18": {
+   "n_test": 1305,
+   "n_case_base": 6504,
+   "patients": 446,
+   "alpha": 0.5
+  },
+  "control:H19": {
+   "n_test": 1604,
+   "n_case_base": 6151,
+   "patients": 419,
+   "alpha": 2.0
+  },
+  "control:H20": {
+   "n_test": 1601,
+   "n_case_base": 5809,
+   "patients": 398,
+   "alpha": 0.0
+  },
+  "control:H21": {
+   "n_test": 1451,
+   "n_case_base": 5703,
+   "patients": 396,
+   "alpha": 0.5
+  },
+  "control:H22": {
+   "n_test": 1530,
+   "n_case_base": 5823,
+   "patients": 392,
+   "alpha": 0.5
+  },
+  "control:H23": {
+   "n_test": 1368,
+   "n_case_base": 5611,
+   "patients": 384,
+   "alpha": 1.0
+  },
+  "control:H24": {
+   "n_test": 1304,
+   "n_case_base": 5573,
+   "patients": 385,
+   "alpha": 0.5
+  },
+  "control:H25": {
+   "n_test": 1235,
+   "n_case_base": 5657,
+   "patients": 381,
+   "alpha": 1.0
+  },
+  "control:H26": {
+   "n_test": 1250,
+   "n_case_base": 5589,
+   "patients": 371,
+   "alpha": 0.5
+  },
+  "control:H27": {
+   "n_test": 1488,
+   "n_case_base": 4846,
+   "patients": 336,
+   "alpha": 0.5
+  },
+  "control:H28": {
+   "n_test": 1412,
+   "n_case_base": 4855,
+   "patients": 333,
+   "alpha": 1.0
+  },
+  "control:H29": {
+   "n_test": 1137,
+   "n_case_base": 4451,
+   "patients": 312,
+   "alpha": 0.5
+  },
+  "control:H30": {
+   "n_test": 1047,
+   "n_case_base": 4554,
+   "patients": 312,
+   "alpha": 0.5
+  },
+  "control:H31": {
+   "n_test": 1113,
+   "n_case_base": 4281,
+   "patients": 296,
+   "alpha": 0.5
+  },
+  "control:H32": {
+   "n_test": 916,
+   "n_case_base": 4292,
+   "patients": 298,
+   "alpha": 0.5
+  },
+  "control:H33": {
+   "n_test": 1197,
+   "n_case_base": 4087,
+   "patients": 278,
+   "alpha": 0.5
+  },
+  "control:H34": {
+   "n_test": 802,
+   "n_case_base": 3943,
+   "patients": 272,
+   "alpha": 0.5
+  },
+  "control:H35": {
+   "n_test": 927,
+   "n_case_base": 3807,
+   "patients": 270,
+   "alpha": 1.0
+  },
+  "control:H36": {
+   "n_test": 953,
+   "n_case_base": 3484,
+   "patients": 242,
+   "alpha": 0.0
+  }
+ },
+ "draws": 10,
+ "seconds": 612.2695646000211,
+ "code_hash": "cf0d0b80c70a"
+}

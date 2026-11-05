@@ -1,0 +1,10 @@
+{
+ "site": "eicu",
+ "fold": 2,
+ "method": "logreg",
+ "n_train": 372834,
+ "n_test": 93551,
+ "seconds": 12.290494699991541,
+ "code_hash": "11a7ad77e519",
+ "C": 0.1
+}

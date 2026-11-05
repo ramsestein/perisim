@@ -1,0 +1,14 @@
+{
+ "site": "inspire",
+ "fold": 3,
+ "method": "euclidean",
+ "n_train": 118283,
+ "n_test": 30010,
+ "seconds": 10.417968199995812,
+ "code_hash": "11a7ad77e519",
+ "alpha": 2.0,
+ "loo_logloss": 0.3385650309253679,
+ "ood_threshold": 3.4606878757476807,
+ "short_neighbourhoods": 0.0,
+ "n_queries": 20000
+}

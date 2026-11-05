@@ -1,0 +1,14 @@
+{
+  "min_delta": 0.00014557615173839023,
+  "tol_delta": 0.01,
+  "W": 5,
+  "P": 10,
+  "n_min": 20,
+  "n_max": 150,
+  "epsilon": 0.05,
+  "exclude_families": [],
+  "rule": {
+    "fraction_of_delta_at_nmin": 0.05
+  },
+  "fixed_at": "2026-10-25T14:14:28"
+}

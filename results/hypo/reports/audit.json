@@ -1,0 +1,708 @@
+{
+ "cohorts": {
+  "inspire": {
+   "landmarks": 148293,
+   "patients": 11631,
+   "prevalence": 0.13158409365243134,
+   "inputs": {
+    "map_last": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      78.0,
+      86.0,
+      100.0
+     ]
+    },
+    "map_mean_6h": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      78.69,
+      87.67,
+      97.67
+     ]
+    },
+    "map_min_6h": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      70.0,
+      77.5,
+      86.0
+     ]
+    },
+    "map_sd_6h": {
+     "kind": "continuous",
+     "coverage": 0.9977881626239944,
+     "missing_type": "measurement",
+     "quantiles": [
+      4.76,
+      7.3,
+      10.91
+     ]
+    },
+    "map_slope_6h": {
+     "kind": "continuous",
+     "coverage": 0.9977881626239944,
+     "missing_type": "measurement",
+     "quantiles": [
+      -2.04,
+      -0.01,
+      1.8
+     ]
+    },
+    "hr_last": {
+     "kind": "continuous",
+     "coverage": 0.9898714032354865,
+     "missing_type": "measurement",
+     "quantiles": [
+      70.0,
+      82.0,
+      92.0
+     ]
+    },
+    "hr_slope_6h": {
+     "kind": "continuous",
+     "coverage": 0.9859265103545009,
+     "missing_type": "measurement",
+     "quantiles": [
+      -1.37,
+      0.0,
+      1.17
+     ]
+    },
+    "spo2_last": {
+     "kind": "continuous",
+     "coverage": 0.9621694887823431,
+     "missing_type": "measurement",
+     "quantiles": [
+      98.0,
+      99.0,
+      99.0
+     ]
+    },
+    "spo2_min_6h": {
+     "kind": "continuous",
+     "coverage": 0.9621694887823431,
+     "missing_type": "measurement",
+     "quantiles": [
+      96.0,
+      98.0,
+      99.0
+     ]
+    },
+    "rr_last": {
+     "kind": "continuous",
+     "coverage": 0.9933847180918857,
+     "missing_type": "measurement",
+     "quantiles": [
+      13.0,
+      17.0,
+      19.0
+     ]
+    },
+    "temp_last": {
+     "kind": "continuous",
+     "coverage": 0.9670382283722091,
+     "missing_type": "measurement",
+     "quantiles": [
+      36.5,
+      37.0,
+      37.3
+     ]
+    },
+    "hb_last": {
+     "kind": "continuous",
+     "coverage": 0.9940320851287654,
+     "missing_type": "measurement",
+     "quantiles": [
+      10.1,
+      11.3,
+      12.5
+     ]
+    },
+    "creatinine_last": {
+     "kind": "continuous",
+     "coverage": 0.9972554334998954,
+     "missing_type": "measurement",
+     "quantiles": [
+      0.61,
+      0.77,
+      0.98
+     ]
+    },
+    "lactate_last": {
+     "kind": "continuous",
+     "coverage": 0.957752557436966,
+     "missing_type": "measurement",
+     "quantiles": [
+      0.9,
+      1.5,
+      2.5
+     ]
+    },
+    "age": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      50.0,
+      60.0,
+      70.0
+     ]
+    },
+    "L": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      8.0,
+      14.0,
+      26.0
+     ]
+    },
+    "vaso_hours": {
+     "kind": "continuous",
+     "coverage": 0.0,
+     "missing_type": "source"
+    },
+    "vaso_on": {
+     "kind": "binary",
+     "coverage": 0.0,
+     "missing_type": "source"
+    },
+    "vaso_24h": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.06211351850727951
+    },
+    "sedation_on": {
+     "kind": "binary",
+     "coverage": 0.0,
+     "missing_type": "source"
+    },
+    "sedation_24h": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.12532621229592766
+    },
+    "vent_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.153601316312975
+    },
+    "sex_male": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.5786314930576628
+    },
+    "emergency": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.18096606043441024
+    },
+    "surgical_group": {
+     "kind": "nominal",
+     "coverage": 1.0,
+     "missing_type": null,
+     "shares": {
+      "neuro": 0.293,
+      "general_gi": 0.238,
+      "cardiac": 0.206,
+      "thoracic": 0.161,
+      "ortho": 0.034,
+      "vascular": 0.021,
+      "uro_gyn": 0.02,
+      "ent_head_neck": 0.015,
+      "plastic_other": 0.009,
+      "other": 0.002
+     }
+    }
+   }
+  },
+  "mimic": {
+   "landmarks": 387159,
+   "patients": 24464,
+   "prevalence": 0.306628542795079,
+   "inputs": {
+    "map_last": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      71.0,
+      77.5,
+      86.0
+     ]
+    },
+    "map_mean_6h": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      71.67,
+      77.33,
+      84.67
+     ]
+    },
+    "map_min_6h": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      64.0,
+      69.0,
+      76.0
+     ]
+    },
+    "map_sd_6h": {
+     "kind": "continuous",
+     "coverage": 0.9825937147270243,
+     "missing_type": "measurement",
+     "quantiles": [
+      4.17,
+      6.06,
+      8.65
+     ]
+    },
+    "map_slope_6h": {
+     "kind": "continuous",
+     "coverage": 0.9825937147270243,
+     "missing_type": "measurement",
+     "quantiles": [
+      -1.3,
+      0.17,
+      1.6
+     ]
+    },
+    "hr_last": {
+     "kind": "continuous",
+     "coverage": 0.999904432029218,
+     "missing_type": "measurement",
+     "quantiles": [
+      73.0,
+      83.0,
+      95.0
+     ]
+    },
+    "hr_slope_6h": {
+     "kind": "continuous",
+     "coverage": 0.9829656549376354,
+     "missing_type": "measurement",
+     "quantiles": [
+      -1.23,
+      0.0,
+      1.29
+     ]
+    },
+    "spo2_last": {
+     "kind": "continuous",
+     "coverage": 0.9976598761749049,
+     "missing_type": "measurement",
+     "quantiles": [
+      95.0,
+      97.0,
+      99.0
+     ]
+    },
+    "spo2_min_6h": {
+     "kind": "continuous",
+     "coverage": 0.9976598761749049,
+     "missing_type": "measurement",
+     "quantiles": [
+      93.5,
+      96.0,
+      98.0
+     ]
+    },
+    "rr_last": {
+     "kind": "continuous",
+     "coverage": 0.9955702954083464,
+     "missing_type": "measurement",
+     "quantiles": [
+      15.0,
+      18.0,
+      22.0
+     ]
+    },
+    "temp_last": {
+     "kind": "continuous",
+     "coverage": 0.9084536327452029,
+     "missing_type": "measurement",
+     "quantiles": [
+      36.61,
+      36.89,
+      37.22
+     ]
+    },
+    "hb_last": {
+     "kind": "continuous",
+     "coverage": 0.968144870712033,
+     "missing_type": "measurement",
+     "quantiles": [
+      9.1,
+      10.3,
+      11.6
+     ]
+    },
+    "creatinine_last": {
+     "kind": "continuous",
+     "coverage": 0.9688629219519629,
+     "missing_type": "measurement",
+     "quantiles": [
+      0.7,
+      0.9,
+      1.2
+     ]
+    },
+    "lactate_last": {
+     "kind": "continuous",
+     "coverage": 0.7938521382687733,
+     "missing_type": "measurement",
+     "quantiles": [
+      1.2,
+      1.7,
+      2.3
+     ]
+    },
+    "age": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      55.0,
+      65.0,
+      75.0
+     ]
+    },
+    "L": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      12.0,
+      20.0,
+      32.0
+     ]
+    },
+    "vaso_hours": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      0.0,
+      0.0,
+      6.0
+     ]
+    },
+    "vaso_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.21110448162124607
+    },
+    "vaso_24h": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.38317073863709744
+    },
+    "sedation_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.26208611965626527
+    },
+    "sedation_24h": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.5298675737875137
+    },
+    "vent_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.3529712598699759
+    },
+    "sex_male": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.6163255923277
+    },
+    "emergency": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.5620145728240852
+    },
+    "surgical_group": {
+     "kind": "nominal",
+     "coverage": 1.0,
+     "missing_type": null,
+     "shares": {
+      "cardiac": 0.341,
+      "unknown": 0.247,
+      "general_gi": 0.162,
+      "neuro": 0.113,
+      "thoracic": 0.042,
+      "vascular": 0.038,
+      "ortho": 0.026,
+      "uro_gyn": 0.015,
+      "ent_head_neck": 0.012,
+      "plastic_other": 0.004
+     }
+    }
+   }
+  },
+  "eicu": {
+   "landmarks": 466385,
+   "patients": 32032,
+   "prevalence": 0.19343246459470181,
+   "inputs": {
+    "map_last": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      73.0,
+      80.0,
+      90.0
+     ]
+    },
+    "map_mean_6h": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      73.17,
+      80.08,
+      88.88
+     ]
+    },
+    "map_min_6h": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      66.5,
+      73.0,
+      81.0
+     ]
+    },
+    "map_sd_6h": {
+     "kind": "continuous",
+     "coverage": 0.9946138919562164,
+     "missing_type": "measurement",
+     "quantiles": [
+      3.4,
+      5.16,
+      7.69
+     ]
+    },
+    "map_slope_6h": {
+     "kind": "continuous",
+     "coverage": 0.9946138919562164,
+     "missing_type": "measurement",
+     "quantiles": [
+      -1.29,
+      0.19,
+      1.6
+     ]
+    },
+    "hr_last": {
+     "kind": "continuous",
+     "coverage": 0.9976028388563097,
+     "missing_type": "measurement",
+     "quantiles": [
+      72.5,
+      83.0,
+      95.0
+     ]
+    },
+    "hr_slope_6h": {
+     "kind": "continuous",
+     "coverage": 0.9933038155172229,
+     "missing_type": "measurement",
+     "quantiles": [
+      -1.0,
+      0.0,
+      1.1
+     ]
+    },
+    "spo2_last": {
+     "kind": "continuous",
+     "coverage": 0.9872701737834622,
+     "missing_type": "measurement",
+     "quantiles": [
+      95.0,
+      97.0,
+      99.0
+     ]
+    },
+    "spo2_min_6h": {
+     "kind": "continuous",
+     "coverage": 0.9872701737834622,
+     "missing_type": "measurement",
+     "quantiles": [
+      94.0,
+      96.0,
+      98.0
+     ]
+    },
+    "rr_last": {
+     "kind": "continuous",
+     "coverage": 0.9086655874438501,
+     "missing_type": "measurement",
+     "quantiles": [
+      14.5,
+      17.5,
+      21.0
+     ]
+    },
+    "temp_last": {
+     "kind": "continuous",
+     "coverage": 0.8856652765419128,
+     "missing_type": "measurement",
+     "quantiles": [
+      36.6,
+      36.9,
+      37.3
+     ]
+    },
+    "hb_last": {
+     "kind": "continuous",
+     "coverage": 0.9067079773148793,
+     "missing_type": "measurement",
+     "quantiles": [
+      9.2,
+      10.5,
+      12.0
+     ]
+    },
+    "creatinine_last": {
+     "kind": "continuous",
+     "coverage": 0.8793014355092895,
+     "missing_type": "measurement",
+     "quantiles": [
+      0.71,
+      0.91,
+      1.24
+     ]
+    },
+    "lactate_last": {
+     "kind": "continuous",
+     "coverage": 0.22571051813415954,
+     "missing_type": "measurement (declared)",
+     "quantiles": [
+      1.1,
+      1.6,
+      2.4
+     ]
+    },
+    "age": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      55.0,
+      65.0,
+      75.0
+     ]
+    },
+    "L": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      10.0,
+      18.0,
+      32.0
+     ]
+    },
+    "vaso_hours": {
+     "kind": "continuous",
+     "coverage": 1.0,
+     "missing_type": null,
+     "quantiles": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "vaso_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.07578288324024143
+    },
+    "vaso_24h": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.15639653933981582
+    },
+    "sedation_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.06525938870246685
+    },
+    "sedation_24h": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.16363519409929564
+    },
+    "vent_on": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.1697288720692132
+    },
+    "sex_male": {
+     "kind": "binary",
+     "coverage": 1.0,
+     "missing_type": null,
+     "share_true": 0.5846821831748448
+    },
+    "emergency": {
+     "kind": "binary",
+     "coverage": 0.943625974248743,
+     "missing_type": "measurement",
+     "share_true": 0.11320561790348858
+    },
+    "surgical_group": {
+     "kind": "nominal",
+     "coverage": 1.0,
+     "missing_type": null,
+     "shares": {
+      "cardiac": 0.315,
+      "plastic_other": 0.186,
+      "general_gi": 0.152,
+      "vascular": 0.111,
+      "thoracic": 0.082,
+      "neuro": 0.043,
+      "unknown": 0.038,
+      "uro_gyn": 0.035,
+      "ortho": 0.034,
+      "ent_head_neck": 0.003
+     }
+    }
+   },
+   "hospitals_300": 36
+  }
+ },
+ "flags": [],
+ "gate": "pass"
+}

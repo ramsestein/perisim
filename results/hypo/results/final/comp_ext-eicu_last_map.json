@@ -1,0 +1,18 @@
+{
+ "external": "eicu",
+ "development": [
+  "inspire",
+  "mimic"
+ ],
+ "method": "last_map",
+ "n_train": 535452,
+ "seed": 20262028,
+ "quick": false,
+ "code_hash": "cf0d0b80c70a",
+ "seconds": 0.15431069998885505,
+ "coef_per_sd": [
+  -1.2215037060937612,
+  0.29123679727118246,
+  0.05559858782351846
+ ]
+}

@@ -1,0 +1,1025 @@
+{
+  "cohort": "mimic",
+  "n_index": 24768,
+  "flow": [
+    {
+      "step": "ICU stays with valid admission and discharge times",
+      "n_stays": 94676,
+      "n_subjects": 64928,
+      "excluded": null,
+      "rounded": false
+    },
+    {
+      "step": "Age ≥ 18 years",
+      "n_stays": 94676,
+      "n_subjects": 64928,
+      "excluded": 0,
+      "rounded": false
+    },
+    {
+      "step": "Postoperative ICU admission",
+      "n_stays": 28686,
+      "n_subjects": 26083,
+      "excluded": 65990,
+      "rounded": false
+    },
+    {
+      "step": "First postoperative stay of the hospitalization",
+      "n_stays": 28163,
+      "n_subjects": 26083,
+      "excluded": 523,
+      "rounded": false
+    },
+    {
+      "step": "Discharged alive from the ICU (ICU deaths excluded)",
+      "n_stays": 26954,
+      "n_subjects": 24995,
+      "excluded": 1209,
+      "rounded": false
+    },
+    {
+      "step": "ICU stay ≥ 4 h",
+      "n_stays": 26585,
+      "n_subjects": 24688,
+      "excluded": 369,
+      "rounded": false
+    },
+    {
+      "step": "ICU discharge within the hospital (ward follow-up)",
+      "n_stays": 25309,
+      "n_subjects": 23634,
+      "excluded": 1276,
+      "rounded": false
+    },
+    {
+      "step": "No OR / PACU / IR / ICU entry within 6 h of the ICU exit",
+      "n_stays": 25128,
+      "n_subjects": 23478,
+      "excluded": 181,
+      "rounded": false
+    },
+    {
+      "step": "Organ donors excluded",
+      "n_stays": 25128,
+      "n_subjects": 23478,
+      "excluded": 0,
+      "rounded": false
+    },
+    {
+      "step": "Known limitation of life-sustaining treatment before the cutoff excluded",
+      "n_stays": 24768,
+      "n_subjects": 23162,
+      "excluded": 360,
+      "rounded": false
+    }
+  ],
+  "issues": [
+    "mimic: component rrt_start with prevalence < 0.5 %"
+  ],
+  "inputs": [
+    {
+      "feature": "age",
+      "type": "continuous",
+      "block": "demographics",
+      "missing_pct": 0.0,
+      "units": null,
+      "p5": 34.0,
+      "p25": 56.0,
+      "p50": 66.0,
+      "p75": 75.0,
+      "p95": 86.0
+    },
+    {
+      "feature": "sex_male",
+      "type": "binary",
+      "block": "demographics",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 15251,
+      "prev_pct": 61.58
+    },
+    {
+      "feature": "asa",
+      "type": "ordinal",
+      "block": "baseline",
+      "missing_pct": 100.0,
+      "units": null
+    },
+    {
+      "feature": "emergency",
+      "type": "binary",
+      "block": "baseline",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13507,
+      "prev_pct": 54.53
+    },
+    {
+      "feature": "anesthesia_type",
+      "type": "nominal",
+      "block": "surgery",
+      "missing_pct": 100.0,
+      "units": null,
+      "top": ""
+    },
+    {
+      "feature": "surgical_group",
+      "type": "nominal",
+      "block": "surgery",
+      "missing_pct": 24.1,
+      "units": null,
+      "top": "cardiac (9302); general_gi (3692); neuro (2514); thoracic (957); vascular (883); ortho (665); uro_gyn (432); ent_head_neck (262)"
+    },
+    {
+      "feature": "admit_source",
+      "type": "nominal",
+      "block": "surgery",
+      "missing_pct": 0.1,
+      "units": null,
+      "top": "direct (13075); ed (6520); other_hospital (5019); facility (117)"
+    },
+    {
+      "feature": "surgery_duration_min",
+      "type": "continuous",
+      "block": "surgery",
+      "missing_pct": 100.0,
+      "units": null
+    },
+    {
+      "feature": "icu_los_h",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "p5": 17.14390277773142,
+      "p25": 26.766944444365798,
+      "p50": 45.32486111111939,
+      "p75": 77.7686111110573,
+      "p95": 228.59402777762386
+    },
+    {
+      "feature": "pcs_l1",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 63.6,
+      "units": null,
+      "top": "0 (9017)"
+    },
+    {
+      "feature": "pcs_l2",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 63.6,
+      "units": null,
+      "top": "02 (5077); 0D (653); 00 (451); 0B (410); 0F (353); 0J (252); 04 (233); 0W (227)"
+    },
+    {
+      "feature": "pcs_l3",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 63.6,
+      "units": null,
+      "top": "021 (2947); 02R (1539); 02U (384); 0DB (280); 0FY (220); 0DT (191); 00B (172); 00C (155)"
+    },
+    {
+      "feature": "pcs_l4",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 63.6,
+      "units": null,
+      "top": "0210 (1918); 02RF (1106); 0211 (645); 02UG (360); 0212 (316); 0FY0 (219); 02RG (197); 02RX (180)"
+    },
+    {
+      "feature": "pcs_l5",
+      "type": "hier",
+      "block": "surgery",
+      "missing_pct": 63.6,
+      "units": null,
+      "top": "02100 (1914); 02RF0 (1106); 02110 (644); 02UG0 (360); 02120 (316); 0FY00 (219); 02RG0 (197); 02RX0 (180)"
+    },
+    {
+      "feature": "bmi",
+      "type": "continuous",
+      "block": "demographics",
+      "missing_pct": 97.2,
+      "units": null,
+      "p5": 20.425424567735476,
+      "p25": 24.609464675160694,
+      "p50": 27.508650519031146,
+      "p75": 31.433469514618434,
+      "p95": 41.53734605466888
+    },
+    {
+      "feature": "last_wbc",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.1,
+      "units": "10^3/uL",
+      "p5": 5.3,
+      "p25": 8.3,
+      "p50": 10.7,
+      "p75": 13.7,
+      "p95": 19.6
+    },
+    {
+      "feature": "last_pco2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 21.8,
+      "units": "mmHg",
+      "p5": 30.0,
+      "p25": 36.0,
+      "p50": 39.0,
+      "p75": 44.0,
+      "p95": 50.0
+    },
+    {
+      "feature": "last_albumin",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 51.8,
+      "units": "g/dL",
+      "p5": 2.2,
+      "p25": 2.9,
+      "p50": 3.5,
+      "p75": 4.0,
+      "p95": 4.5
+    },
+    {
+      "feature": "last_lactate",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 15.5,
+      "units": "mmol/L",
+      "p5": 0.8,
+      "p25": 1.1,
+      "p50": 1.5,
+      "p75": 2.0,
+      "p95": 3.1
+    },
+    {
+      "feature": "last_po2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 21.8,
+      "units": "mmHg",
+      "p5": 70.0,
+      "p25": 91.0,
+      "p50": 114.0,
+      "p75": 150.0,
+      "p95": 237.0
+    },
+    {
+      "feature": "last_bilirubin",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 46.3,
+      "units": "mg/dL",
+      "p5": 0.2,
+      "p25": 0.4,
+      "p50": 0.6,
+      "p75": 1.0,
+      "p95": 3.6
+    },
+    {
+      "feature": "last_plt",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.1,
+      "units": "10^3/uL",
+      "p5": 78.0,
+      "p25": 129.0,
+      "p50": 174.0,
+      "p75": 238.0,
+      "p95": 405.0
+    },
+    {
+      "feature": "last_hb",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.1,
+      "units": "g/dL",
+      "p5": 7.6,
+      "p25": 8.8,
+      "p50": 9.9,
+      "p75": 11.2,
+      "p95": 13.2
+    },
+    {
+      "feature": "last_ph",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 21.5,
+      "units": "pH",
+      "p5": 7.31,
+      "p25": 7.36,
+      "p50": 7.4,
+      "p75": 7.44,
+      "p95": 7.5
+    },
+    {
+      "feature": "last_creatinine",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 0.1,
+      "units": "mg/dL",
+      "p5": 0.5,
+      "p25": 0.7,
+      "p50": 0.9,
+      "p75": 1.2,
+      "p95": 2.9
+    },
+    {
+      "feature": "last_rr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.6,
+      "units": "breaths/min",
+      "p5": 12.0,
+      "p25": 16.0,
+      "p50": 19.0,
+      "p75": 22.0,
+      "p95": 28.0
+    },
+    {
+      "feature": "last_hr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.5,
+      "units": "bpm",
+      "p5": 61.0,
+      "p25": 73.0,
+      "p50": 82.0,
+      "p75": 92.0,
+      "p95": 108.0
+    },
+    {
+      "feature": "last_spo2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.6,
+      "units": "%",
+      "p5": 92.0,
+      "p25": 95.0,
+      "p50": 96.0,
+      "p75": 98.0,
+      "p95": 100.0
+    },
+    {
+      "feature": "last_fio2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 68.2,
+      "units": "%",
+      "p5": 35.0,
+      "p25": 40.0,
+      "p50": 40.0,
+      "p75": 50.0,
+      "p95": 70.0
+    },
+    {
+      "feature": "last_map",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.8,
+      "units": "mmHg",
+      "p5": 59.0,
+      "p25": 69.0,
+      "p50": 77.0,
+      "p75": 87.0,
+      "p95": 102.0
+    },
+    {
+      "feature": "last_temp",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 5.4,
+      "units": "°C",
+      "p5": 36.166666666666664,
+      "p25": 36.61111111111111,
+      "p50": 36.83333333333333,
+      "p75": 37.05555555555555,
+      "p95": 37.55555555555555
+    },
+    {
+      "feature": "last_gcs",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.6,
+      "units": "points",
+      "p5": 14.0,
+      "p25": 15.0,
+      "p50": 15.0,
+      "p75": 15.0,
+      "p95": 15.0
+    },
+    {
+      "feature": "slope_map",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 5.0,
+      "units": "mmHg",
+      "p5": -1.0113705549406198,
+      "p25": -0.35935883105315747,
+      "p50": -0.003474216133286763,
+      "p75": 0.345357112574892,
+      "p95": 0.9132788553116763
+    },
+    {
+      "feature": "slope_rr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.7,
+      "units": "breaths/min",
+      "p5": -0.28082023229363645,
+      "p25": -0.09163536404722401,
+      "p50": 0.027078595708771764,
+      "p75": 0.15391304347826149,
+      "p95": 0.38224380068494684
+    },
+    {
+      "feature": "slope_spo2",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.7,
+      "units": "%",
+      "p5": -0.258360316200898,
+      "p25": -0.12154886099034226,
+      "p50": -0.03580171059528184,
+      "p75": 0.03521739130434783,
+      "p95": 0.14801568952426078
+    },
+    {
+      "feature": "slope_hr",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 4.5,
+      "units": "bpm",
+      "p5": -1.0612173913043452,
+      "p25": -0.3808695652173911,
+      "p50": -0.03521739130434783,
+      "p75": 0.3125769785298364,
+      "p95": 1.0014005977401195
+    },
+    {
+      "feature": "slope_temp",
+      "type": "continuous",
+      "block": "discharge_status",
+      "missing_pct": 8.3,
+      "units": "°C",
+      "p5": -0.04729181869951568,
+      "p25": -0.01403759651484358,
+      "p50": 0.0015873015873028508,
+      "p75": 0.018905783918303203,
+      "p95": 0.0654142451323061
+    },
+    {
+      "feature": "used_vaso",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 10454,
+      "prev_pct": 42.21
+    },
+    {
+      "feature": "used_vent",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 13583,
+      "prev_pct": 54.84
+    },
+    {
+      "feature": "used_rrt",
+      "type": "binary",
+      "block": "icu",
+      "missing_pct": 0.0,
+      "units": null,
+      "n_pos": 683,
+      "prev_pct": 2.76
+    },
+    {
+      "feature": "hours_since_vaso_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 57.8,
+      "units": null,
+      "p5": 5.354430555539826,
+      "p25": 17.660624999925492,
+      "p50": 29.065694444378217,
+      "p75": 60.859097222114606,
+      "p95": 169.84658333327624
+    },
+    {
+      "feature": "hours_since_vent_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 45.2,
+      "units": null,
+      "p5": 5.2523611109952135,
+      "p25": 19.003055555621785,
+      "p50": 29.164444444328545,
+      "p75": 55.72736111109455,
+      "p95": 129.14205555560687
+    },
+    {
+      "feature": "hours_since_rrt_off",
+      "type": "continuous",
+      "block": "icu",
+      "missing_pct": 97.2,
+      "units": null,
+      "p5": 0.0,
+      "p25": 0.5352777777860562,
+      "p50": 20.27527777776122,
+      "p75": 49.65861111109455,
+      "p95": 151.3920277776569
+    },
+    {
+      "feature": "med_J01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 75,
+      "prev_pct": 0.3
+    },
+    {
+      "feature": "med_C03C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 10068,
+      "prev_pct": 40.65
+    },
+    {
+      "feature": "med_A04A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 6629,
+      "prev_pct": 26.76
+    },
+    {
+      "feature": "med_J01X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 7229,
+      "prev_pct": 29.19
+    },
+    {
+      "feature": "med_N02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 16585,
+      "prev_pct": 66.96
+    },
+    {
+      "feature": "med_B01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 19238,
+      "prev_pct": 77.67
+    },
+    {
+      "feature": "med_C01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 2021,
+      "prev_pct": 8.16
+    },
+    {
+      "feature": "med_C10A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 8736,
+      "prev_pct": 35.27
+    },
+    {
+      "feature": "med_C01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 6696,
+      "prev_pct": 27.03
+    },
+    {
+      "feature": "med_B05X",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 15045,
+      "prev_pct": 60.74
+    },
+    {
+      "feature": "med_N02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 17979,
+      "prev_pct": 72.59
+    },
+    {
+      "feature": "med_A03F",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 4725,
+      "prev_pct": 19.08
+    },
+    {
+      "feature": "med_A02B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 12173,
+      "prev_pct": 49.15
+    },
+    {
+      "feature": "med_A10A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 14885,
+      "prev_pct": 60.1
+    },
+    {
+      "feature": "med_C07A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 12440,
+      "prev_pct": 50.23
+    },
+    {
+      "feature": "med_H02A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 2616,
+      "prev_pct": 10.56
+    },
+    {
+      "feature": "med_C09A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 2308,
+      "prev_pct": 9.32
+    },
+    {
+      "feature": "med_N01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 5097,
+      "prev_pct": 20.58
+    },
+    {
+      "feature": "med_N03A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 1423,
+      "prev_pct": 5.75
+    },
+    {
+      "feature": "med_J01D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 9255,
+      "prev_pct": 37.37
+    },
+    {
+      "feature": "med_C01A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 430,
+      "prev_pct": 1.74
+    },
+    {
+      "feature": "med_N05A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 1279,
+      "prev_pct": 5.16
+    },
+    {
+      "feature": "med_N05C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 1740,
+      "prev_pct": 7.03
+    },
+    {
+      "feature": "med_N05B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 2715,
+      "prev_pct": 10.96
+    },
+    {
+      "feature": "med_C08C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 2616,
+      "prev_pct": 10.56
+    },
+    {
+      "feature": "med_J01F",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 461,
+      "prev_pct": 1.86
+    },
+    {
+      "feature": "med_J01G",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 271,
+      "prev_pct": 1.09
+    },
+    {
+      "feature": "med_J01M",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 1429,
+      "prev_pct": 5.77
+    },
+    {
+      "feature": "med_J01E",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 690,
+      "prev_pct": 2.79
+    },
+    {
+      "feature": "med_J01C",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 1893,
+      "prev_pct": 7.64
+    },
+    {
+      "feature": "med_A07A",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 150,
+      "prev_pct": 0.61
+    },
+    {
+      "feature": "med_C08D",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 628,
+      "prev_pct": 2.54
+    },
+    {
+      "feature": "med_H01B",
+      "type": "binary",
+      "block": "medication",
+      "missing_pct": 3.5,
+      "units": null,
+      "n_pos": 128,
+      "prev_pct": 0.52
+    }
+  ],
+  "ward_frequency": [
+    {
+      "measure": "creatinine",
+      "stays_with_any": 23882,
+      "pct_stays": 96.4,
+      "median_per_day": 0.9957552985184518
+    },
+    {
+      "measure": "hemoglobin",
+      "stays_with_any": 23965,
+      "pct_stays": 96.8,
+      "median_per_day": 0.9718703160543757
+    },
+    {
+      "measure": "J01 antibiotic",
+      "stays_with_any": 12641,
+      "pct_stays": 51.0,
+      "median_per_day": 0.6094679147586277
+    },
+    {
+      "measure": "ward SpO2",
+      "stays_with_any": 0,
+      "pct_stays": 0.0,
+      "median_per_day": null
+    }
+  ],
+  "components": [
+    {
+      "component": "icu_readmission",
+      "observable": true,
+      "n": 1621,
+      "prev_pct": 6.54,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "death",
+      "observable": true,
+      "n": 367,
+      "prev_pct": 1.48,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "reoperation",
+      "observable": true,
+      "n": 1464,
+      "prev_pct": 5.91,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "vent_start",
+      "observable": true,
+      "n": 521,
+      "prev_pct": 2.1,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "vaso_start",
+      "observable": true,
+      "n": 501,
+      "prev_pct": 2.02,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "rrt_start",
+      "observable": true,
+      "n": 103,
+      "prev_pct": 0.42,
+      "missing_pct": "not assessable"
+    },
+    {
+      "component": "aki_3",
+      "observable": true,
+      "n": 288,
+      "prev_pct": 1.16,
+      "missing_pct": 5.7
+    },
+    {
+      "component": "aki_12",
+      "observable": true,
+      "n": 6098,
+      "prev_pct": 24.62,
+      "missing_pct": 5.7
+    },
+    {
+      "component": "antibiotic_course",
+      "observable": true,
+      "n": 2009,
+      "prev_pct": 8.11,
+      "missing_pct": 0.2
+    },
+    {
+      "component": "transfusion",
+      "observable": true,
+      "n": 573,
+      "prev_pct": 2.31,
+      "missing_pct": 0.2
+    },
+    {
+      "component": "hypoxemia_ward",
+      "observable": false,
+      "n": null,
+      "prev_pct": null,
+      "missing_pct": null
+    }
+  ],
+  "t1_classes": [
+    {
+      "class": "none",
+      "n": 16223
+    },
+    {
+      "class": "mild",
+      "n": 5608
+    },
+    {
+      "class": "severe",
+      "n": 2893
+    }
+  ],
+  "t1_severe": {
+    "n": 2902,
+    "pct": 11.72
+  },
+  "t2": {
+    "n_survivors": 24401,
+    "quantiles": {
+      "p10": 1.735208333335403,
+      "p25": 2.711898148152977,
+      "p50": 3.85579861111732,
+      "p75": 6.089837962968482,
+      "p90": 11.823796296295606
+    },
+    "tertiles_descriptive": [
+      2.9395138888930283,
+      5.020397376545049
+    ],
+    "truncated_pct": 1.74
+  },
+  "chronic_rrt": {
+    "n": 505,
+    "pct": 2.04,
+    "note": "RRT before the index surgery (D5): AKI and new RRT are not applicable."
+  },
+  "medication_coverage": {
+    "rows": [
+      {
+        "period": "all",
+        "n": 24768,
+        "covered_pct": 99.8
+      },
+      {
+        "period": "2008 - 2010",
+        "n": 7980,
+        "covered_pct": 99.9
+      },
+      {
+        "period": "2011 - 2013",
+        "n": 5701,
+        "covered_pct": null
+      },
+      {
+        "period": "2014 - 2016",
+        "n": 5141,
+        "covered_pct": null
+      },
+      {
+        "period": "2017 - 2019",
+        "n": 3524,
+        "covered_pct": null
+      },
+      {
+        "period": "2020 - 2022",
+        "n": 2422,
+        "covered_pct": null
+      }
+    ],
+    "note": "Stays whose hospitalization has no medication record are unobservable for medication inputs and the mild medication components (D6); their T1/T3 are undefined (coverage-based exclusion)."
+  },
+  "postop_evidence": {
+    "counts": {
+      "none": 52436,
+      "or_transfer": 9974,
+      "procedure": 18712,
+      "service_only": 13554
+    },
+    "total": 94676,
+    "note": "Candidate ICU episodes by surgical evidence (AUDIT D1/D8): or_transfer = OR/PACU transfer within 24 h before the ICU admission; procedure = major therapeutic code (hospitalizations without OR/PACU transfers); service_only = surgical service without either (NOT postoperative; sensitivity cohort)."
+  }
+}

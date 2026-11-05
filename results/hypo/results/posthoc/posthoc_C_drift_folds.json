@@ -1,0 +1,806 @@
+{
+ "sites": {
+  "inspire": {
+   "folds": [
+    {
+     "fold": 0,
+     "frozen_logloss": 0.3168121106669477,
+     "joint": -0.00036972614378817144,
+     "joint_ci": [
+      -0.0023545145873905874,
+      0.0014998625916671216
+     ],
+     "missing": 7.691671012827494e-05,
+     "missing_ci": [
+      -0.00042132966873402694,
+      0.0006201370197998305
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": [
+      "hb_last",
+      "age"
+     ]
+    },
+    {
+     "fold": 1,
+     "frozen_logloss": 0.3331262720519682,
+     "joint": -0.000995521520797692,
+     "joint_ci": [
+      -0.003049584863356724,
+      0.001124321209766016
+     ],
+     "missing": 0.0,
+     "missing_ci": [
+      0.0,
+      0.0
+     ],
+     "one_var_ci_below_0": [
+      "sex_male"
+     ],
+     "one_var_ci_above_0": []
+    },
+    {
+     "fold": 2,
+     "frozen_logloss": 0.33324756607564643,
+     "joint": -0.0003413284138164281,
+     "joint_ci": [
+      -0.002215950592491171,
+      0.0015911691541326337
+     ],
+     "missing": -1.688645906472803e-05,
+     "missing_ci": [
+      -0.0005442303576172154,
+      0.0005596583690995971
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": [
+      "temp_last",
+      "hb_last",
+      "age"
+     ]
+    },
+    {
+     "fold": 3,
+     "frozen_logloss": 0.3219005505161042,
+     "joint": 0.0014206532120644624,
+     "joint_ci": [
+      -0.00041695187247692923,
+      0.003364184973945087
+     ],
+     "missing": 0.00010472324372284869,
+     "missing_ci": [
+      -0.0002811635468217584,
+      0.0004828079261220928
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": [
+      "map_last"
+     ]
+    },
+    {
+     "fold": 4,
+     "frozen_logloss": 0.3262470540195514,
+     "joint": -0.0011492145263187297,
+     "joint_ci": [
+      -0.0034205906940885577,
+      0.0009331069283557727
+     ],
+     "missing": 1.8035784538714287e-05,
+     "missing_ci": [
+      -2.6799729396785736e-05,
+      5.6195292239934664e-05
+     ],
+     "one_var_ci_below_0": [
+      "map_mean_6h",
+      "map_sd_6h",
+      "vent_on"
+     ],
+     "one_var_ci_above_0": []
+    }
+   ],
+   "joint_mean": -0.0002870274785313117,
+   "joint_sd": 0.0010211869705324661,
+   "variables": {
+    "map_last": {
+     "mean_delta": 0.00043751498906059293,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 1,
+     "mean_split_half_r": -0.013499441693337205
+    },
+    "map_mean_6h": {
+     "mean_delta": -0.00017918934753390525,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.048603062960274265
+    },
+    "map_min_6h": {
+     "mean_delta": 0.0004273800180469075,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.24706608038653521
+    },
+    "map_sd_6h": {
+     "mean_delta": -1.5511352168603782e-05,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.1328396270072389
+    },
+    "map_slope_6h": {
+     "mean_delta": 5.9489297813285256e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.13105905275038987
+    },
+    "hr_last": {
+     "mean_delta": -7.573534143030709e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.3354327235644404
+    },
+    "hr_slope_6h": {
+     "mean_delta": -1.0548116261451587e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.08051042412944598
+    },
+    "spo2_last": {
+     "mean_delta": 0.00018541422960589236,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.21941845995134357
+    },
+    "spo2_min_6h": {
+     "mean_delta": 9.809517191409578e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.6145115249691983
+    },
+    "rr_last": {
+     "mean_delta": 0.00012345268459157746,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.3189614095743599
+    },
+    "temp_last": {
+     "mean_delta": 0.0003930427146055518,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 1,
+     "mean_split_half_r": 0.4869172643706996
+    },
+    "temp_last__missing": {
+     "mean_delta": -1.9038786590067946e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "hb_last": {
+     "mean_delta": 0.0005255801012972796,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 2,
+     "mean_split_half_r": 0.17595838731865848
+    },
+    "hb_last__missing": {
+     "mean_delta": -1.549296596606302e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "creatinine_last": {
+     "mean_delta": 0.0001272559549420983,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.036992594312709515
+    },
+    "creatinine_last__missing": {
+     "mean_delta": -7.243446830836464e-07,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "lactate_last": {
+     "mean_delta": 4.9775157962056016e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.09494118912970247
+    },
+    "lactate_last__missing": {
+     "mean_delta": -1.2046323353200865e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "age": {
+     "mean_delta": 0.00027367277658488915,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 2,
+     "mean_split_half_r": 0.33327188326059726
+    },
+    "L": {
+     "mean_delta": 0.00024190449961053435,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.3234096231677793
+    },
+    "vaso_hours": {
+     "mean_delta": 0.0,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "vaso_on": {
+     "mean_delta": 0.0,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "vaso_24h": {
+     "mean_delta": -3.695028354411549e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sedation_on": {
+     "mean_delta": 0.0,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sedation_24h": {
+     "mean_delta": -1.3552815975102067e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "vent_on": {
+     "mean_delta": 4.016863837853747e-05,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sex_male": {
+     "mean_delta": -0.00014340971827624447,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "emergency": {
+     "mean_delta": 8.18760018998457e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "surgical_group": {
+     "mean_delta": 0.00019890284149742202,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.325763449359239
+    }
+   }
+  },
+  "mimic": {
+   "folds": [
+    {
+     "fold": 0,
+     "frozen_logloss": 0.5028493003175724,
+     "joint": -0.00037038481433625297,
+     "joint_ci": [
+      -0.0027050190788642124,
+      0.0018129842947114257
+     ],
+     "missing": -0.0003190864242227894,
+     "missing_ci": [
+      -0.0007839553326066581,
+      0.0001366047009925775
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": []
+    },
+    {
+     "fold": 1,
+     "frozen_logloss": 0.49952544946265554,
+     "joint": -0.0024350846415654107,
+     "joint_ci": [
+      -0.004182679236130287,
+      -0.000666607980357534
+     ],
+     "missing": -9.432331883700724e-05,
+     "missing_ci": [
+      -0.0004424126971574221,
+      0.00025213127627723384
+     ],
+     "one_var_ci_below_0": [
+      "lactate_last",
+      "vaso_hours"
+     ],
+     "one_var_ci_above_0": []
+    },
+    {
+     "fold": 2,
+     "frozen_logloss": 0.5076436820734039,
+     "joint": -0.0012680034154441363,
+     "joint_ci": [
+      -0.0036155361365569176,
+      0.001266042804595273
+     ],
+     "missing": 9.422358869084588e-06,
+     "missing_ci": [
+      -5.655677978546507e-06,
+      2.8712137496529244e-05
+     ],
+     "one_var_ci_below_0": [
+      "hr_last",
+      "sedation_24h"
+     ],
+     "one_var_ci_above_0": []
+    },
+    {
+     "fold": 3,
+     "frozen_logloss": 0.5029560893530725,
+     "joint": 0.0020482351412022945,
+     "joint_ci": [
+      -0.0003869592470577665,
+      0.004582620349570393
+     ],
+     "missing": -0.00036552030081769946,
+     "missing_ci": [
+      -0.0010222780699973655,
+      0.0002904141182804029
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": [
+      "map_sd_6h"
+     ]
+    },
+    {
+     "fold": 4,
+     "frozen_logloss": 0.5148874025079397,
+     "joint": -7.958271581944204e-05,
+     "joint_ci": [
+      -0.0025068921139188957,
+      0.002087859611617383
+     ],
+     "missing": 0.0,
+     "missing_ci": [
+      0.0,
+      0.0
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": []
+    }
+   ],
+   "joint_mean": -0.0004209640891925895,
+   "joint_sd": 0.0016575736457410488,
+   "variables": {
+    "map_last": {
+     "mean_delta": -0.00034976615386205076,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.17029582128428347
+    },
+    "map_mean_6h": {
+     "mean_delta": -2.3608183453945464e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.2232790364709199
+    },
+    "map_min_6h": {
+     "mean_delta": -0.00017203824019514202,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.03561331102450744
+    },
+    "map_sd_6h": {
+     "mean_delta": 9.73868579976048e-07,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 1,
+     "mean_split_half_r": 0.12973973255379717
+    },
+    "map_slope_6h": {
+     "mean_delta": -3.1781222781939746e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.19430898580483463
+    },
+    "hr_last": {
+     "mean_delta": -0.00016250717452985953,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.4563747278895354
+    },
+    "hr_slope_6h": {
+     "mean_delta": -7.588338991352996e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.2962009612930926
+    },
+    "spo2_last": {
+     "mean_delta": -0.0002087613490875106,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.34936762619491435
+    },
+    "spo2_min_6h": {
+     "mean_delta": -7.148381176023166e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.20694014155687993
+    },
+    "rr_last": {
+     "mean_delta": 8.478890317701847e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.4471707651176672
+    },
+    "temp_last": {
+     "mean_delta": -0.00012320394595630778,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.1175322109958713
+    },
+    "temp_last__missing": {
+     "mean_delta": 2.868304750440654e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "hb_last": {
+     "mean_delta": -5.154350106369955e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.04807272881057717
+    },
+    "hb_last__missing": {
+     "mean_delta": -1.8169234863674002e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "creatinine_last": {
+     "mean_delta": 8.688855425455792e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.3984918614585963
+    },
+    "creatinine_last__missing": {
+     "mean_delta": 4.056212088972967e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "lactate_last": {
+     "mean_delta": -4.809240141222897e-05,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.09296036963864028
+    },
+    "lactate_last__missing": {
+     "mean_delta": -0.00014925712077360078,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "age": {
+     "mean_delta": 0.00014863914409341222,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.2317231246344293
+    },
+    "L": {
+     "mean_delta": -0.00027815533531232335,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.023009824883794158
+    },
+    "vaso_hours": {
+     "mean_delta": -0.0002918544990793708,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.09469989480504727
+    },
+    "vaso_on": {
+     "mean_delta": 6.893841903071558e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "vaso_24h": {
+     "mean_delta": 5.36218866241662e-07,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sedation_on": {
+     "mean_delta": -5.3488476773639496e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sedation_24h": {
+     "mean_delta": -0.0006088359018723268,
+     "folds_ci_below_0": 1,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "vent_on": {
+     "mean_delta": 0.00011340055792501659,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sex_male": {
+     "mean_delta": -0.00010038077798648459,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "emergency": {
+     "mean_delta": -7.665438883038936e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "surgical_group": {
+     "mean_delta": -0.0006573394626928452,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.5573075661250461
+    }
+   }
+  },
+  "eicu": {
+   "folds": [
+    {
+     "fold": 0,
+     "frozen_logloss": 0.3928545334675357,
+     "joint": 0.0006549616706281654,
+     "joint_ci": [
+      -0.0009583834353533918,
+      0.0020566018455634824
+     ],
+     "missing": 0.0,
+     "missing_ci": [
+      0.0,
+      0.0
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": []
+    },
+    {
+     "fold": 1,
+     "frozen_logloss": 0.39833171091500824,
+     "joint": 0.001345780117220384,
+     "joint_ci": [
+      -0.001174734236552914,
+      0.0034006806208084187
+     ],
+     "missing": -5.777666479560069e-05,
+     "missing_ci": [
+      -0.0010360188813349292,
+      0.0009816917149501937
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": [
+      "vaso_24h"
+     ]
+    },
+    {
+     "fold": 2,
+     "frozen_logloss": 0.4036856086975726,
+     "joint": 0.001504832446712239,
+     "joint_ci": [
+      -0.000717199163113754,
+      0.0037040882284659783
+     ],
+     "missing": 0.0,
+     "missing_ci": [
+      0.0,
+      0.0
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": []
+    },
+    {
+     "fold": 3,
+     "frozen_logloss": 0.3924445065507775,
+     "joint": 0.0020410472922207604,
+     "joint_ci": [
+      -0.00040983006487827004,
+      0.004328712459063523
+     ],
+     "missing": 0.00022128911356280936,
+     "missing_ci": [
+      -0.0006444064706059486,
+      0.0012060308254008137
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": [
+      "age",
+      "sedation_24h"
+     ]
+    },
+    {
+     "fold": 4,
+     "frozen_logloss": 0.3922718806937745,
+     "joint": 0.0017387296152078608,
+     "joint_ci": [
+      -0.0005905534649033416,
+      0.004187520740495129
+     ],
+     "missing": 4.18938066299888e-05,
+     "missing_ci": [
+      -1.199140336509887e-05,
+      0.0001034146571149809
+     ],
+     "one_var_ci_below_0": [],
+     "one_var_ci_above_0": []
+    }
+   ],
+   "joint_mean": 0.001457070228397882,
+   "joint_sd": 0.00051923166266152,
+   "variables": {
+    "map_last": {
+     "mean_delta": 0.000425854601496293,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.20459971259832405
+    },
+    "map_mean_6h": {
+     "mean_delta": -3.429422461460921e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.12836981273203954
+    },
+    "map_min_6h": {
+     "mean_delta": 0.00012238636136075273,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.12898481550585283
+    },
+    "map_sd_6h": {
+     "mean_delta": 0.0002118826309668719,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.1287143997647671
+    },
+    "map_slope_6h": {
+     "mean_delta": 3.382218964834026e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.09776202476516205
+    },
+    "hr_last": {
+     "mean_delta": 0.0002538892760178705,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.2103553588126867
+    },
+    "hr_slope_6h": {
+     "mean_delta": 8.977311896825062e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": -0.010704821888880733
+    },
+    "spo2_last": {
+     "mean_delta": 0.00017771858192365463,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.396836070992815
+    },
+    "spo2_min_6h": {
+     "mean_delta": 0.00024515372145768853,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.1188799265688875
+    },
+    "rr_last": {
+     "mean_delta": 3.1506622850794364e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.39273078435996056
+    },
+    "temp_last": {
+     "mean_delta": 7.514326711308945e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.30847303082338867
+    },
+    "temp_last__missing": {
+     "mean_delta": -4.906788474234923e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "hb_last": {
+     "mean_delta": 0.00022783266959123467,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.263457261622274
+    },
+    "creatinine_last": {
+     "mean_delta": -3.5681286298298655e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.1269182626558944
+    },
+    "lactate_last": {
+     "mean_delta": 1.782760710317731e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.05908976068206641
+    },
+    "lactate_last__missing": {
+     "mean_delta": 3.895178273792542e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "age": {
+     "mean_delta": 7.986042302723844e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 1,
+     "mean_split_half_r": 0.3426756787137362
+    },
+    "L": {
+     "mean_delta": 0.0003038796664585195,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.2505783801123301
+    },
+    "vaso_hours": {
+     "mean_delta": -6.199351225835394e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.16567229158745408
+    },
+    "vaso_on": {
+     "mean_delta": -3.0340577094286838e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "vaso_24h": {
+     "mean_delta": 3.214570931461648e-06,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 1,
+     "mean_split_half_r": NaN
+    },
+    "sedation_on": {
+     "mean_delta": 6.021245394387202e-07,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sedation_24h": {
+     "mean_delta": 0.0001267766441442285,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 1,
+     "mean_split_half_r": NaN
+    },
+    "vent_on": {
+     "mean_delta": -2.3810391663268753e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "sex_male": {
+     "mean_delta": -1.592104574684449e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": NaN
+    },
+    "emergency": {
+     "mean_delta": 1.5211163070104084e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.564966599480411
+    },
+    "surgical_group": {
+     "mean_delta": 8.615085184305468e-05,
+     "folds_ci_below_0": 0,
+     "folds_ci_above_0": 0,
+     "mean_split_half_r": 0.4471601296664136
+    }
+   }
+  }
+ }
+}

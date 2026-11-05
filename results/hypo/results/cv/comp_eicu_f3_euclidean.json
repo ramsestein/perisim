@@ -1,0 +1,14 @@
+{
+ "site": "eicu",
+ "fold": 3,
+ "method": "euclidean",
+ "n_train": 372449,
+ "n_test": 93936,
+ "seconds": 51.07726549998915,
+ "code_hash": "11a7ad77e519",
+ "alpha": 1.0,
+ "loo_logloss": 0.41132896416262754,
+ "ood_threshold": 4.088738918304443,
+ "short_neighbourhoods": 0.0,
+ "n_queries": 20000
+}

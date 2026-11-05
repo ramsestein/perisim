@@ -1,0 +1,14 @@
+{
+ "site": "inspire",
+ "fold": 4,
+ "method": "lightgbm",
+ "n_train": 118765,
+ "n_test": 29528,
+ "seconds": 23.703083200001856,
+ "code_hash": "11a7ad77e519",
+ "temperature": 0.9954849952597249,
+ "num_leaves": 31,
+ "learning_rate": 0.03,
+ "n_estimators": 211,
+ "inner_logloss": 0.3152905815960601
+}

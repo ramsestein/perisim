@@ -1,0 +1,10 @@
+{
+ "site": "inspire",
+ "fold": 3,
+ "method": "logreg",
+ "n_train": 118283,
+ "n_test": 30010,
+ "seconds": 3.0455397999903653,
+ "code_hash": "11a7ad77e519",
+ "C": 0.01
+}

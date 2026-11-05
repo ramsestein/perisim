@@ -1,0 +1,121 @@
+"""Candidate export package (§9; KHDP: aggregates only, prior review via admin@khdp.net).
+
+Only reports and aggregate JSON files are copied. Never: predictions/, common/, derived/, cache/ or Parquet.
+Each file is scanned for stay/patient identifiers; if any is found, the file is excluded.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import logging
+import shutil
+import zipfile
+from pathlib import Path
+
+from perisim.evaluation.privacy import ID_RE  # internal identifiers: cohort prefix + numeric id (re-exported)
+from perisim.utils import now_iso
+
+LOG = logging.getLogger("perisim.export")
+ALLOWED_SUFFIX = {".html", ".md", ".json", ".png", ".svg", ".csv"}
+
+
+def _sha(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+
+
+def has_identifiers(p: Path) -> bool:
+    """True when a text file (or any member of a .zip) contains a stay / patient identifier (ID_RE)."""
+    suf = p.suffix.lower()
+    if suf == ".png":
+        return False
+    if suf == ".zip":
+        try:
+            with zipfile.ZipFile(p) as z:
+                return any(ID_RE.search(z.read(i).decode("utf-8", errors="ignore"))
+                           for i in z.namelist() if not i.lower().endswith(".png"))
+        except zipfile.BadZipFile:
+            return True                                   # unreadable archive: never copied
+    return bool(ID_RE.search(p.read_text(encoding="utf-8", errors="ignore")))
+
+
+def publish(ws, dest: Path) -> int:
+    """Copies the aggregate outputs of the experiment — reports, the pod's docs and the export package — and the
+    shared schema reports to `dest` (run_pod.sh: updown/perisim/<user>/results, persistent and shared). Never
+    predictions/, common/, derived/ or cache/. Returns the number of files copied."""
+    exp = Path(dest) / "experiments" / ws.experiment
+    pairs = [(ws.data_reports, Path(dest) / "reports"), (ws.reports, exp / "reports"), (ws.docs, exp / "docs"),
+             (ws.root / "results", exp / "results"), (ws.export, exp / "export")]
+    n = 0
+    for src, dst in pairs:
+        if not src.is_dir():
+            continue
+        for p in sorted(src.rglob("*")):
+            if p.is_file() and p.suffix.lower() in ALLOWED_SUFFIX | {".zip"}:
+                if has_identifiers(p):                    # v0.6: the same identifier scan as build_export
+                    LOG.warning("publish: %s not copied (identifiers, or an unreadable archive)", p)
+                    continue
+                q = dst / p.relative_to(src)
+                q.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(p, q)
+                n += 1
+    return n
+
+
+def build_export(ws, cfg) -> Path:
+    out = ws.export
+    for p in out.iterdir():
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink()
+    cands: list[tuple[Path, str]] = []
+    for p in ws.reports.glob("*"):
+        cands.append((p, f"reports/{p.name}"))
+    for p in ws.data_reports.glob("schema_*"):            # discovery reports, shared by the experiments
+        cands.append((p, f"reports/{p.name}"))
+    for p in ws.docs.glob("*.md"):
+        cands.append((p, f"docs/{p.name}"))
+    res = ws.root / "results"
+    if res.exists():                                      # transport tables and figures (aggregates)
+        for p in res.rglob("*"):
+            cands.append((p, "results/" + p.relative_to(res).as_posix()))
+    art = ws.root / "artifacts"
+    if art.exists():
+        for p in art.rglob("*.json"):
+            cands.append((p, "artifacts/" + p.relative_to(art).as_posix()))
+    kept, dropped = [], []
+    for src, rel in cands:
+        if not src.is_file() or src.suffix.lower() not in ALLOWED_SUFFIX:
+            continue
+        if has_identifiers(src):
+            dropped.append((rel, "contains identifiers"))
+            continue
+        dst = out / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dst)
+        kept.append((rel, dst.stat().st_size, _sha(dst)))
+    lines = [
+        "# PERISIM — candidate export package", "",
+        f"Generated: {now_iso()} · code {cfg.hash()[:8]} · experiment `{ws.experiment}` · workdir `{ws.root}`", "",
+        "Contents: aggregates only (metrics, weights w_j, importances, VDM tables with n ≥ "
+        f"{cfg.experiment['evaluation']['small_cell_threshold']}, curves, HTML reports). No patient rows.", "",
+        "## KHDP procedure", "",
+        "1. Write to admin@khdp.net stating the **purpose** (validation of the PERISIM model; TRIPOD+AI manuscript) "
+        "and the **destination** of the files.",
+        "2. Attach or reference this manifest and follow the review indicated by the administrator.", "",
+        "## Automatic checks", "",
+        "- Excluded by design: `predictions/`, `common/`, `derived/`, `cache/`, all `.parquet` files.",
+        "- Scan for stay/patient identifiers in every file: "
+        + (f"{len(dropped)} file(s) excluded." if dropped else "none found."), "",
+        "## Files", "", "| file | bytes | sha256[:16] |", "|---|---|---|",
+    ] + [f"| {r} | {s} | {h} |" for r, s, h in sorted(kept)]
+    if dropped:
+        lines += ["", "## Excluded", ""] + [f"- {r}: {why}" for r, why in dropped]
+    (out / "EXPORT_MANIFEST.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    zpath = out / f"perisim_export_{now_iso()[:10]}.zip"
+    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in out.rglob("*"):
+            if p.is_file() and p != zpath:
+                z.write(p, p.relative_to(out).as_posix())
+    LOG.info("export: %d files in %s (%d excluded)", len(kept), out, len(dropped))
+    return out

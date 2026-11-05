@@ -1,0 +1,10 @@
+{
+ "unit": "eicu_within|H1|N100|o0",
+ "digest_run": "aa494d28b25944d7",
+ "digest_one_thread": "aa494d28b25944d7",
+ "identical": true,
+ "reconstruction": {
+  "steps": 159,
+  "mismatches": 0
+ }
+}

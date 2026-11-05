@@ -1,0 +1,14 @@
+{
+ "external": "mimic",
+ "development": [
+  "inspire",
+  "eicu"
+ ],
+ "method": "logreg",
+ "n_train": 614678,
+ "seed": 20262028,
+ "quick": false,
+ "code_hash": "cf0d0b80c70a",
+ "seconds": 18.97095040002023,
+ "C": 0.1
+}

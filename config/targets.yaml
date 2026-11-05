@@ -1,0 +1,69 @@
+# Operational definitions of T1, T2, T3 and carried variables (§4.2, §4.3). Proposal v0.
+
+window:
+  followup_days: 30              # (t0, t0 + 30 d] and before hospital discharge
+
+t1:
+  classes: [none, mild, severe]
+  severe_components: [icu_readmission, death, reoperation, vent_start, vaso_start, rrt_start, aki_3]
+  # Red blood cell transfusion removed from T1 in every cohort (lead, 2026-10-24): INSPIRE does not record it
+  # (completeness audit: prevalence < 0.5 %); it stays a carried variable (§4.3).
+  mild_components: [aki_12, antibiotic_course]
+  # Components that exist only as sensitivity analyses (added to "mild" if requested)
+  sensitivity_components: [hypoxemia_ward]
+  include_sensitivity_components: []
+  exclude_components: []
+  # Observability per cohort (§2.2). What is not observable does not count; eICU is reduced to severe / not severe.
+  observable:
+    inspire: [icu_readmission, death, reoperation, vent_start, vaso_start, rrt_start, aki_3, aki_12,
+              antibiotic_course, transfusion, hypoxemia_ward]
+    mimic:   [icu_readmission, death, reoperation, vent_start, vaso_start, rrt_start, aki_3, aki_12,
+              antibiotic_course, transfusion]
+    eicu:    [icu_readmission, death]
+  reduced_cohorts: [eicu]
+  # D10 (SPECS D1 proxy, decided 2026-10-22): in cohorts whose ICU stays are only recorded after a surgery, a NEW
+  # run of these supports after t0 also counts as ICU readmission. The audit reports each source separately.
+  icu_readmission_proxy:
+    inspire: [vent, rrt, ecmo, iabp]
+  # D6: components that depend on the medication source; where the source does not cover the hospitalization they
+  # are unobservable and, with exclude_stay, T1/T3 are undefined for the stay (coverage-based, never outcome-based)
+  medication_components: [antibiotic_course, transfusion]
+  unobserved_mild_policy: exclude_stay   # exclude_stay | reduced_definition
+
+kdigo:                           # KDIGO 2012, baseline = last creatinine before the cutoff (rolling windows, D7)
+  ratio_stage1: 1.5                #   ≥ 1.5 × the minimum of the previous window_ratio_days (baseline included)
+  ratio_stage2: 2.0                #   stages 2–3 by the maximum ratio to the baseline
+  ratio_stage3: 3.0
+  abs_increase_48h: 0.3            #   ≥ 0.3 above the minimum of the previous window_abs_hours
+  abs_stage3_mgdl: 4.0             #   only at a detected rise and with a baseline below it (D5)
+  baseline_lookback_days: 7
+  window_ratio_days: 7
+  window_abs_hours: 48
+  exclude_during_rrt: true         # D5: creatinine during an RRT run (or within rrt_exclusion_hours after) ignored
+  rrt_exclusion_hours: 24
+
+antibiotic_course:               # [VERIFY feasibility in INSPIRE and MIMIC-IV]
+  start_after_t0_hours: 24
+  washout_hours: 48
+  min_consecutive_days: 2
+
+hypoxemia_ward:
+  spo2_threshold: 90
+  min_consecutive: 2
+
+t2:                              # 2026-10-24: survivors' stay tertiles + in-hospital death (ordinal, death worst)
+  categories: tertiles           # tertiles (D5, per cohort and within the training fold, survivors) | absolute
+  labels: [short, medium, long, death]
+  absolute_cut_days: [3, 7]      # ≤3 / 4–7 / >7 days
+  truncate_days: 30
+
+t3:
+  labels: [early_discharge_no_complication, expected_no_complication, prolonged_or_mild, severe_or_death]
+  early_quantile: 0.3333         # early discharge = stay ≤ first tertile (training fold)
+  prolonged_quantile: 0.6667     # prolonged = stay > second tertile
+
+carried:                         # §4.3 — never inputs
+  binary: [icu_readmission, vent_start, vaso_start, rrt_start, reoperation, death, aki_any, aki_3,
+           antibiotic_course, transfusion]
+  continuous: [los_post_icu_days]
+  nominal: [discharge_location]

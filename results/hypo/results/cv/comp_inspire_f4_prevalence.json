@@ -1,0 +1,10 @@
+{
+ "site": "inspire",
+ "fold": 4,
+ "method": "prevalence",
+ "n_train": 118765,
+ "n_test": 29528,
+ "seconds": 0.020857199997408316,
+ "code_hash": "11a7ad77e519",
+ "rate": 0.1310066096914074
+}

@@ -1,0 +1,77 @@
+# Model space for consensus SAGE and the shape functions (§5.3.1). Defined BEFORE seeing any results.
+# Ranges: [min, max]; "log" = log-uniform sampling; lists = uniform choice.
+# Everything on CPU (§9.1): LightGBM / XGBoost in hist mode. Decided 2026-10-24: the MLP is replaced by a penalised
+# spline logistic regression (smooth non-linear shapes at low cost) and the logistic family samples its penalty
+# (L2 / LASSO / elastic-net). Shapes per family: straight lines, smooth curves, steps.
+
+families:
+  logreg:
+    weight: 1
+    params:
+      C: {log: [1.0e-3, 10.0]}
+      penalty: {choice: [l2, l1, elasticnet]}
+      l1_ratio: {uniform: [0.1, 0.9]}     # used only with elasticnet
+      max_iter: 1000
+  spline_logreg:
+    weight: 1
+    params:
+      C: {log: [1.0e-3, 10.0]}
+      n_knots: {choice: [4, 6, 8]}
+      degree: 3
+      max_iter: 1000
+  random_forest:
+    weight: 1
+    params:
+      n_estimators: {int: [100, 400]}
+      max_depth: {choice: [6, 10, 16, null]}
+      min_samples_leaf: {int: [5, 50]}
+      max_features: {choice: [sqrt, 0.3, 0.5]}
+  lightgbm:
+    weight: 1
+    params:
+      n_estimators: {int: [100, 800]}
+      learning_rate: {log: [0.01, 0.2]}
+      num_leaves: {int: [8, 128]}
+      min_child_samples: {int: [10, 200]}
+      subsample: {uniform: [0.5, 1.0]}
+      colsample_bytree: {uniform: [0.5, 1.0]}
+      reg_lambda: {log: [1.0e-3, 10.0]}
+  xgboost:
+    weight: 1
+    params:
+      n_estimators: {int: [100, 800]}
+      learning_rate: {log: [0.01, 0.2]}
+      max_depth: {int: [2, 8]}
+      min_child_weight: {log: [1.0, 20.0]}
+      subsample: {uniform: [0.5, 1.0]}
+      colsample_bytree: {uniform: [0.5, 1.0]}
+      reg_lambda: {log: [1.0e-3, 10.0]}
+
+# Configuration of the parametric comparators (§6.4)
+baselines:
+  lgbm:                          # fixed part; num_leaves / learning_rate / n_estimators come from lgbm_grid
+    n_estimators: 400
+    learning_rate: 0.05
+    num_leaves: 31
+    min_child_samples: 50
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+  lgbm_grid:                     # AUDIT E13: tuned in the inner CV with early stopping on the inner folds
+    num_leaves: [15, 31, 63]
+    learning_rate: [0.03, 0.1]
+    max_estimators: 2000
+    early_stopping_rounds: 50
+  logreg_C_grid: [0.001, 0.01, 0.1, 1.0, 10.0]
+  rf:
+    n_estimators: 300
+    min_samples_leaf: 10
+    max_features: sqrt
+  group_prevalence_m: 20         # trivial comparator: prevalence by surgical group, m-estimate towards the overall
+  rf_gap:
+    n_estimators: 200
+    min_samples_leaf: 5
+    max_features: sqrt
+  relieff:
+    n_samples: 5000
+    n_neighbors: 10

@@ -1,0 +1,10 @@
+{
+ "site": "mimic",
+ "fold": 1,
+ "method": "prevalence",
+ "n_train": 310555,
+ "n_test": 76604,
+ "seconds": 0.05770469999697525,
+ "code_hash": "11a7ad77e519",
+ "rate": 0.30913042778251837
+}

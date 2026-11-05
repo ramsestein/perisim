@@ -1,0 +1,5 @@
+# LF line endings in the repo (the scripts run in the Linux pod)
+* text=auto eol=lf
+*.sh text eol=lf
+.githooks/* text eol=lf
+*.png binary

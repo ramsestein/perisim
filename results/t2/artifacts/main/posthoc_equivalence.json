@@ -1,0 +1,108 @@
+{
+ "target": "t2",
+ "sites": {
+  "mimic": {
+   "all": {
+    "n": 4963,
+    "patients": 4632,
+    "R": {
+     "est": 0.49371750566528655,
+     "ci90": [
+      0.2884233969292207,
+      0.6812371623796346
+     ],
+     "ci95": [
+      0.24398982113288767,
+      0.7173706889626644
+     ]
+    },
+    "gain_local": {
+     "est": 0.04160379033516728,
+     "ci95": [
+      0.030901084610172526,
+      0.05294733412665902
+     ]
+    },
+    "gain_transported": {
+     "est": 0.020540519590500343
+    },
+    "cost": {
+     "est": 0.021063270744666938,
+     "ci95": [
+      0.010851375402087141,
+      0.031459412039626
+     ]
+    },
+    "logloss": {
+     "euclidean": 1.069915827763397,
+     "transported": 1.049375308172897,
+     "local": 1.02831203742823
+    },
+    "verdict": "not equivalent"
+   }
+  },
+  "eicu": {
+   "all": {
+    "n": 4725,
+    "patients": 4593,
+    "R": {
+     "est": 0.7240948427759639,
+     "ci90": [
+      0.5872981606641349,
+      0.8582159756031219
+     ],
+     "ci95": [
+      0.5625191467477946,
+      0.8896075656468087
+     ]
+    },
+    "gain_local": {
+     "est": 0.05824162891079844,
+     "ci95": [
+      0.04686378466202702,
+      0.06904481211303254
+     ]
+    },
+    "gain_transported": {
+     "est": 0.04217246312918064
+    },
+    "cost": {
+     "est": 0.0160691657816178,
+     "ci95": [
+      0.006042192028614337,
+      0.026019058516480755
+     ]
+    },
+    "logloss": {
+     "euclidean": 1.0874807971705363,
+     "transported": 1.0453083340413556,
+     "local": 1.029239168259738
+    },
+    "verdict": "not equivalent"
+   }
+  }
+ },
+ "frozen_hashes": {
+  "start": {
+   "experiments/t2/state/freeze.json": "0e286e4282fdce3baa602f50d99e939c6bb7285d10e0d3054c8326478e94f019",
+   "experiments/t2/state/frozen_config/cohorts.yaml": "af3c9558e630939c8d4817ee2e652a7b83315f01adfe8ad8a7958b5bf07ff5b8",
+   "experiments/t2/state/frozen_config/experiment.yaml": "847792d0f68f7e91058230fdb9f2a4b4a8e5bca36cbdd6691e4326537eb377f0",
+   "experiments/t2/state/frozen_config/harmonization.yaml": "94ba81a09374eb41ca16be6e0a8872b8df0fbd24530277986880a258ec781694",
+   "experiments/t2/state/frozen_config/local.yaml": "20432b74561d6cdda322ecb749e55445612aa544f3c1b621a063d2fd501e1f6c",
+   "experiments/t2/state/frozen_config/model_space.yaml": "a811c4cc7311884287e555ab66701ca4c47a374460ce2871b18e6fdcffa28e3b",
+   "experiments/t2/state/frozen_config/targets.yaml": "dd885066659b12f0826d574433589d351d433a527f9a687e8776bb3d9c2241ae",
+   "experiments/t2/predictions/main/external/t2/final_model.pkl": "053654c00406a05f9ee87962aec28d869ebef4151f672f2eb693e9396d25ca52"
+  },
+  "end": {
+   "experiments/t2/state/freeze.json": "0e286e4282fdce3baa602f50d99e939c6bb7285d10e0d3054c8326478e94f019",
+   "experiments/t2/state/frozen_config/cohorts.yaml": "af3c9558e630939c8d4817ee2e652a7b83315f01adfe8ad8a7958b5bf07ff5b8",
+   "experiments/t2/state/frozen_config/experiment.yaml": "847792d0f68f7e91058230fdb9f2a4b4a8e5bca36cbdd6691e4326537eb377f0",
+   "experiments/t2/state/frozen_config/harmonization.yaml": "94ba81a09374eb41ca16be6e0a8872b8df0fbd24530277986880a258ec781694",
+   "experiments/t2/state/frozen_config/local.yaml": "20432b74561d6cdda322ecb749e55445612aa544f3c1b621a063d2fd501e1f6c",
+   "experiments/t2/state/frozen_config/model_space.yaml": "a811c4cc7311884287e555ab66701ca4c47a374460ce2871b18e6fdcffa28e3b",
+   "experiments/t2/state/frozen_config/targets.yaml": "dd885066659b12f0826d574433589d351d433a527f9a687e8776bb3d9c2241ae",
+   "experiments/t2/predictions/main/external/t2/final_model.pkl": "053654c00406a05f9ee87962aec28d869ebef4151f672f2eb693e9396d25ca52"
+  },
+  "unchanged": true
+ }
+}

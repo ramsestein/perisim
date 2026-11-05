@@ -1,0 +1,145 @@
+{
+ "site": "inspire",
+ "fold": 0,
+ "n_patients_pool": 9343,
+ "case_bases": {
+  "n50_r0": {
+   "alpha": 10.0,
+   "landmarks": 699
+  },
+  "n50_r1": {
+   "alpha": 5.0,
+   "landmarks": 594
+  },
+  "n50_r2": {
+   "alpha": 1.0,
+   "landmarks": 586
+  },
+  "n50_r3": {
+   "alpha": 0.5,
+   "landmarks": 667
+  },
+  "n50_r4": {
+   "alpha": 0.1,
+   "landmarks": 678
+  },
+  "n100_r0": {
+   "alpha": 5.0,
+   "landmarks": 1241
+  },
+  "n100_r1": {
+   "alpha": 0.1,
+   "landmarks": 1297
+  },
+  "n100_r2": {
+   "alpha": 0.1,
+   "landmarks": 1357
+  },
+  "n100_r3": {
+   "alpha": 0.1,
+   "landmarks": 1289
+  },
+  "n100_r4": {
+   "alpha": 2.0,
+   "landmarks": 1336
+  },
+  "n250_r0": {
+   "alpha": 5.0,
+   "landmarks": 3277
+  },
+  "n250_r1": {
+   "alpha": 1.0,
+   "landmarks": 3118
+  },
+  "n250_r2": {
+   "alpha": 2.0,
+   "landmarks": 2968
+  },
+  "n250_r3": {
+   "alpha": 2.0,
+   "landmarks": 3025
+  },
+  "n250_r4": {
+   "alpha": 1.0,
+   "landmarks": 3347
+  },
+  "n500_r0": {
+   "alpha": 2.0,
+   "landmarks": 6348
+  },
+  "n500_r1": {
+   "alpha": 2.0,
+   "landmarks": 6504
+  },
+  "n500_r2": {
+   "alpha": 2.0,
+   "landmarks": 6373
+  },
+  "n500_r3": {
+   "alpha": 2.0,
+   "landmarks": 6595
+  },
+  "n500_r4": {
+   "alpha": 2.0,
+   "landmarks": 6761
+  },
+  "n1000_r0": {
+   "alpha": 2.0,
+   "landmarks": 12697
+  },
+  "n1000_r1": {
+   "alpha": 2.0,
+   "landmarks": 12652
+  },
+  "n1000_r2": {
+   "alpha": 2.0,
+   "landmarks": 13156
+  },
+  "n1000_r3": {
+   "alpha": 2.0,
+   "landmarks": 11938
+  },
+  "n1000_r4": {
+   "alpha": 2.0,
+   "landmarks": 12441
+  },
+  "n2000_r0": {
+   "alpha": 2.0,
+   "landmarks": 25302
+  },
+  "n2000_r1": {
+   "alpha": 2.0,
+   "landmarks": 25078
+  },
+  "n2000_r2": {
+   "alpha": 2.0,
+   "landmarks": 25583
+  },
+  "n4000_r0": {
+   "alpha": 2.0,
+   "landmarks": 50455
+  },
+  "n4000_r1": {
+   "alpha": 2.0,
+   "landmarks": 51112
+  },
+  "n4000_r2": {
+   "alpha": 2.0,
+   "landmarks": 50984
+  },
+  "n8000_r0": {
+   "alpha": 2.0,
+   "landmarks": 102177
+  },
+  "n8000_r1": {
+   "alpha": 2.0,
+   "landmarks": 102126
+  },
+  "n8000_r2": {
+   "alpha": 2.0,
+   "landmarks": 101721
+  }
+ },
+ "seconds": 118.74584620000678,
+ "code_hash": "cf0d0b80c70a"
+}

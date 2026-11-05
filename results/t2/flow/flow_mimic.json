@@ -1,0 +1,62 @@
+[
+ {
+  "step": "ICU stays with valid admission and discharge times",
+  "n_stays": 94676,
+  "n_subjects": 64928,
+  "excluded": null
+ },
+ {
+  "step": "Age ≥ 18 years",
+  "n_stays": 94676,
+  "n_subjects": 64928,
+  "excluded": 0
+ },
+ {
+  "step": "Postoperative ICU admission",
+  "n_stays": 28686,
+  "n_subjects": 26083,
+  "excluded": 65990
+ },
+ {
+  "step": "First postoperative stay of the hospitalization",
+  "n_stays": 28163,
+  "n_subjects": 26083,
+  "excluded": 523
+ },
+ {
+  "step": "Discharged alive from the ICU (ICU deaths excluded)",
+  "n_stays": 26954,
+  "n_subjects": 24995,
+  "excluded": 1209
+ },
+ {
+  "step": "ICU stay ≥ 4 h",
+  "n_stays": 26585,
+  "n_subjects": 24688,
+  "excluded": 369
+ },
+ {
+  "step": "ICU discharge within the hospital (ward follow-up)",
+  "n_stays": 25309,
+  "n_subjects": 23634,
+  "excluded": 1276
+ },
+ {
+  "step": "No OR / PACU / IR / ICU entry within 6 h of the ICU exit",
+  "n_stays": 25128,
+  "n_subjects": 23478,
+  "excluded": 181
+ },
+ {
+  "step": "Organ donors excluded",
+  "n_stays": 25128,
+  "n_subjects": 23478,
+  "excluded": 0
+ },
+ {
+  "step": "Known limitation of life-sustaining treatment before the cutoff excluded",
+  "n_stays": 24768,
+  "n_subjects": 23162,
+  "excluded": 360
+ }
+]

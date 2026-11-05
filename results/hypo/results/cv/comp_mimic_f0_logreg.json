@@ -1,0 +1,10 @@
+{
+ "site": "mimic",
+ "fold": 0,
+ "method": "logreg",
+ "n_train": 308770,
+ "n_test": 78389,
+ "seconds": 9.96207960000902,
+ "code_hash": "11a7ad77e519",
+ "C": 0.1
+}

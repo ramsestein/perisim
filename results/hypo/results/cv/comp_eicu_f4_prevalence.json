@@ -1,0 +1,10 @@
+{
+ "site": "eicu",
+ "fold": 4,
+ "method": "prevalence",
+ "n_train": 373443,
+ "n_test": 92942,
+ "seconds": 0.061291699996218085,
+ "code_hash": "11a7ad77e519",
+ "rate": 0.19382609929761704
+}

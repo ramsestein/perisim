@@ -1,0 +1,1005 @@
+{
+  "cohort": "mimic",
+  "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4",
+  "tables": {
+    "admissions": {
+      "file": "hosp/admissions",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\admissions.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "admittime",
+        "dischtime",
+        "deathtime",
+        "admission_type",
+        "admit_provider_id",
+        "admission_location",
+        "discharge_location",
+        "insurance",
+        "language",
+        "marital_status",
+        "race",
+        "edregtime",
+        "edouttime",
+        "hospital_expire_flag"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 19.9
+    },
+    "patients": {
+      "file": "hosp/patients",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\patients.csv.gz",
+      "columns": [
+        "subject_id",
+        "gender",
+        "anchor_age",
+        "anchor_year",
+        "anchor_year_group",
+        "dod"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 2.8
+    },
+    "icustays": {
+      "file": "icu/icustays",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\icu\\icustays.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "stay_id",
+        "first_careunit",
+        "last_careunit",
+        "intime",
+        "outtime",
+        "los"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 3.3
+    },
+    "transfers": {
+      "file": "hosp/transfers",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\transfers.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "transfer_id",
+        "eventtype",
+        "careunit",
+        "intime",
+        "outtime"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 46.2
+    },
+    "services": {
+      "file": "hosp/services",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\services.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "transfertime",
+        "prev_service",
+        "curr_service"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 8.6
+    },
+    "procedures_icd": {
+      "file": "hosp/procedures_icd",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\procedures_icd.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "seq_num",
+        "chartdate",
+        "icd_code",
+        "icd_version"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 7.8
+    },
+    "labevents": {
+      "file": "hosp/labevents",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\labevents.csv.gz",
+      "columns": [
+        "labevent_id",
+        "subject_id",
+        "hadm_id",
+        "specimen_id",
+        "itemid",
+        "order_provider_id",
+        "charttime",
+        "storetime",
+        "value",
+        "valuenum",
+        "valueuom",
+        "ref_range_lower",
+        "ref_range_upper",
+        "flag",
+        "priority",
+        "comments"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 2592.9
+    },
+    "chartevents": {
+      "file": "icu/chartevents",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\icu\\chartevents.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "stay_id",
+        "caregiver_id",
+        "charttime",
+        "storetime",
+        "itemid",
+        "value",
+        "valuenum",
+        "valueuom",
+        "warning"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 3502.4
+    },
+    "inputevents": {
+      "file": "icu/inputevents",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\icu\\inputevents.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "stay_id",
+        "caregiver_id",
+        "starttime",
+        "endtime",
+        "storetime",
+        "itemid",
+        "amount",
+        "amountuom",
+        "rate",
+        "rateuom",
+        "orderid",
+        "linkorderid",
+        "ordercategoryname",
+        "secondaryordercategoryname",
+        "ordercomponenttypedescription",
+        "ordercategorydescription",
+        "patientweight",
+        "totalamount",
+        "totalamountuom",
+        "isopenbag",
+        "continueinnextdept",
+        "statusdescription",
+        "originalamount",
+        "originalrate"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 401.1
+    },
+    "procedureevents": {
+      "file": "icu/procedureevents",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\icu\\procedureevents.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "stay_id",
+        "caregiver_id",
+        "starttime",
+        "endtime",
+        "storetime",
+        "itemid",
+        "value",
+        "valueuom",
+        "location",
+        "locationcategory",
+        "orderid",
+        "linkorderid",
+        "ordercategoryname",
+        "ordercategorydescription",
+        "patientweight",
+        "isopenbag",
+        "continueinnextdept",
+        "statusdescription",
+        "originalamount",
+        "originalrate"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 24.1
+    },
+    "code_status": {
+      "file": "icu/chartevents",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\icu\\chartevents.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "stay_id",
+        "caregiver_id",
+        "charttime",
+        "storetime",
+        "itemid",
+        "value",
+        "valuenum",
+        "valueuom",
+        "warning"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 3502.4
+    },
+    "emar": {
+      "file": "hosp/emar",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\emar.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "emar_id",
+        "emar_seq",
+        "poe_id",
+        "pharmacy_id",
+        "enter_provider_id",
+        "charttime",
+        "medication",
+        "event_txt",
+        "scheduletime",
+        "storetime"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 811.3
+    },
+    "prescriptions": {
+      "file": "hosp/prescriptions",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\prescriptions.csv.gz",
+      "columns": [
+        "subject_id",
+        "hadm_id",
+        "pharmacy_id",
+        "poe_id",
+        "poe_seq",
+        "order_provider_id",
+        "starttime",
+        "stoptime",
+        "drug_type",
+        "drug",
+        "formulary_drug_cd",
+        "gsn",
+        "ndc",
+        "prod_strength",
+        "form_rx",
+        "dose_val_rx",
+        "dose_unit_rx",
+        "form_val_disp",
+        "form_unit_disp",
+        "doses_per_24_hrs",
+        "route"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 606.3
+    },
+    "d_items": {
+      "file": "icu/d_items",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\icu\\d_items.csv.gz",
+      "columns": [
+        "itemid",
+        "label",
+        "abbreviation",
+        "linksto",
+        "category",
+        "unitname",
+        "param_type",
+        "lownormalvalue",
+        "highnormalvalue"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 0.1
+    },
+    "d_labitems": {
+      "file": "hosp/d_labitems",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\mimic4\\hosp\\d_labitems.csv.gz",
+      "columns": [
+        "itemid",
+        "label",
+        "fluid",
+        "category"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 0.0
+    }
+  },
+  "inventory": {
+    "services.curr_service": [
+      {
+        "value": "MED",
+        "n": 286528
+      },
+      {
+        "value": "CMED",
+        "n": 54452
+      },
+      {
+        "value": "SURG",
+        "n": 51640
+      },
+      {
+        "value": "OMED",
+        "n": 33549
+      },
+      {
+        "value": "ORTHO",
+        "n": 26991
+      },
+      {
+        "value": "NMED",
+        "n": 26709
+      },
+      {
+        "value": "OBS",
+        "n": 24923
+      },
+      {
+        "value": "NSURG",
+        "n": 16795
+      },
+      {
+        "value": "CSURG",
+        "n": 13421
+      },
+      {
+        "value": "VSURG",
+        "n": 12385
+      },
+      {
+        "value": "PSYCH",
+        "n": 9592
+      },
+      {
+        "value": "TRAUM",
+        "n": 8961
+      },
+      {
+        "value": "GYN",
+        "n": 7935
+      },
+      {
+        "value": "GU",
+        "n": 7083
+      },
+      {
+        "value": "TSURG",
+        "n": 5767
+      },
+      {
+        "value": "PSURG",
+        "n": 4427
+      },
+      {
+        "value": "ENT",
+        "n": 1798
+      },
+      {
+        "value": "DENT",
+        "n": 59
+      },
+      {
+        "value": "EYE",
+        "n": 54
+      },
+      {
+        "value": "(2 other values with n < 10)",
+        "n": null
+      }
+    ],
+    "admissions.admission_type": [
+      {
+        "value": "EW EMER.",
+        "n": 177459
+      },
+      {
+        "value": "EU OBSERVATION",
+        "n": 119456
+      },
+      {
+        "value": "OBSERVATION ADMIT",
+        "n": 84437
+      },
+      {
+        "value": "URGENT",
+        "n": 54929
+      },
+      {
+        "value": "SURGICAL SAME DAY ADMISSION",
+        "n": 42898
+      },
+      {
+        "value": "DIRECT OBSERVATION",
+        "n": 24551
+      },
+      {
+        "value": "DIRECT EMER.",
+        "n": 21973
+      },
+      {
+        "value": "ELECTIVE",
+        "n": 13130
+      },
+      {
+        "value": "AMBULATORY OBSERVATION",
+        "n": 7195
+      }
+    ],
+    "admissions.discharge_location": [
+      {
+        "value": "HOME",
+        "n": 194204
+      },
+      {
+        "value": null,
+        "n": 149818
+      },
+      {
+        "value": "HOME HEALTH CARE",
+        "n": 99305
+      },
+      {
+        "value": "SKILLED NURSING FACILITY",
+        "n": 52657
+      },
+      {
+        "value": "REHAB",
+        "n": 13845
+      },
+      {
+        "value": "DIED",
+        "n": 11721
+      },
+      {
+        "value": "CHRONIC/LONG TERM ACUTE CARE",
+        "n": 8125
+      },
+      {
+        "value": "HOSPICE",
+        "n": 5397
+      },
+      {
+        "value": "AGAINST ADVICE",
+        "n": 3393
+      },
+      {
+        "value": "PSYCH FACILITY",
+        "n": 2965
+      },
+      {
+        "value": "ACUTE HOSPITAL",
+        "n": 2334
+      },
+      {
+        "value": "OTHER FACILITY",
+        "n": 1592
+      },
+      {
+        "value": "ASSISTED LIVING",
+        "n": 622
+      },
+      {
+        "value": "HEALTHCARE FACILITY",
+        "n": 50
+      }
+    ],
+    "admissions.admission_location": [
+      {
+        "value": "EMERGENCY ROOM",
+        "n": 244179
+      },
+      {
+        "value": "PHYSICIAN REFERRAL",
+        "n": 163228
+      },
+      {
+        "value": "TRANSFER FROM HOSPITAL",
+        "n": 56227
+      },
+      {
+        "value": "WALK-IN/SELF REFERRAL",
+        "n": 42365
+      },
+      {
+        "value": "CLINIC REFERRAL",
+        "n": 12965
+      },
+      {
+        "value": "PROCEDURE SITE",
+        "n": 8518
+      },
+      {
+        "value": "TRANSFER FROM SKILLED NURSING FACILITY",
+        "n": 6317
+      },
+      {
+        "value": "INTERNAL TRANSFER TO OR FROM PSYCH",
+        "n": 5837
+      },
+      {
+        "value": "PACU",
+        "n": 5734
+      },
+      {
+        "value": "INFORMATION NOT AVAILABLE",
+        "n": 402
+      },
+      {
+        "value": "AMBULATORY SURGERY TRANSFER",
+        "n": 255
+      },
+      {
+        "value": "(1 other values with n < 10)",
+        "n": null
+      }
+    ],
+    "prescriptions.route": [
+      {
+        "value": "IV",
+        "n": 7964934
+      },
+      {
+        "value": "PO/NG",
+        "n": 4894589
+      },
+      {
+        "value": "PO",
+        "n": 3507466
+      },
+      {
+        "value": "SC",
+        "n": 1355102
+      },
+      {
+        "value": "IV DRIP",
+        "n": 725586
+      },
+      {
+        "value": "IM",
+        "n": 420954
+      },
+      {
+        "value": "IH",
+        "n": 278073
+      },
+      {
+        "value": "TP",
+        "n": 179790
+      },
+      {
+        "value": "PR",
+        "n": 177784
+      },
+      {
+        "value": "TD",
+        "n": 94335
+      },
+      {
+        "value": "ORAL",
+        "n": 92243
+      },
+      {
+        "value": "IVPCA",
+        "n": 82827
+      },
+      {
+        "value": "BOTH EYES",
+        "n": 60971
+      },
+      {
+        "value": "DWELL",
+        "n": 56731
+      },
+      {
+        "value": "NU",
+        "n": 54640
+      },
+      {
+        "value": "NG",
+        "n": 48277
+      },
+      {
+        "value": "NEB",
+        "n": 45304
+      },
+      {
+        "value": "IV BOLUS",
+        "n": 34841
+      },
+      {
+        "value": "ED",
+        "n": 34043
+      },
+      {
+        "value": "SL",
+        "n": 31482
+      },
+      {
+        "value": "DIALYS",
+        "n": 26220
+      },
+      {
+        "value": "REPLACE",
+        "n": 25234
+      },
+      {
+        "value": "ID",
+        "n": 22367
+      },
+      {
+        "value": "RIGHT EYE",
+        "n": 8331
+      },
+      {
+        "value": "LEFT EYE",
+        "n": 8103
+      },
+      {
+        "value": null,
+        "n": 6439
+      },
+      {
+        "value": "PB",
+        "n": 6262
+      },
+      {
+        "value": "SUBCUT",
+        "n": 5629
+      },
+      {
+        "value": "LOCK",
+        "n": 5076
+      },
+      {
+        "value": "IT",
+        "n": 4952
+      },
+      {
+        "value": "PERIPHNERVE",
+        "n": 4695
+      },
+      {
+        "value": "PL",
+        "n": 4013
+      },
+      {
+        "value": "INHALATION",
+        "n": 3411
+      },
+      {
+        "value": "OU",
+        "n": 3084
+      },
+      {
+        "value": "IP",
+        "n": 2634
+      },
+      {
+        "value": "VG",
+        "n": 2385
+      },
+      {
+        "value": "INTRAPLEURAL",
+        "n": 1329
+      },
+      {
+        "value": "NAS",
+        "n": 1182
+      },
+      {
+        "value": "IMPELLA",
+        "n": 1011
+      },
+      {
+        "value": "OD",
+        "n": 718
+      },
+      {
+        "value": "BOTH EARS",
+        "n": 703
+      },
+      {
+        "value": "FLUSH",
+        "n": 641
+      },
+      {
+        "value": "IVCI",
+        "n": 635
+      },
+      {
+        "value": "OS",
+        "n": 586
+      },
+      {
+        "value": "IN",
+        "n": 526
+      },
+      {
+        "value": "LEFT EAR",
+        "n": 518
+      },
+      {
+        "value": "RIGHT EAR",
+        "n": 509
+      },
+      {
+        "value": "G TUBE",
+        "n": 495
+      },
+      {
+        "value": "IJ",
+        "n": 435
+      },
+      {
+        "value": "AD",
+        "n": 404
+      },
+      {
+        "value": "IVT",
+        "n": 377
+      },
+      {
+        "value": "IRR",
+        "n": 366
+      },
+      {
+        "value": "IR",
+        "n": 351
+      },
+      {
+        "value": "TRANSDERMAL",
+        "n": 343
+      },
+      {
+        "value": "J TUBE",
+        "n": 306
+      },
+      {
+        "value": "NS",
+        "n": 239
+      },
+      {
+        "value": "IV INFUSION",
+        "n": 221
+      },
+      {
+        "value": "LUMBAR PLEXUS",
+        "n": 132
+      },
+      {
+        "value": "FEMORAL VEIN",
+        "n": 132
+      },
+      {
+        "value": "IA",
+        "n": 122
+      },
+      {
+        "value": "BU",
+        "n": 118
+      },
+      {
+        "value": "INTRAVITREAL",
+        "n": 116
+      },
+      {
+        "value": "AU",
+        "n": 98
+      },
+      {
+        "value": "INTERSPACE",
+        "n": 86
+      },
+      {
+        "value": "TT",
+        "n": 86
+      },
+      {
+        "value": "INTRA-ARTERIALLY",
+        "n": 83
+      },
+      {
+        "value": "NG/OG",
+        "n": 79
+      },
+      {
+        "value": "SCPUMP",
+        "n": 72
+      },
+      {
+        "value": "BUCCAL",
+        "n": 72
+      },
+      {
+        "value": "IO",
+        "n": 70
+      },
+      {
+        "value": "OG",
+        "n": 68
+      },
+      {
+        "value": "INTRALESIONAL",
+        "n": 61
+      },
+      {
+        "value": "IT IMPLANTED",
+        "n": 57
+      },
+      {
+        "value": "AS",
+        "n": 51
+      },
+      {
+        "value": "SUBDERMAL",
+        "n": 51
+      },
+      {
+        "value": "ND",
+        "n": 48
+      },
+      {
+        "value": "IVS",
+        "n": 34
+      },
+      {
+        "value": "PO/OG",
+        "n": 33
+      },
+      {
+        "value": "SUBCUT INFUSION",
+        "n": 27
+      },
+      {
+        "value": "INFUSION VIA ON-Q PUMP",
+        "n": 24
+      },
+      {
+        "value": "ET",
+        "n": 20
+      },
+      {
+        "value": "IL",
+        "n": 19
+      },
+      {
+        "value": "IC",
+        "n": 18
+      },
+      {
+        "value": "INTRAPERICARDIAL",
+        "n": 18
+      },
+      {
+        "value": "INTRACORPOREAL",
+        "n": 14
+      },
+      {
+        "value": "SC INFUSION",
+        "n": 12
+      },
+      {
+        "value": "ENTERAL TUBE ONLY – NOT ORAL",
+        "n": 11
+      },
+      {
+        "value": "(22 other values with n < 10)",
+        "n": null
+      }
+    ]
+  },
+  "ok": true,
+  "itemid_labels": {
+    "lab_creatinine": {
+      "50912": "Creatinine"
+    },
+    "lab_hb": {
+      "51222": "Hemoglobin"
+    },
+    "lab_wbc": {
+      "51301": "White Blood Cells",
+      "51300": "WBC Count"
+    },
+    "lab_plt": {
+      "51265": "Platelet Count"
+    },
+    "lab_lactate": {
+      "50813": "Lactate"
+    },
+    "lab_bilirubin": {
+      "50885": "Bilirubin, Total"
+    },
+    "lab_albumin": {
+      "50862": "Albumin"
+    },
+    "lab_ph": {
+      "50820": "pH"
+    },
+    "lab_pco2": {
+      "50818": "pCO2"
+    },
+    "lab_po2": {
+      "50821": "pO2"
+    },
+    "vital_hr": {
+      "220045": "Heart Rate"
+    },
+    "vital_map": {
+      "220052": "Arterial Blood Pressure mean",
+      "220181": "Non Invasive Blood Pressure mean"
+    },
+    "vital_rr": {
+      "220210": "Respiratory Rate"
+    },
+    "vital_spo2": {
+      "220277": "O2 saturation pulseoxymetry"
+    },
+    "vital_temp": {
+      "223762": "Temperature Celsius"
+    },
+    "vital_temp_f": {
+      "223761": "Temperature Fahrenheit"
+    },
+    "vital_fio2": {
+      "223835": "Inspired O2 Fraction"
+    },
+    "vital_gcs": {
+      "220739": "GCS - Eye Opening",
+      "223900": "GCS - Verbal Response",
+      "223901": "GCS - Motor Response"
+    },
+    "anthro_weight": {
+      "226512": "Admission Weight (Kg)"
+    },
+    "anthro_height": {
+      "226730": "Height (cm)"
+    },
+    "support_vent": {
+      "225792": "Invasive Ventilation"
+    },
+    "support_vaso": {
+      "221906": "Norepinephrine",
+      "221289": "Epinephrine",
+      "221749": "Phenylephrine",
+      "222315": "Vasopressin",
+      "221662": "Dopamine"
+    },
+    "support_rrt": {
+      "225802": "Dialysis - CRRT",
+      "225803": "Dialysis - CVVHD",
+      "225805": "Peritoneal Dialysis",
+      "225809": "Dialysis - CVVHDF",
+      "225955": "Dialysis - SCUF",
+      "225441": "Hemodialysis"
+    }
+  }
+}

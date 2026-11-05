@@ -1,0 +1,58 @@
+# ------------------------------------------------------------------
+# PERISIM — this repository is PUBLIC. No secrets and no data.
+# ------------------------------------------------------------------
+
+# Secrets and local configuration
+.env
+.env.*
+*.key
+*.pem
+.claude/
+KHDP_settings.md
+
+# Patient data and extracts (never in the repo, §9)
+/data/
+/work/
+/perisim_run/
+/workdir/
+*.parquet
+*.csv
+*.csv.gz
+*.feather
+*.arrow
+*.npy
+*.npz
+*.pkl
+*.joblib
+
+# Generated outputs (they live in the updown workdir, not here)
+reports/*
+!reports/.gitkeep
+export/
+predictions/
+logs/
+*.log
+mlruns/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+wheelhouse/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Published AGGREGATE results (scripts/publish_results.py; see results/README.md): reports, tables, figures and
+# aggregate JSON only. Patient-level data never come here: data/ and the rest of work/ stay ignored.
+!/results/**/reports/
+!/results/**/reports/*
+!/results/**/*.csv

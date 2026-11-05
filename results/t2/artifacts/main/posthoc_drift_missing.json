@@ -1,0 +1,322 @@
+{
+  "note": "Exploratory, post hoc (2026-10-28): not pre-registered.",
+  "targets": {
+    "t2": {
+      "inspire": {
+        "site": "inspire",
+        "n_test": 2544,
+        "test_patients": 2362,
+        "summary": {
+          "frozen": {
+            "logloss": 0.9334480313554511,
+            "ci_low": 0.9061094986196824,
+            "ci_high": 0.9597786986641632
+          },
+          "missing": {
+            "logloss": 0.9283454765523073,
+            "ci_low": 0.901226448018599,
+            "ci_high": 0.9542985200906803
+          },
+          "g:measurement": {
+            "logloss": 0.9315604153352542,
+            "ci_low": 0.9045291569617444,
+            "ci_high": 0.958042533337852
+          },
+          "g:structural": {
+            "logloss": 0.9310889458812812,
+            "ci_low": 0.9033095399414168,
+            "ci_high": 0.9570958220763852
+          },
+          "joint": {
+            "logloss": 0.933622861850558,
+            "ci_low": 0.9071185418891347,
+            "ci_high": 0.9597176299535867
+          },
+          "missing_minus_frozen": {
+            "mean": -0.005102554803143811,
+            "ci_low": -0.009765882941052512,
+            "ci_high": -0.0008725679439165996,
+            "p_two_sided": 0.014
+          },
+          "g:measurement_minus_frozen": {
+            "mean": -0.001887616020196825,
+            "ci_low": -0.005488880808101407,
+            "ci_high": 0.0012008943269931317,
+            "p_two_sided": 0.252
+          },
+          "g:structural_minus_frozen": {
+            "mean": -0.002359085474169853,
+            "ci_low": -0.005711222252460976,
+            "ci_high": 0.0003746033550290293,
+            "p_two_sided": 0.094
+          },
+          "joint_minus_frozen": {
+            "mean": 0.00017483049510691462,
+            "ci_low": -0.006785863631456851,
+            "ci_high": 0.006696081517787747,
+            "p_two_sided": 0.954
+          },
+          "missing_minus_joint": {
+            "mean": -0.005277385298250725,
+            "ci_low": -0.013062562533656572,
+            "ci_high": 0.0026351604729644425,
+            "p_two_sided": 0.191
+          },
+          "share_of_joint_gain": -29.185725293653316,
+          "split_half_r": -0.022318096349343272
+        },
+        "trace": [
+          [
+            0.9298223853111267,
+            0.9279868006706238
+          ],
+          [
+            0.9279264211654663,
+            0.9279264211654663
+          ],
+          [
+            0.9279264211654663,
+            0.9279264211654663
+          ]
+        ]
+      },
+      "mimic": {
+        "site": "mimic",
+        "n_test": 4963,
+        "test_patients": 4632,
+        "summary": {
+          "frozen": {
+            "logloss": 1.049375308172897,
+            "ci_low": 1.0286439248618076,
+            "ci_high": 1.069410383592472
+          },
+          "missing": {
+            "logloss": 1.0421567681715147,
+            "ci_low": 1.0216218965581654,
+            "ci_high": 1.06211198621083
+          },
+          "g:measurement": {
+            "logloss": 1.043157178084982,
+            "ci_low": 1.022490597541819,
+            "ci_high": 1.063245254610994
+          },
+          "g:structural": {
+            "logloss": 1.0479317958100234,
+            "ci_low": 1.027779248275927,
+            "ci_high": 1.067982586074465
+          },
+          "g:source": {
+            "logloss": 1.0481216705779535,
+            "ci_low": 1.0275031301792523,
+            "ci_high": 1.0679428826422521
+          },
+          "joint": {
+            "logloss": 1.0290814779120687,
+            "ci_low": 1.0080046527621587,
+            "ci_high": 1.0494178325013108
+          },
+          "local": {
+            "logloss": 1.02831203742823,
+            "ci_low": 1.00855299649888,
+            "ci_high": 1.0471788931043606
+          },
+          "missing_minus_frozen": {
+            "mean": -0.007218540001382223,
+            "ci_low": -0.012542607267401973,
+            "ci_high": -0.002128070682816731,
+            "p_two_sided": 0.009
+          },
+          "g:measurement_minus_frozen": {
+            "mean": -0.0062181300879149415,
+            "ci_low": -0.011746720674953238,
+            "ci_high": -0.0009453084033336982,
+            "p_two_sided": 0.019
+          },
+          "g:structural_minus_frozen": {
+            "mean": -0.0014435123628735447,
+            "ci_low": -0.004018423294958567,
+            "ci_high": 0.001090774153665262,
+            "p_two_sided": 0.302
+          },
+          "g:source_minus_frozen": {
+            "mean": -0.0012536375949434575,
+            "ci_low": -0.003131537046715782,
+            "ci_high": 0.0008191606751145986,
+            "p_two_sided": 0.21
+          },
+          "joint_minus_frozen": {
+            "mean": -0.020293830260828205,
+            "ci_low": -0.029144253118359408,
+            "ci_high": -0.011640464018272637,
+            "p_two_sided": 0.0
+          },
+          "local_minus_frozen": {
+            "mean": -0.021063270744666962,
+            "ci_low": -0.030870421549366377,
+            "ci_high": -0.010793318341213014,
+            "p_two_sided": 0.0
+          },
+          "missing_minus_joint": {
+            "mean": 0.013075290259445982,
+            "ci_low": 0.004452602923036142,
+            "ci_high": 0.021800220397903795,
+            "p_two_sided": 0.003
+          },
+          "missing_minus_local": {
+            "mean": 0.013844730743284739,
+            "ci_low": 0.0035166946924237775,
+            "ci_high": 0.024255605208230925,
+            "p_two_sided": 0.01
+          },
+          "share_of_joint_gain": 0.3557012110875727,
+          "share_of_local_gain": 0.3427074592966477,
+          "split_half_r": 0.45234222307683786
+        },
+        "trace": [
+          [
+            1.0172805786132812,
+            1.0094760656356812
+          ],
+          [
+            1.0094349384307861,
+            1.0093703269958496
+          ],
+          [
+            1.00937020778656,
+            1.00936758518219
+          ]
+        ]
+      },
+      "eicu": {
+        "site": "eicu",
+        "n_test": 4725,
+        "test_patients": 4593,
+        "summary": {
+          "frozen": {
+            "logloss": 1.0453083340413556,
+            "ci_low": 1.0261853924192434,
+            "ci_high": 1.062366612540015
+          },
+          "missing": {
+            "logloss": 1.0409867183087964,
+            "ci_low": 1.022048107639185,
+            "ci_high": 1.0586275926118567
+          },
+          "g:measurement": {
+            "logloss": 1.0406016664124293,
+            "ci_low": 1.022110359965827,
+            "ci_high": 1.0581394165925022
+          },
+          "g:structural": {
+            "logloss": 1.044607207935685,
+            "ci_low": 1.025466250999094,
+            "ci_high": 1.0618247887829488
+          },
+          "g:source": {
+            "logloss": 1.0450910126328938,
+            "ci_low": 1.0259264262522163,
+            "ci_high": 1.0622626192632283
+          },
+          "joint": {
+            "logloss": 1.0363691220809321,
+            "ci_low": 1.0170379502990334,
+            "ci_high": 1.0545353698583697
+          },
+          "local": {
+            "logloss": 1.0292391682597377,
+            "ci_low": 1.0122073454927032,
+            "ci_high": 1.0460097308413607
+          },
+          "missing_minus_frozen": {
+            "mean": -0.004321615732559181,
+            "ci_low": -0.008751137432539923,
+            "ci_high": -8.371136470031255e-05,
+            "p_two_sided": 0.048
+          },
+          "g:measurement_minus_frozen": {
+            "mean": -0.004706667628926242,
+            "ci_low": -0.00905497575634362,
+            "ci_high": -0.0002542837679875023,
+            "p_two_sided": 0.043
+          },
+          "g:structural_minus_frozen": {
+            "mean": -0.0007011261056706353,
+            "ci_low": -0.0016742739720509326,
+            "ci_high": 0.0002743393330684504,
+            "p_two_sided": 0.161
+          },
+          "g:source_minus_frozen": {
+            "mean": -0.00021732140846175696,
+            "ci_low": -0.0020908932300059634,
+            "ci_high": 0.001630535651250475,
+            "p_two_sided": 0.798
+          },
+          "joint_minus_frozen": {
+            "mean": -0.008939211960423465,
+            "ci_low": -0.01632576501202706,
+            "ci_high": -0.0012819461800569131,
+            "p_two_sided": 0.02
+          },
+          "local_minus_frozen": {
+            "mean": -0.016069165781617878,
+            "ci_low": -0.025638761813290604,
+            "ci_high": -0.006187631714057739,
+            "p_two_sided": 0.004
+          },
+          "missing_minus_joint": {
+            "mean": 0.004617596227864285,
+            "ci_low": -0.002717669511999349,
+            "ci_high": 0.012239378152909722,
+            "p_two_sided": 0.213
+          },
+          "missing_minus_local": {
+            "mean": 0.011747550049058697,
+            "ci_low": 0.0019383908473562695,
+            "ci_high": 0.021285635150552814,
+            "p_two_sided": 0.025
+          },
+          "share_of_joint_gain": 0.4834448217239116,
+          "share_of_local_gain": 0.26893839987031803,
+          "split_half_r": 0.02217598506694552
+        },
+        "trace": [
+          [
+            1.0377776622772217,
+            1.0338318347930908
+          ],
+          [
+            1.0340301990509033,
+            1.0321377515792847
+          ],
+          [
+            1.0321345329284668,
+            1.032133936882019
+          ]
+        ]
+      }
+    }
+  },
+  "frozen_hashes": {
+    "start": {
+      "experiments/t2/state/freeze.json": "0e286e4282fdce3baa602f50d99e939c6bb7285d10e0d3054c8326478e94f019",
+      "experiments/t2/state/frozen_config/cohorts.yaml": "af3c9558e630939c8d4817ee2e652a7b83315f01adfe8ad8a7958b5bf07ff5b8",
+      "experiments/t2/state/frozen_config/experiment.yaml": "847792d0f68f7e91058230fdb9f2a4b4a8e5bca36cbdd6691e4326537eb377f0",
+      "experiments/t2/state/frozen_config/harmonization.yaml": "94ba81a09374eb41ca16be6e0a8872b8df0fbd24530277986880a258ec781694",
+      "experiments/t2/state/frozen_config/local.yaml": "20432b74561d6cdda322ecb749e55445612aa544f3c1b621a063d2fd501e1f6c",
+      "experiments/t2/state/frozen_config/model_space.yaml": "a811c4cc7311884287e555ab66701ca4c47a374460ce2871b18e6fdcffa28e3b",
+      "experiments/t2/state/frozen_config/targets.yaml": "dd885066659b12f0826d574433589d351d433a527f9a687e8776bb3d9c2241ae",
+      "experiments/t2/predictions/main/external/t2/final_model.pkl": "053654c00406a05f9ee87962aec28d869ebef4151f672f2eb693e9396d25ca52"
+    },
+    "end": {
+      "experiments/t2/state/freeze.json": "0e286e4282fdce3baa602f50d99e939c6bb7285d10e0d3054c8326478e94f019",
+      "experiments/t2/state/frozen_config/cohorts.yaml": "af3c9558e630939c8d4817ee2e652a7b83315f01adfe8ad8a7958b5bf07ff5b8",
+      "experiments/t2/state/frozen_config/experiment.yaml": "847792d0f68f7e91058230fdb9f2a4b4a8e5bca36cbdd6691e4326537eb377f0",
+      "experiments/t2/state/frozen_config/harmonization.yaml": "94ba81a09374eb41ca16be6e0a8872b8df0fbd24530277986880a258ec781694",
+      "experiments/t2/state/frozen_config/local.yaml": "20432b74561d6cdda322ecb749e55445612aa544f3c1b621a063d2fd501e1f6c",
+      "experiments/t2/state/frozen_config/model_space.yaml": "a811c4cc7311884287e555ab66701ca4c47a374460ce2871b18e6fdcffa28e3b",
+      "experiments/t2/state/frozen_config/targets.yaml": "dd885066659b12f0826d574433589d351d433a527f9a687e8776bb3d9c2241ae",
+      "experiments/t2/predictions/main/external/t2/final_model.pkl": "053654c00406a05f9ee87962aec28d869ebef4151f672f2eb693e9396d25ca52"
+    },
+    "unchanged": true
+  }
+}

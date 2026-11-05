@@ -1,0 +1,3989 @@
+{
+  "cohort": "eicu",
+  "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu",
+  "tables": {
+    "patient": {
+      "file": "patient",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\patient.csv.gz",
+      "columns": [
+        "patientunitstayid",
+        "patienthealthsystemstayid",
+        "gender",
+        "age",
+        "ethnicity",
+        "hospitalid",
+        "wardid",
+        "apacheadmissiondx",
+        "admissionheight",
+        "hospitaladmittime24",
+        "hospitaladmitoffset",
+        "hospitaladmitsource",
+        "hospitaldischargeyear",
+        "hospitaldischargetime24",
+        "hospitaldischargeoffset",
+        "hospitaldischargelocation",
+        "hospitaldischargestatus",
+        "unittype",
+        "unitadmittime24",
+        "unitadmitsource",
+        "unitvisitnumber",
+        "unitstaytype",
+        "admissionweight",
+        "dischargeweight",
+        "unitdischargetime24",
+        "unitdischargeoffset",
+        "unitdischargelocation",
+        "unitdischargestatus",
+        "uniquepid"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 10.4
+    },
+    "admissiondx": {
+      "file": "admissionDx",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\admissionDx.csv.gz",
+      "columns": [
+        "admissiondxid",
+        "patientunitstayid",
+        "admitdxenteredoffset",
+        "admitdxpath",
+        "admitdxname",
+        "admitdxtext"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 7.6
+    },
+    "apachepatientresult": {
+      "file": "apachePatientResult",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\apachePatientResult.csv.gz",
+      "columns": [
+        "apachepatientresultsid",
+        "patientunitstayid",
+        "physicianspeciality",
+        "physicianinterventioncategory",
+        "acutephysiologyscore",
+        "apachescore",
+        "apacheversion",
+        "predictedicumortality",
+        "actualicumortality",
+        "predictediculos",
+        "actualiculos",
+        "predictedhospitalmortality",
+        "actualhospitalmortality",
+        "predictedhospitallos",
+        "actualhospitallos",
+        "preopmi",
+        "preopcardiaccath",
+        "ptcawithin24h",
+        "unabridgedunitlos",
+        "unabridgedhosplos",
+        "actualventdays",
+        "predventdays",
+        "unabridgedactualventdays"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 17.3
+    },
+    "apachepredvar": {
+      "file": "apachePredVar",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\apachePredVar.csv.gz",
+      "columns": [
+        "apachepredvarid",
+        "patientunitstayid",
+        "sicuday",
+        "saps3day1",
+        "saps3today",
+        "saps3yesterday",
+        "gender",
+        "teachtype",
+        "region",
+        "bedcount",
+        "admitsource",
+        "graftcount",
+        "meds",
+        "verbal",
+        "motor",
+        "eyes",
+        "age",
+        "admitdiagnosis",
+        "thrombolytics",
+        "diedinhospital",
+        "aids",
+        "hepaticfailure",
+        "lymphoma",
+        "metastaticcancer",
+        "leukemia",
+        "immunosuppression",
+        "cirrhosis",
+        "electivesurgery",
+        "activetx",
+        "readmit",
+        "ima",
+        "midur",
+        "ventday1",
+        "oobventday1",
+        "oobintubday1",
+        "diabetes",
+        "managementsystem",
+        "var03hspxlos",
+        "pao2",
+        "fio2",
+        "ejectfx",
+        "creatinine",
+        "dischargelocation",
+        "visitnumber",
+        "amilocation",
+        "day1meds",
+        "day1verbal",
+        "day1motor",
+        "day1eyes",
+        "day1pao2",
+        "day1fio2"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 3.9
+    },
+    "lab": {
+      "file": "lab",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\lab.csv.gz",
+      "columns": [
+        "labid",
+        "patientunitstayid",
+        "labresultoffset",
+        "labtypeid",
+        "labname",
+        "labresult",
+        "labresulttext",
+        "labmeasurenamesystem",
+        "labmeasurenameinterface",
+        "labresultrevisedoffset"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 516.8
+    },
+    "vitalperiodic": {
+      "file": "vitalPeriodic",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\vitalPeriodic.csv.gz",
+      "columns": [
+        "vitalperiodicid",
+        "patientunitstayid",
+        "observationoffset",
+        "temperature",
+        "sao2",
+        "heartrate",
+        "respiration",
+        "cvp",
+        "etco2",
+        "systemicsystolic",
+        "systemicdiastolic",
+        "systemicmean",
+        "pasystolic",
+        "padiastolic",
+        "pamean",
+        "st1",
+        "st2",
+        "st3",
+        "icp"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 1784.2
+    },
+    "vitalaperiodic": {
+      "file": "vitalAperiodic",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\vitalAperiodic.csv.gz",
+      "columns": [
+        "vitalaperiodicid",
+        "patientunitstayid",
+        "observationoffset",
+        "noninvasivesystolic",
+        "noninvasivediastolic",
+        "noninvasivemean",
+        "paop",
+        "cardiacoutput",
+        "cardiacinput",
+        "svr",
+        "svri",
+        "pvr",
+        "pvri"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 239.6
+    },
+    "respiratorycharting": {
+      "file": "respiratoryCharting",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\respiratoryCharting.csv.gz",
+      "columns": [
+        "respchartid",
+        "patientunitstayid",
+        "respchartoffset",
+        "respchartentryoffset",
+        "respcharttypecat",
+        "respchartvaluelabel",
+        "respchartvalue"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 197.8
+    },
+    "nursecharting": {
+      "file": "nurseCharting",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\nurseCharting.csv.gz",
+      "columns": [
+        "nursingchartid",
+        "patientunitstayid",
+        "nursingchartoffset",
+        "nursingchartentryoffset",
+        "nursingchartcelltypecat",
+        "nursingchartcelltypevallabel",
+        "nursingchartcelltypevalname",
+        "nursingchartvalue"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 1729.9
+    },
+    "infusiondrug": {
+      "file": "infusionDrug",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\infusionDrug.csv.gz",
+      "columns": [
+        "infusiondrugid",
+        "patientunitstayid",
+        "infusionoffset",
+        "drugname",
+        "drugrate",
+        "infusionrate",
+        "drugamount",
+        "volumeoffluid",
+        "patientweight"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 48.9
+    },
+    "respiratorycare": {
+      "file": "respiratoryCare",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\respiratoryCare.csv.gz",
+      "columns": [
+        "respcareid",
+        "patientunitstayid",
+        "respcarestatusoffset",
+        "currenthistoryseqnum",
+        "airwaytype",
+        "airwaysize",
+        "airwayposition",
+        "cuffpressure",
+        "ventstartoffset",
+        "ventendoffset",
+        "priorventstartoffset",
+        "priorventendoffset",
+        "apneaparms",
+        "lowexhmvlimit",
+        "hiexhmvlimit",
+        "lowexhtvlimit",
+        "hipeakpreslimit",
+        "lowpeakpreslimit",
+        "hirespratelimit",
+        "lowrespratelimit",
+        "sighpreslimit",
+        "lowironoxlimit",
+        "highironoxlimit",
+        "meanairwaypreslimit",
+        "peeplimit",
+        "cpaplimit",
+        "setapneainterval",
+        "setapneatv",
+        "setapneaippeephigh",
+        "setapnearr",
+        "setapneapeakflow",
+        "setapneainsptime",
+        "setapneaie",
+        "setapneafio2"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 9.0
+    },
+    "treatment": {
+      "file": "treatment",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\treatment.csv.gz",
+      "columns": [
+        "treatmentid",
+        "patientunitstayid",
+        "treatmentoffset",
+        "treatmentstring",
+        "activeupondischarge"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 42.8
+    },
+    "medication": {
+      "file": "medication",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\medication.csv.gz",
+      "columns": [
+        "medicationid",
+        "patientunitstayid",
+        "drugorderoffset",
+        "drugstartoffset",
+        "drugivadmixture",
+        "drugordercancelled",
+        "drugname",
+        "drughiclseqno",
+        "dosage",
+        "routeadmin",
+        "frequency",
+        "loadingdose",
+        "prn",
+        "drugstopoffset",
+        "gtc"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 134.3
+    },
+    "diagnosis": {
+      "file": "diagnosis",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\diagnosis.csv.gz",
+      "columns": [
+        "diagnosisid",
+        "patientunitstayid",
+        "activeupondischarge",
+        "diagnosisoffset",
+        "diagnosisstring",
+        "icd9code",
+        "diagnosispriority"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 35.2
+    },
+    "careplangeneral": {
+      "file": "carePlanGeneral",
+      "found": true,
+      "path": "C:\\Users\\Ramsés\\Desktop\\Proyectos\\perism\\data\\eicu\\carePlanGeneral.csv.gz",
+      "columns": [
+        "cplgeneralid",
+        "patientunitstayid",
+        "activeupondischarge",
+        "cplitemoffset",
+        "cplgroup",
+        "cplitemvalue"
+      ],
+      "missing": [],
+      "optional_missing": [],
+      "size_mb": 30.9
+    }
+  },
+  "inventory": {
+    "patient.unitadmitsource": [
+      {
+        "value": "Emergency Department",
+        "n": 89594
+      },
+      {
+        "value": "Floor",
+        "n": 24368
+      },
+      {
+        "value": "Operating Room",
+        "n": 24305
+      },
+      {
+        "value": "ICU to SDU",
+        "n": 13827
+      },
+      {
+        "value": "Direct Admit",
+        "n": 12672
+      },
+      {
+        "value": "Recovery Room",
+        "n": 7844
+      },
+      {
+        "value": "Acute Care/Floor",
+        "n": 5604
+      },
+      {
+        "value": "Step-Down Unit (SDU)",
+        "n": 5450
+      },
+      {
+        "value": "ICU",
+        "n": 5439
+      },
+      {
+        "value": "Other Hospital",
+        "n": 4323
+      },
+      {
+        "value": "Other ICU",
+        "n": 4264
+      },
+      {
+        "value": "PACU",
+        "n": 1714
+      },
+      {
+        "value": null,
+        "n": 1090
+      },
+      {
+        "value": "Chest Pain Center",
+        "n": 336
+      },
+      {
+        "value": "Observation",
+        "n": 19
+      },
+      {
+        "value": "Other",
+        "n": 10
+      }
+    ],
+    "patient.unitdischargelocation": [
+      {
+        "value": "Floor",
+        "n": 93121
+      },
+      {
+        "value": "Step-Down Unit (SDU)",
+        "n": 26945
+      },
+      {
+        "value": "Acute Care/Floor",
+        "n": 20279
+      },
+      {
+        "value": "Home",
+        "n": 18880
+      },
+      {
+        "value": "Telemetry",
+        "n": 10995
+      },
+      {
+        "value": "Death",
+        "n": 10907
+      },
+      {
+        "value": "Other ICU",
+        "n": 6208
+      },
+      {
+        "value": "Other Hospital",
+        "n": 4164
+      },
+      {
+        "value": "Other External",
+        "n": 2789
+      },
+      {
+        "value": "Skilled Nursing Facility",
+        "n": 2025
+      },
+      {
+        "value": "Other",
+        "n": 1548
+      },
+      {
+        "value": "ICU",
+        "n": 1274
+      },
+      {
+        "value": "Rehabilitation",
+        "n": 769
+      },
+      {
+        "value": null,
+        "n": 334
+      },
+      {
+        "value": "Other Internal",
+        "n": 301
+      },
+      {
+        "value": "Nursing Home",
+        "n": 301
+      },
+      {
+        "value": "Operating Room",
+        "n": 13
+      },
+      {
+        "value": "(1 other values with n < 10)",
+        "n": null
+      }
+    ],
+    "patient.hospitaldischargelocation": [
+      {
+        "value": "Home",
+        "n": 116816
+      },
+      {
+        "value": "Skilled Nursing Facility",
+        "n": 27582
+      },
+      {
+        "value": "Death",
+        "n": 18004
+      },
+      {
+        "value": "Other External",
+        "n": 9757
+      },
+      {
+        "value": "Rehabilitation",
+        "n": 8905
+      },
+      {
+        "value": "Other",
+        "n": 7888
+      },
+      {
+        "value": "Other Hospital",
+        "n": 7807
+      },
+      {
+        "value": "Nursing Home",
+        "n": 2067
+      },
+      {
+        "value": null,
+        "n": 2033
+      }
+    ],
+    "lab.labname": [
+      {
+        "value": "bedside glucose",
+        "n": 3175835
+      },
+      {
+        "value": "potassium",
+        "n": 1493261
+      },
+      {
+        "value": "sodium",
+        "n": 1393205
+      },
+      {
+        "value": "glucose",
+        "n": 1319496
+      },
+      {
+        "value": "Hgb",
+        "n": 1298708
+      },
+      {
+        "value": "chloride",
+        "n": 1283839
+      },
+      {
+        "value": "Hct",
+        "n": 1279704
+      },
+      {
+        "value": "creatinine",
+        "n": 1277760
+      },
+      {
+        "value": "BUN",
+        "n": 1270484
+      },
+      {
+        "value": "calcium",
+        "n": 1226978
+      },
+      {
+        "value": "bicarbonate",
+        "n": 1199866
+      },
+      {
+        "value": "platelets x 1000",
+        "n": 1149488
+      },
+      {
+        "value": "WBC x 1000",
+        "n": 1134952
+      },
+      {
+        "value": "RBC",
+        "n": 1132361
+      },
+      {
+        "value": "MCV",
+        "n": 1105350
+      },
+      {
+        "value": "MCHC",
+        "n": 1104854
+      },
+      {
+        "value": "MCH",
+        "n": 1059865
+      },
+      {
+        "value": "RDW",
+        "n": 1048569
+      },
+      {
+        "value": "anion gap",
+        "n": 1024278
+      },
+      {
+        "value": "MPV",
+        "n": 770659
+      },
+      {
+        "value": "magnesium",
+        "n": 648642
+      },
+      {
+        "value": "-lymphs",
+        "n": 630836
+      },
+      {
+        "value": "-monos",
+        "n": 625898
+      },
+      {
+        "value": "-eos",
+        "n": 583568
+      },
+      {
+        "value": "-polys",
+        "n": 559192
+      },
+      {
+        "value": "-basos",
+        "n": 558783
+      },
+      {
+        "value": "albumin",
+        "n": 506025
+      },
+      {
+        "value": "AST (SGOT)",
+        "n": 437311
+      },
+      {
+        "value": "ALT (SGPT)",
+        "n": 434605
+      },
+      {
+        "value": "total protein",
+        "n": 432993
+      },
+      {
+        "value": "alkaline phos.",
+        "n": 429899
+      },
+      {
+        "value": "total bilirubin",
+        "n": 427307
+      },
+      {
+        "value": "phosphate",
+        "n": 425439
+      },
+      {
+        "value": "paO2",
+        "n": 420762
+      },
+      {
+        "value": "paCO2",
+        "n": 416467
+      },
+      {
+        "value": "pH",
+        "n": 413071
+      },
+      {
+        "value": "PT - INR",
+        "n": 402092
+      },
+      {
+        "value": "HCO3",
+        "n": 390863
+      },
+      {
+        "value": "PT",
+        "n": 389725
+      },
+      {
+        "value": "FiO2",
+        "n": 360107
+      },
+      {
+        "value": "O2 Sat (%)",
+        "n": 340062
+      },
+      {
+        "value": "Base Excess",
+        "n": 328813
+      },
+      {
+        "value": "PTT",
+        "n": 285251
+      },
+      {
+        "value": "lactate",
+        "n": 205591
+      },
+      {
+        "value": "troponin - I",
+        "n": 192317
+      },
+      {
+        "value": "Total CO2",
+        "n": 185611
+      },
+      {
+        "value": "ionized calcium",
+        "n": 149138
+      },
+      {
+        "value": "Temperature",
+        "n": 113472
+      },
+      {
+        "value": "PEEP",
+        "n": 112830
+      },
+      {
+        "value": "CPK",
+        "n": 108117
+      },
+      {
+        "value": "urinary specific gravity",
+        "n": 106853
+      },
+      {
+        "value": "Methemoglobin",
+        "n": 101924
+      },
+      {
+        "value": "Carboxyhemoglobin",
+        "n": 100040
+      },
+      {
+        "value": "TV",
+        "n": 94246
+      },
+      {
+        "value": "direct bilirubin",
+        "n": 77732
+      },
+      {
+        "value": "-bands",
+        "n": 75699
+      },
+      {
+        "value": "CPK-MB",
+        "n": 66958
+      },
+      {
+        "value": "Base Deficit",
+        "n": 66496
+      },
+      {
+        "value": "O2 Content",
+        "n": 64619
+      },
+      {
+        "value": "Vent Rate",
+        "n": 55243
+      },
+      {
+        "value": "triglycerides",
+        "n": 53344
+      },
+      {
+        "value": "Respiratory Rate",
+        "n": 49021
+      },
+      {
+        "value": "BNP",
+        "n": 46406
+      },
+      {
+        "value": "TSH",
+        "n": 45271
+      },
+      {
+        "value": "lipase",
+        "n": 43304
+      },
+      {
+        "value": "Vancomycin - trough",
+        "n": 41257
+      },
+      {
+        "value": "troponin - T",
+        "n": 39864
+      },
+      {
+        "value": "fibrinogen",
+        "n": 38800
+      },
+      {
+        "value": "Oxyhemoglobin",
+        "n": 35738
+      },
+      {
+        "value": "total cholesterol",
+        "n": 34514
+      },
+      {
+        "value": "HDL",
+        "n": 33835
+      },
+      {
+        "value": "CPK-MB INDEX",
+        "n": 29240
+      },
+      {
+        "value": "ammonia",
+        "n": 28793
+      },
+      {
+        "value": "serum osmolality",
+        "n": 28521
+      },
+      {
+        "value": "LPM O2",
+        "n": 28171
+      },
+      {
+        "value": "Pressure Support",
+        "n": 24537
+      },
+      {
+        "value": "WBC's in urine",
+        "n": 24453
+      },
+      {
+        "value": "LDL",
+        "n": 24277
+      },
+      {
+        "value": "LDH",
+        "n": 22035
+      },
+      {
+        "value": "Vancomycin - random",
+        "n": 21366
+      },
+      {
+        "value": "prealbumin",
+        "n": 20010
+      },
+      {
+        "value": "Fe",
+        "n": 19608
+      },
+      {
+        "value": "urinary sodium",
+        "n": 16800
+      },
+      {
+        "value": "amylase",
+        "n": 16650
+      },
+      {
+        "value": "Ferritin",
+        "n": 15343
+      },
+      {
+        "value": "Vitamin B12",
+        "n": 14825
+      },
+      {
+        "value": "TIBC",
+        "n": 14649
+      },
+      {
+        "value": "uric acid",
+        "n": 13623
+      },
+      {
+        "value": "free T4",
+        "n": 13520
+      },
+      {
+        "value": "urinary creatinine",
+        "n": 13282
+      },
+      {
+        "value": "ESR",
+        "n": 13242
+      },
+      {
+        "value": "CRP",
+        "n": 12932
+      },
+      {
+        "value": "ethanol",
+        "n": 12555
+      },
+      {
+        "value": "folate",
+        "n": 11550
+      },
+      {
+        "value": "Fe/TIBC Ratio",
+        "n": 11317
+      },
+      {
+        "value": "PTT ratio",
+        "n": 11041
+      },
+      {
+        "value": "Spontaneous Rate",
+        "n": 9696
+      },
+      {
+        "value": "urinary osmolality",
+        "n": 9414
+      },
+      {
+        "value": "cortisol",
+        "n": 9178
+      },
+      {
+        "value": "Digoxin",
+        "n": 8884
+      },
+      {
+        "value": "Peak Airway/Pressure",
+        "n": 8827
+      },
+      {
+        "value": "Acetaminophen",
+        "n": 8512
+      },
+      {
+        "value": "Tacrolimus-FK506",
+        "n": 6587
+      },
+      {
+        "value": "salicylate",
+        "n": 6333
+      },
+      {
+        "value": "reticulocyte count",
+        "n": 6304
+      },
+      {
+        "value": "Phenytoin",
+        "n": 6108
+      },
+      {
+        "value": "transferrin",
+        "n": 4959
+      },
+      {
+        "value": "haptoglobin",
+        "n": 4634
+      },
+      {
+        "value": "protein - CSF",
+        "n": 4138
+      },
+      {
+        "value": "glucose - CSF",
+        "n": 4071
+      },
+      {
+        "value": "myoglobin",
+        "n": 3755
+      },
+      {
+        "value": "WBC's in cerebrospinal fluid",
+        "n": 3331
+      },
+      {
+        "value": "24 h urine protein",
+        "n": 2870
+      },
+      {
+        "value": "Device",
+        "n": 2704
+      },
+      {
+        "value": "Pressure Control",
+        "n": 2300
+      },
+      {
+        "value": "WBC's in body fluid",
+        "n": 2022
+      },
+      {
+        "value": "T4",
+        "n": 1844
+      },
+      {
+        "value": "Vent Other",
+        "n": 1653
+      },
+      {
+        "value": "Lithium",
+        "n": 1375
+      },
+      {
+        "value": "T3",
+        "n": 1092
+      },
+      {
+        "value": "CRP-hs",
+        "n": 979
+      },
+      {
+        "value": "serum ketones",
+        "n": 855
+      },
+      {
+        "value": "prolactin",
+        "n": 789
+      },
+      {
+        "value": "Gentamicin - random",
+        "n": 783
+      },
+      {
+        "value": "Gentamicin - trough",
+        "n": 754
+      },
+      {
+        "value": "Tobramycin - random",
+        "n": 742
+      },
+      {
+        "value": "Carbamazepine",
+        "n": 740
+      },
+      {
+        "value": "protein C",
+        "n": 702
+      },
+      {
+        "value": "Theophylline",
+        "n": 664
+      },
+      {
+        "value": "Phenobarbital",
+        "n": 654
+      },
+      {
+        "value": "protein S",
+        "n": 643
+      },
+      {
+        "value": "Mode",
+        "n": 609
+      },
+      {
+        "value": "Cyclosporin",
+        "n": 599
+      },
+      {
+        "value": "T3RU",
+        "n": 531
+      },
+      {
+        "value": "cd 4",
+        "n": 500
+      },
+      {
+        "value": "WBC's in pleural fluid",
+        "n": 456
+      },
+      {
+        "value": "ANF/ANA",
+        "n": 448
+      },
+      {
+        "value": "Gentamicin - peak",
+        "n": 405
+      },
+      {
+        "value": "WBC's in peritoneal fluid",
+        "n": 341
+      },
+      {
+        "value": "24 h urine urea nitrogen",
+        "n": 275
+      },
+      {
+        "value": "Site",
+        "n": 272
+      },
+      {
+        "value": "Lidocaine",
+        "n": 256
+      },
+      {
+        "value": "Tobramycin - trough",
+        "n": 237
+      },
+      {
+        "value": "Amikacin - random",
+        "n": 176
+      },
+      {
+        "value": "WBC's in synovial fluid",
+        "n": 146
+      },
+      {
+        "value": "Tobramycin - peak",
+        "n": 129
+      },
+      {
+        "value": "Clostridium difficile toxin A+B",
+        "n": 109
+      },
+      {
+        "value": "Amikacin - trough",
+        "n": 94
+      },
+      {
+        "value": "Amikacin - peak",
+        "n": 54
+      },
+      {
+        "value": "WBC's in pericardial fluid",
+        "n": 47
+      },
+      {
+        "value": "HSV 1&2 IgG AB",
+        "n": 43
+      },
+      {
+        "value": "Vancomycin - peak",
+        "n": 35
+      },
+      {
+        "value": "Legionella pneumophila Ab",
+        "n": 28
+      },
+      {
+        "value": "HSV 1&2 IgG AB titer",
+        "n": 12
+      },
+      {
+        "value": "NAPA",
+        "n": 10
+      },
+      {
+        "value": "Procainamide",
+        "n": 10
+      },
+      {
+        "value": "(2 other values with n < 10)",
+        "n": null
+      }
+    ],
+    "infusiondrug.drugname": [
+      {
+        "value": "Fentanyl (ml/hr)",
+        "n": 289006
+      },
+      {
+        "value": "Propofol (ml/hr)",
+        "n": 281157
+      },
+      {
+        "value": "Norepinephrine (ml/hr)",
+        "n": 272157
+      },
+      {
+        "value": "Fentanyl (mcg/hr)",
+        "n": 258901
+      },
+      {
+        "value": "Insulin (units/hr)",
+        "n": 252838
+      },
+      {
+        "value": "Propofol (mcg/kg/min)",
+        "n": 207890
+      },
+      {
+        "value": "Norepinephrine (mcg/min)",
+        "n": 192059
+      },
+      {
+        "value": "Midazolam (mg/hr)",
+        "n": 143511
+      },
+      {
+        "value": "Heparin (ml/hr)",
+        "n": 138276
+      },
+      {
+        "value": "Midazolam (ml/hr)",
+        "n": 134168
+      },
+      {
+        "value": "Dexmedetomidine (ml/hr)",
+        "n": 133340
+      },
+      {
+        "value": "Insulin (ml/hr)",
+        "n": 128016
+      },
+      {
+        "value": "Amiodarone (ml/hr)",
+        "n": 127056
+      },
+      {
+        "value": "Heparin (units/hr)",
+        "n": 107848
+      },
+      {
+        "value": "NS (ml/hr)",
+        "n": 82110
+      },
+      {
+        "value": "Amiodarone (mg/min)",
+        "n": 70022
+      },
+      {
+        "value": "Dexmedetomidine (mcg/kg/hr)",
+        "n": 69986
+      },
+      {
+        "value": "Norepinephrine (mcg/kg/min)",
+        "n": 68921
+      },
+      {
+        "value": "Vasopressin (ml/hr)",
+        "n": 65562
+      },
+      {
+        "value": "NSS (ml/hr)",
+        "n": 62876
+      },
+      {
+        "value": "Vasopressin (units/min)",
+        "n": 61213
+      },
+      {
+        "value": "Phenylephrine (ml/hr)",
+        "n": 60465
+      },
+      {
+        "value": "Dopamine (ml/hr)",
+        "n": 56077
+      },
+      {
+        "value": "Nicardipine (ml/hr)",
+        "n": 54862
+      },
+      {
+        "value": "Milrinone (ml/hr)",
+        "n": 53978
+      },
+      {
+        "value": "Nicardipine (mg/hr)",
+        "n": 52568
+      },
+      {
+        "value": "Phenylephrine (mcg/min)",
+        "n": 48318
+      },
+      {
+        "value": "Pantoprazole (ml/hr)",
+        "n": 48159
+      },
+      {
+        "value": "Propofol ()",
+        "n": 46224
+      },
+      {
+        "value": "Diltiazem (ml/hr)",
+        "n": 42938
+      },
+      {
+        "value": "Diltiazem (mg/hr)",
+        "n": 39042
+      },
+      {
+        "value": "Pantoprazole (mg/hr)",
+        "n": 37535
+      },
+      {
+        "value": "Dobutamine (ml/hr)",
+        "n": 35607
+      },
+      {
+        "value": "Epinephrine (ml/hr)",
+        "n": 33272
+      },
+      {
+        "value": "Fentanyl ()",
+        "n": 32012
+      },
+      {
+        "value": "IVF (ml/hr)",
+        "n": 30245
+      },
+      {
+        "value": "Dopamine (mcg/kg/min)",
+        "n": 29144
+      },
+      {
+        "value": "Nitroglycerin (ml/hr)",
+        "n": 26094
+      },
+      {
+        "value": "Sodium Bicarb IVF Infused (ml/hr)",
+        "n": 25468
+      },
+      {
+        "value": "Norepinephrine ()",
+        "n": 24793
+      },
+      {
+        "value": "Furosemide (ml/hr)",
+        "n": 24006
+      },
+      {
+        "value": "Dobutamine (mcg/kg/min)",
+        "n": 23197
+      },
+      {
+        "value": "Nitroglycerin (mcg/min)",
+        "n": 22668
+      },
+      {
+        "value": "Octreotide (ml/hr)",
+        "n": 20110
+      },
+      {
+        "value": "Furosemide (mg/hr)",
+        "n": 19293
+      },
+      {
+        "value": "Amiodarone ()",
+        "n": 18966
+      },
+      {
+        "value": "Octreotide (mcg/hr)",
+        "n": 18758
+      },
+      {
+        "value": "LR (ml/hr)",
+        "n": 18345
+      },
+      {
+        "value": "Phenylephrine (mcg/kg/min)",
+        "n": 16711
+      },
+      {
+        "value": "Milrinone (mcg/kg/min)",
+        "n": 15940
+      },
+      {
+        "value": "MIV (ml/hr)",
+        "n": 15127
+      },
+      {
+        "value": "Epinephrine (mcg/min)",
+        "n": 14662
+      },
+      {
+        "value": "Heparin ()",
+        "n": 14512
+      },
+      {
+        "value": "Insulin ()",
+        "n": 14139
+      },
+      {
+        "value": "norepinephrine Volume (ml) (ml/hr)",
+        "n": 13636
+      },
+      {
+        "value": "Insulin 250 Units Sodium Chloride 0.9% 250 ml (units/hr)",
+        "n": 12810
+      },
+      {
+        "value": "NitroGLYCERIN IVF Infused (ml/hr)",
+        "n": 12737
+      },
+      {
+        "value": "TPN (ml/hr)",
+        "n": 12546
+      },
+      {
+        "value": "Volume (ml) Heparin-heparin 25,000 units in dextrose 500 mL infusion (ml/hr)",
+        "n": 12302
+      },
+      {
+        "value": "Calcium Gluconate IVF Infused (ml/hr)",
+        "n": 11873
+      },
+      {
+        "value": "Bumetanide (ml/hr)",
+        "n": 11374
+      },
+      {
+        "value": "Volume (mL) TPN (ml/hr)",
+        "n": 10350
+      },
+      {
+        "value": "ivf (ml/hr)",
+        "n": 10260
+      },
+      {
+        "value": "Nitroprusside (ml/hr)",
+        "n": 9299
+      },
+      {
+        "value": "Volume (ml) Heparin-heparin 25,000 units in 0.45 % sodium chloride 500 mL infusion (ml/hr)",
+        "n": 8874
+      },
+      {
+        "value": "Hydromorphone IVF Infused (ml/hr)",
+        "n": 7764
+      },
+      {
+        "value": "Volume (mL) Lipids (ml/hr)",
+        "n": 7570
+      },
+      {
+        "value": "Vasopressin ()",
+        "n": 7327
+      },
+      {
+        "value": "D5W (ml/hr)",
+        "n": 6942
+      },
+      {
+        "value": "Esmolol (mcg/kg/min)",
+        "n": 6892
+      },
+      {
+        "value": "Phenylephrine ()",
+        "n": 6756
+      },
+      {
+        "value": "Nicardipine ()",
+        "n": 6732
+      },
+      {
+        "value": "Fentanyl (mcg/kg/hr)",
+        "n": 6574
+      },
+      {
+        "value": "Morphine (mg/hr)",
+        "n": 6461
+      },
+      {
+        "value": "0.9% NS (ml/hr)",
+        "n": 6233
+      },
+      {
+        "value": "Nimbex (mcg/kg/min)",
+        "n": 6064
+      },
+      {
+        "value": "Esmolol (ml/hr)",
+        "n": 5985
+      },
+      {
+        "value": "Pantoprazole ()",
+        "n": 5842
+      },
+      {
+        "value": "Volume (ml) Phenylephrine ()",
+        "n": 5758
+      },
+      {
+        "value": "3% Sodium Chloride IVF Infused (ml/hr)",
+        "n": 5590
+      },
+      {
+        "value": "Volume (mL) Magnesium  (ml/hr)",
+        "n": 5589
+      },
+      {
+        "value": "Lorazepam (mg/hr)",
+        "n": 5551
+      },
+      {
+        "value": "Bumetanide (mg/hr)",
+        "n": 5544
+      },
+      {
+        "value": "Diltiazem ()",
+        "n": 5523
+      },
+      {
+        "value": "Propofol (Diprivan) 1000 mg  100 ml  Premix (mcg/kg/min)",
+        "n": 5426
+      },
+      {
+        "value": "0.9% NSS (ml/hr)",
+        "n": 5047
+      },
+      {
+        "value": "Dopamine ()",
+        "n": 5020
+      },
+      {
+        "value": "Lorazepam (ml/hr)",
+        "n": 4962
+      },
+      {
+        "value": "Normal Saline (ml/hr)",
+        "n": 4701
+      },
+      {
+        "value": "Lidocaine (ml/hr)",
+        "n": 4690
+      },
+      {
+        "value": "Eptifibatide (ml/hr)",
+        "n": 4566
+      },
+      {
+        "value": "Nitroglycerin ()",
+        "n": 4544
+      },
+      {
+        "value": "Heparin (units/kg/hr)",
+        "n": 4435
+      },
+      {
+        "value": "Dobutamine ()",
+        "n": 4419
+      },
+      {
+        "value": "Fentanyl (mcg/kg/min)",
+        "n": 4261
+      },
+      {
+        "value": "Cisatracurium IVF Infused (ml/hr)",
+        "n": 4201
+      },
+      {
+        "value": "Furosemide ()",
+        "n": 4155
+      },
+      {
+        "value": "Morphine (ml/hr)",
+        "n": 4059
+      },
+      {
+        "value": "FentaNYL (Sublimaze) 2500 mcg Sodium Chloride 0.9% 250 ml  Premix (mcg/hr)",
+        "n": 3953
+      },
+      {
+        "value": "Propofol (mg/kg/min)",
+        "n": 3760
+      },
+      {
+        "value": "Magnesium Sulfate IVF Infused (ml/hr)",
+        "n": 3649
+      },
+      {
+        "value": "Volume-Transfuse RBC (ml/hr)",
+        "n": 3632
+      },
+      {
+        "value": "0.9 NS (ml/hr)",
+        "n": 3592
+      },
+      {
+        "value": "Argatroban (mcg/kg/min)",
+        "n": 3405
+      },
+      {
+        "value": "Eptifibatide (mcg/kg/min)",
+        "n": 3387
+      },
+      {
+        "value": "0.9 NSS (ml/hr)",
+        "n": 3370
+      },
+      {
+        "value": "Epinephrine (mcg/kg/min)",
+        "n": 3101
+      },
+      {
+        "value": "Norepinephrine STD 4 mg Dextrose 5% 250 ml (mcg/min)",
+        "n": 3013
+      },
+      {
+        "value": "Ketamine (mg/hr)",
+        "n": 2953
+      },
+      {
+        "value": "0.9NS (ml/hr)",
+        "n": 2756
+      },
+      {
+        "value": "Alteplase IVF Infused (ml/hr)",
+        "n": 2616
+      },
+      {
+        "value": "Norepinephrine MAX 32 mg Dextrose 5% 250 ml (mcg/min)",
+        "n": 2585
+      },
+      {
+        "value": "D10 (ml/hr)",
+        "n": 2555
+      },
+      {
+        "value": "Aminocaproic Acid IVF Infused (ml/hr)",
+        "n": 2551
+      },
+      {
+        "value": "Nitroprusside (mcg/kg/min)",
+        "n": 2540
+      },
+      {
+        "value": "NUTREN 1.5 (ml/hr)",
+        "n": 2508
+      },
+      {
+        "value": "D5NS (ml/hr)",
+        "n": 2445
+      },
+      {
+        "value": "Labetalol (ml/hr)",
+        "n": 2426
+      },
+      {
+        "value": "Argatroban IVF Infused (ml/hr)",
+        "n": 2410
+      },
+      {
+        "value": "nss (ml/hr)",
+        "n": 2347
+      },
+      {
+        "value": "Labetalol (mg/min)",
+        "n": 2250
+      },
+      {
+        "value": "Dexmedetomidine (mcg/kg/hr) (mcg/kg/hr)",
+        "n": 2202
+      },
+      {
+        "value": "Octreotide ()",
+        "n": 2136
+      },
+      {
+        "value": "PRBC (ml/hr)",
+        "n": 2063
+      },
+      {
+        "value": "Milrinone ()",
+        "n": 2042
+      },
+      {
+        "value": "Dexmedetomidine(Precedex) 400 mcg Sodium Chloride 0.9% 100 ml (mcg/kg/hr)",
+        "n": 2016
+      },
+      {
+        "value": "Methylprednisolone IVF infused (Unknown)",
+        "n": 1985
+      },
+      {
+        "value": "IV (ml/hr)",
+        "n": 1945
+      },
+      {
+        "value": "1/2 NS (ml/hr)",
+        "n": 1941
+      },
+      {
+        "value": "Epinephrine ()",
+        "n": 1879
+      },
+      {
+        "value": "Lidocaine (mg/min)",
+        "n": 1878
+      },
+      {
+        "value": "cisatracurium (mcg/kg/min)",
+        "n": 1769
+      },
+      {
+        "value": "iv (ml/hr)",
+        "n": 1729
+      },
+      {
+        "value": "0.9%NS (ml/hr)",
+        "n": 1706
+      },
+      {
+        "value": "argatroban (mcg/kg/min)",
+        "n": 1685
+      },
+      {
+        "value": "Cisatracurium (mcg/kg/min)",
+        "n": 1665
+      },
+      {
+        "value": "Norepinephrine",
+        "n": 1654
+      },
+      {
+        "value": "Lorazepam ()",
+        "n": 1651
+      },
+      {
+        "value": "Morphine ()",
+        "n": 1627
+      },
+      {
+        "value": "Fentanyl",
+        "n": 1591
+      },
+      {
+        "value": "Isoproterenol (mcg/min)",
+        "n": 1575
+      },
+      {
+        "value": "Lipids (ml/hr)",
+        "n": 1549
+      },
+      {
+        "value": "Propofol",
+        "n": 1547
+      },
+      {
+        "value": "NIMBEX (mcg/kg/min)",
+        "n": 1529
+      },
+      {
+        "value": "nimbex (mcg/kg/min)",
+        "n": 1516
+      },
+      {
+        "value": "ketamine (mg/hr)",
+        "n": 1452
+      },
+      {
+        "value": "MAIN (ml/hr)",
+        "n": 1407
+      },
+      {
+        "value": "TF (ml/hr)",
+        "n": 1373
+      },
+      {
+        "value": ".9 NS (ml/hr)",
+        "n": 1365
+      },
+      {
+        "value": "Lactated Ringers (ml/hr)",
+        "n": 1363
+      },
+      {
+        "value": "0.9%NSS (ml/hr)",
+        "n": 1357
+      },
+      {
+        "value": "Insulin",
+        "n": 1346
+      },
+      {
+        "value": "ns (ml/hr)",
+        "n": 1303
+      },
+      {
+        "value": "0.9% NaCl (ml/hr)",
+        "n": 1263
+      },
+      {
+        "value": "NSS  (ml/hr)",
+        "n": 1240
+      },
+      {
+        "value": "cisatracurium Volume (ml) (ml/hr)",
+        "n": 1235
+      },
+      {
+        "value": "Phenylephrine  STD 20 mg Sodium Chloride 0.9% 250 ml (mcg/min)",
+        "n": 1218
+      },
+      {
+        "value": "NS  (ml/hr)",
+        "n": 1218
+      },
+      {
+        "value": "D5 1/2 NS (ml/hr)",
+        "n": 1206
+      },
+      {
+        "value": "Epoprostenol (nanograms/kg/min)",
+        "n": 1199
+      },
+      {
+        "value": "Pantoprazole(Protonix) (mg/hr)",
+        "n": 1165
+      },
+      {
+        "value": "D5LR (ml/hr)",
+        "n": 1130
+      },
+      {
+        "value": "Levophed (mcg/min)",
+        "n": 1123
+      },
+      {
+        "value": "3% NS (ml/hr)",
+        "n": 1105
+      },
+      {
+        "value": "Phenylephrine  MAX 100 mg Sodium Chloride 0.9% 250 ml (mcg/min)",
+        "n": 1052
+      },
+      {
+        "value": ".9NSS (ml/hr)",
+        "n": 1035
+      },
+      {
+        "value": "Nitroglycerin (mcg/kg/min)",
+        "n": 1009
+      },
+      {
+        "value": "0.9NSS (ml/hr)",
+        "n": 997
+      },
+      {
+        "value": "Vasopressin (units/hr)",
+        "n": 989
+      },
+      {
+        "value": "Insulin Scale A (units/hr)",
+        "n": 927
+      },
+      {
+        "value": "Heparin",
+        "n": 918
+      },
+      {
+        "value": "Midazolam (Versed) 100 mg Sodium Chloride 0.9% 100 ml (mg/hr)",
+        "n": 892
+      },
+      {
+        "value": "Isoproterenol (ml/hr)",
+        "n": 887
+      },
+      {
+        "value": "Calcium Chloride mL/hr (ml/hr)",
+        "n": 882
+      },
+      {
+        "value": "Citrate mL/hr (ml/hr)",
+        "n": 873
+      },
+      {
+        "value": "D51/2NS (ml/hr)",
+        "n": 873
+      },
+      {
+        "value": "D5 1/2NS (ml/hr)",
+        "n": 867
+      },
+      {
+        "value": "Amicar (ml/hr)",
+        "n": 853
+      },
+      {
+        "value": "KVO (ml/hr)",
+        "n": 838
+      },
+      {
+        "value": "Bicarb (ml/hr)",
+        "n": 834
+      },
+      {
+        "value": "Volume-Transfuse fresh frozen plasma (ml/hr)",
+        "n": 819
+      },
+      {
+        "value": "Insulin (units/kg/hr)",
+        "n": 817
+      },
+      {
+        "value": "Cisatracurium (mg/hr)",
+        "n": 817
+      },
+      {
+        "value": ".9 NSS (ml/hr)",
+        "n": 811
+      },
+      {
+        "value": "D5 (ml/hr)",
+        "n": 809
+      },
+      {
+        "value": "normal saline (ml/hr)",
+        "n": 806
+      },
+      {
+        "value": "0.45 NSS (ml/hr)",
+        "n": 804
+      },
+      {
+        "value": "Vecuronium (mcg/kg/min)",
+        "n": 768
+      },
+      {
+        "value": "Heparin 25000 Units Dextrose 5% 500 ml  Premix (units/kg/hr)",
+        "n": 761
+      },
+      {
+        "value": "Amiodarone",
+        "n": 739
+      },
+      {
+        "value": "NS for Blood Administration (ml/hr)",
+        "n": 728
+      },
+      {
+        "value": "Alteplase (mg/hr)",
+        "n": 728
+      },
+      {
+        "value": "Dilaudid (mg/hr)",
+        "n": 726
+      },
+      {
+        "value": "0.9% (ml/hr)",
+        "n": 724
+      },
+      {
+        "value": "Volume (mL)-sodium chloride 0.9 % bolus 1,000 mL (ml/hr)",
+        "n": 693
+      },
+      {
+        "value": "Mannitol IVF Infused (ml/hr)",
+        "n": 686
+      },
+      {
+        "value": "Isoproterenol ()",
+        "n": 669
+      },
+      {
+        "value": "Nimbex (mg/hr)",
+        "n": 658
+      },
+      {
+        "value": "Dexmedetomidine",
+        "n": 655
+      },
+      {
+        "value": "Esmolol ()",
+        "n": 649
+      },
+      {
+        "value": "ARGATROBAN (mcg/kg/min)",
+        "n": 636
+      },
+      {
+        "value": "hydromorphone (mg/hr)",
+        "n": 636
+      },
+      {
+        "value": ".45 NSS (ml/hr)",
+        "n": 632
+      },
+      {
+        "value": "3% saline (ml/hr)",
+        "n": 626
+      },
+      {
+        "value": "Volume (mL) Argatroban (ml/hr)",
+        "n": 618
+      },
+      {
+        "value": "Amiodarone (mg/min) (mg/min)",
+        "n": 615
+      },
+      {
+        "value": "Phenylephrine",
+        "n": 602
+      },
+      {
+        "value": "Pentobarbital (mg/kg/hr)",
+        "n": 601
+      },
+      {
+        "value": "Midazolam",
+        "n": 598
+      },
+      {
+        "value": "Volume (mL)-sodium chloride 0.9 % bolus 500 mL (ml/hr)",
+        "n": 587
+      },
+      {
+        "value": "Dexmetetomidine (Precedex) (mcg/kg/hr)",
+        "n": 584
+      },
+      {
+        "value": "Hydromorphone (mg/hr)",
+        "n": 575
+      },
+      {
+        "value": "Tube Feed (ml/hr)",
+        "n": 574
+      },
+      {
+        "value": "NiCARDipine (premix) 20 mg Sodium Chloride 0.9% 200 ml (mg/hr)",
+        "n": 557
+      },
+      {
+        "value": ".45 NS (ml/hr)",
+        "n": 550
+      },
+      {
+        "value": "D10W (ml/hr)",
+        "n": 545
+      },
+      {
+        "value": "DOPamine STD 400 mg Dextrose 5% 250 ml  Premix (mcg/kg/min)",
+        "n": 544
+      },
+      {
+        "value": "1/2 NSS (ml/hr)",
+        "n": 534
+      },
+      {
+        "value": "Water flush (ml/hr)",
+        "n": 527
+      },
+      {
+        "value": "Normal Saline 0.9% (ml/hr)",
+        "n": 518
+      },
+      {
+        "value": "Nitroprusside ()",
+        "n": 511
+      },
+      {
+        "value": "Eptifibatide (mcg/min)",
+        "n": 501
+      },
+      {
+        "value": "Protonix (mg/hr)",
+        "n": 495
+      },
+      {
+        "value": "ZOSYN (ml/hr)",
+        "n": 492
+      },
+      {
+        "value": "HYDROmorphone (Dilaudid) 50 mg Sodium Chloride 0.9% 250 ml  Premix (mg/hr)",
+        "n": 488
+      },
+      {
+        "value": "cisatracurium (mg/hr)",
+        "n": 478
+      },
+      {
+        "value": "3% Saline (ml/hr)",
+        "n": 477
+      },
+      {
+        "value": "Naloxone IVF Infused (ml/hr)",
+        "n": 477
+      },
+      {
+        "value": "bicarb (ml/hr)",
+        "n": 475
+      },
+      {
+        "value": "D5.45NS (ml/hr)",
+        "n": 474
+      },
+      {
+        "value": "D5 / 0.45% NSS (ml/hr)",
+        "n": 472
+      },
+      {
+        "value": "Nitroglycerin(25mg/250ml) 25 mg Dextrose 5% 250 ml  Premix (glass bottle) (mcg/min)",
+        "n": 468
+      },
+      {
+        "value": "3% NaCl (ml/hr)",
+        "n": 467
+      },
+      {
+        "value": "miv (ml/hr)",
+        "n": 466
+      },
+      {
+        "value": "Normal Saline  (ml/hr)",
+        "n": 458
+      },
+      {
+        "value": "NiCARDipine (std) 50 mg Sodium Chloride 0.9% 500 ml (mg/hr)",
+        "n": 454
+      },
+      {
+        "value": "Rocuronium (mcg/kg/min)",
+        "n": 452
+      },
+      {
+        "value": "NS KVO (ml/hr)",
+        "n": 435
+      },
+      {
+        "value": "NIMBEX  (mcg/kg/min)",
+        "n": 434
+      },
+      {
+        "value": "tpn (ml/hr)",
+        "n": 430
+      },
+      {
+        "value": "H20 TF flush  (ml/hr)",
+        "n": 427
+      },
+      {
+        "value": "Angiomax (mg/kg/hr)",
+        "n": 426
+      },
+      {
+        "value": "lipids (ml/hr)",
+        "n": 426
+      },
+      {
+        "value": "Aminophylline IVF Infused (ml/hr)",
+        "n": 426
+      },
+      {
+        "value": "Sodium Bicarb (ml/hr)",
+        "n": 425
+      },
+      {
+        "value": "D5 1/2NSS (ml/hr)",
+        "n": 424
+      },
+      {
+        "value": "NORMAL SALINE (ml/hr)",
+        "n": 422
+      },
+      {
+        "value": "LIPIDS (ml/hr)",
+        "n": 419
+      },
+      {
+        "value": "0.45NS (ml/hr)",
+        "n": 417
+      },
+      {
+        "value": "Nicardipine",
+        "n": 416
+      },
+      {
+        "value": "Vasopressin 40 Units Sodium Chloride 0.9% 100 ml (units/min)",
+        "n": 415
+      },
+      {
+        "value": "Levothyroxine (mcg/hr)",
+        "n": 415
+      },
+      {
+        "value": "heparin (units/hr)",
+        "n": 415
+      },
+      {
+        "value": "Amiodarone (maintenance) 900 mg Dextrose 5% 500 ml (mg/min)",
+        "n": 413
+      },
+      {
+        "value": "D5NSS (ml/hr)",
+        "n": 409
+      },
+      {
+        "value": "DOBUTamine STD 500 mg Dextrose 5% 250 ml  Premix (mcg/kg/min)",
+        "n": 409
+      },
+      {
+        "value": "Dexmedetomidine Inj 400 Mcg in Sodium Chloride 0.9% 100 ml (mcg/kg/hr)",
+        "n": 407
+      },
+      {
+        "value": "epidural (ml/hr)",
+        "n": 402
+      },
+      {
+        "value": "3% NACL (ml/hr)",
+        "n": 400
+      },
+      {
+        "value": "Banana Bag (ml/hr)",
+        "n": 399
+      },
+      {
+        "value": "TPA (mg/hr)",
+        "n": 399
+      },
+      {
+        "value": "Insulin Scale B (units/hr)",
+        "n": 394
+      },
+      {
+        "value": "0.45 NS (ml/hr)",
+        "n": 393
+      },
+      {
+        "value": "ARGACTROBAN (mcg/kg/min)",
+        "n": 391
+      },
+      {
+        "value": "0.9% nacl (ml/hr)",
+        "n": 390
+      },
+      {
+        "value": "Dopamine",
+        "n": 383
+      },
+      {
+        "value": "NS +20KCL (ml/hr)",
+        "n": 382
+      },
+      {
+        "value": "kvo (ml/hr)",
+        "n": 381
+      },
+      {
+        "value": "Epidural (ml/hr)",
+        "n": 381
+      },
+      {
+        "value": "Glucerna 1.5 (ml/hr)",
+        "n": 380
+      },
+      {
+        "value": "Acetylcysteine (mg/kg/hr)",
+        "n": 379
+      },
+      {
+        "value": "0.9% Normal Saline (ml/hr)",
+        "n": 375
+      },
+      {
+        "value": "Abciximab (ml/hr)",
+        "n": 373
+      },
+      {
+        "value": "Morphine 250 mg Sodium Chloride 0.9% 250 ml  Premix (mg/hr)",
+        "n": 370
+      },
+      {
+        "value": "0.9% NSS  (ml/hr)",
+        "n": 365
+      },
+      {
+        "value": "0.9% Saline (ml/hr)",
+        "n": 364
+      },
+      {
+        "value": "Pantoprazole (mg/hr) (mg/hr)",
+        "n": 360
+      },
+      {
+        "value": "Other mL/hr (ml/hr)",
+        "n": 354
+      },
+      {
+        "value": "NImbex (mcg/kg/min)",
+        "n": 354
+      },
+      {
+        "value": "Hypertonic Saline (ml/hr)",
+        "n": 351
+      },
+      {
+        "value": "Normosol (ml/hr)",
+        "n": 351
+      },
+      {
+        "value": "Esomeprazole (mg/hr)",
+        "n": 349
+      },
+      {
+        "value": "EPINEPHrine(Adrenalin)STD 4 mg Sodium Chloride 0.9% 250 ml (mcg/min)",
+        "n": 347
+      },
+      {
+        "value": "FFP (ml/hr)",
+        "n": 347
+      },
+      {
+        "value": "Normal saline (ml/hr)",
+        "n": 344
+      },
+      {
+        "value": "Diltiazem",
+        "n": 343
+      },
+      {
+        "value": "levophed (mcg/min)",
+        "n": 342
+      },
+      {
+        "value": "Epinephrine (mg/kg/min)",
+        "n": 341
+      },
+      {
+        "value": "Dilaudid PCA (mg/hr)",
+        "n": 341
+      },
+      {
+        "value": "Diltiazem(Cardizem) mg/hr (mg/hr)",
+        "n": 340
+      },
+      {
+        "value": "BICARB (ml/hr)",
+        "n": 339
+      },
+      {
+        "value": "NS",
+        "n": 335
+      },
+      {
+        "value": "3% SALINE (ml/hr)",
+        "n": 330
+      },
+      {
+        "value": "ivpb (ml/hr)",
+        "n": 329
+      },
+      {
+        "value": "Diltiazem (Cardizem) 125 mg Sodium Chloride 0.9% 125 ml (mg/hr)",
+        "n": 327
+      },
+      {
+        "value": "Pentobarbital (ml/hr)",
+        "n": 327
+      },
+      {
+        "value": "Ketamine (mg/kg/hr)",
+        "n": 323
+      },
+      {
+        "value": "0.45%NS (ml/hr)",
+        "n": 322
+      },
+      {
+        "value": "Volume (mL) Acetylcysteine (ml/hr)",
+        "n": 321
+      },
+      {
+        "value": "0.45% NS (ml/hr)",
+        "n": 321
+      },
+      {
+        "value": "PPN (ml/hr)",
+        "n": 320
+      },
+      {
+        "value": "Precedex (mcg/kg/hr)",
+        "n": 319
+      },
+      {
+        "value": "Zosyn (ml/hr)",
+        "n": 318
+      },
+      {
+        "value": "Midazolam ()",
+        "n": 316
+      },
+      {
+        "value": "atracurium (mcg/kg/min)",
+        "n": 307
+      },
+      {
+        "value": "Vecuronium IVF Infused (ml/hr)",
+        "n": 306
+      },
+      {
+        "value": "Argatroban (mcg/kg/hr)",
+        "n": 306
+      },
+      {
+        "value": "Bicarb gtt (ml/hr)",
+        "n": 303
+      },
+      {
+        "value": "Vasopressin",
+        "n": 302
+      },
+      {
+        "value": "Dilaudid PCA -Infusion (ml/hr)",
+        "n": 295
+      },
+      {
+        "value": "Volume-Transfuse Pheresed Platelets (ml/hr)",
+        "n": 294
+      },
+      {
+        "value": "vasopressin (units/min)",
+        "n": 294
+      },
+      {
+        "value": "3% hypertonic (ml/hr)",
+        "n": 292
+      },
+      {
+        "value": "Insulin- Scale A (units/hr)",
+        "n": 290
+      },
+      {
+        "value": "Protonix (ml/hr)",
+        "n": 289
+      },
+      {
+        "value": "AMICAR (ml/hr)",
+        "n": 288
+      },
+      {
+        "value": "D5 0.45 NS (ml/hr)",
+        "n": 288
+      },
+      {
+        "value": "NOVASOURCE RENAL (ml/hr)",
+        "n": 286
+      },
+      {
+        "value": "Water Flush (ml/hr)",
+        "n": 285
+      },
+      {
+        "value": "5% Dextrose (ml/hr)",
+        "n": 284
+      },
+      {
+        "value": "amicar (ml/hr)",
+        "n": 283
+      },
+      {
+        "value": "D5/0.45NS (ml/hr)",
+        "n": 283
+      },
+      {
+        "value": "LORazepam (Ativan) 100 mg Sodium Chloride 0.9% 100 ml  Premix (mg/hr)",
+        "n": 282
+      },
+      {
+        "value": "Esmolol (Brevibloc) 2500 mg Sodium Chloride 0.9% 250 ml (mcg/kg/min)",
+        "n": 281
+      },
+      {
+        "value": "Atracurium (mcg/kg/min)",
+        "n": 281
+      },
+      {
+        "value": "NS + ABX (ml/hr)",
+        "n": 279
+      },
+      {
+        "value": "PRBCs (ml/hr)",
+        "n": 278
+      },
+      {
+        "value": "prbc (ml/hr)",
+        "n": 277
+      },
+      {
+        "value": "Albumin (ml/hr)",
+        "n": 277
+      },
+      {
+        "value": "NaHCO3 (ml/hr)",
+        "n": 269
+      },
+      {
+        "value": "albumin (ml/hr)",
+        "n": 267
+      },
+      {
+        "value": "Volume-Transfuse RBC",
+        "n": 263
+      },
+      {
+        "value": "D5 LR (ml/hr)",
+        "n": 261
+      },
+      {
+        "value": "Volume (mL) Tenecteplase (ml/hr)",
+        "n": 261
+      },
+      {
+        "value": "1/2 nss (ml/hr)",
+        "n": 261
+      },
+      {
+        "value": "precedex (mcg/kg/hr)",
+        "n": 258
+      },
+      {
+        "value": "nimbex (mg/hr)",
+        "n": 258
+      },
+      {
+        "value": "Eptifibatide ()",
+        "n": 255
+      },
+      {
+        "value": "Amicar (mg/hr)",
+        "n": 254
+      },
+      {
+        "value": "LASIX (ml/hr)",
+        "n": 253
+      },
+      {
+        "value": "Lactated Ringer (ml/hr)",
+        "n": 251
+      },
+      {
+        "value": "Nitroglycerin",
+        "n": 250
+      },
+      {
+        "value": "HCO3 (ml/hr)",
+        "n": 247
+      },
+      {
+        "value": "Sodium Bicarbonate mL/hr (ml/hr)",
+        "n": 246
+      },
+      {
+        "value": "Labetalol (mg/hr)",
+        "n": 244
+      },
+      {
+        "value": "NUTREN 1..5 (ml/hr)",
+        "n": 243
+      },
+      {
+        "value": "NS with KCL 20 MeQ (ml/hr)",
+        "n": 241
+      },
+      {
+        "value": "Magnesium Sulfate (mg/hr)",
+        "n": 240
+      },
+      {
+        "value": ".45NS (ml/hr)",
+        "n": 238
+      },
+      {
+        "value": "Altepase (mg/hr)",
+        "n": 237
+      },
+      {
+        "value": "propofol (mcg/kg/min)",
+        "n": 235
+      },
+      {
+        "value": "Epinephrine",
+        "n": 234
+      },
+      {
+        "value": "0.45% NSS (ml/hr)",
+        "n": 233
+      },
+      {
+        "value": "NSS + abx (ml/hr)",
+        "n": 232
+      },
+      {
+        "value": "3% (ml/hr)",
+        "n": 232
+      },
+      {
+        "value": "Tirofiban (ml/hr)",
+        "n": 227
+      },
+      {
+        "value": "Sodium Bicarbonate (ml/hr)",
+        "n": 227
+      },
+      {
+        "value": "insulin (units/hr)",
+        "n": 227
+      },
+      {
+        "value": "Veletri (ml/hr)",
+        "n": 226
+      },
+      {
+        "value": "0.9%NSS  (ml/hr)",
+        "n": 225
+      },
+      {
+        "value": "Sodium bicarb (ml/hr)",
+        "n": 225
+      },
+      {
+        "value": "d10 (ml/hr)",
+        "n": 224
+      },
+      {
+        "value": "Fentanyl PCA (mcg/hr)",
+        "n": 224
+      },
+      {
+        "value": "EPINEPHrine(Adrenalin)MAX 30 mg Sodium Chloride 0.9% 250 ml (mcg/min)",
+        "n": 223
+      },
+      {
+        "value": "Cisatracurium (Nimbex)STD 200 mg Sodium Chloride 0.9% 1000 ml (mcg/kg/min)",
+        "n": 222
+      },
+      {
+        "value": "Tube Feeds  (ml/hr)",
+        "n": 218
+      },
+      {
+        "value": "KCL RIDER (ml/hr)",
+        "n": 217
+      },
+      {
+        "value": "D5 .45NS (ml/hr)",
+        "n": 217
+      },
+      {
+        "value": "NS MF (ml/hr)",
+        "n": 216
+      },
+      {
+        "value": "Tube Feed Flushes (ml/hr)",
+        "n": 216
+      },
+      {
+        "value": "Lidocaine ()",
+        "n": 214
+      },
+      {
+        "value": "3% HYPERTONIC SALINE (ml/hr)",
+        "n": 214
+      },
+      {
+        "value": "bicarb gtt (ml/hr)",
+        "n": 214
+      },
+      {
+        "value": "bolus (ml/hr)",
+        "n": 212
+      },
+      {
+        "value": "Fentanyl (mg/hr)",
+        "n": 212
+      },
+      {
+        "value": "Pantoprazole",
+        "n": 212
+      },
+      {
+        "value": "BOLUS (ml/hr)",
+        "n": 212
+      },
+      {
+        "value": "tube feeds (ml/hr)",
+        "n": 212
+      },
+      {
+        "value": "D5.45NSS (ml/hr)",
+        "n": 209
+      },
+      {
+        "value": "CISATRACURIUM (mcg/kg/min)",
+        "n": 209
+      },
+      {
+        "value": "D5/W (ml/hr)",
+        "n": 206
+      },
+      {
+        "value": "NS abx (ml/hr)",
+        "n": 205
+      },
+      {
+        "value": "Neosynephrine (mcg/min)",
+        "n": 205
+      },
+      {
+        "value": "fentanyl (mcg/hr)",
+        "n": 204
+      },
+      {
+        "value": "Pantoprazole (mg/kg/hr)",
+        "n": 203
+      },
+      {
+        "value": "Fibersource TF (ml/hr)",
+        "n": 203
+      },
+      {
+        "value": "cardene (mg/hr)",
+        "n": 203
+      },
+      {
+        "value": "Bivalirudin IVF Infused (ml/hr)",
+        "n": 200
+      },
+      {
+        "value": "IVPB (ml/hr)",
+        "n": 199
+      },
+      {
+        "value": "Propofol (mcg/kg/hr)",
+        "n": 195
+      },
+      {
+        "value": "Milrinone",
+        "n": 195
+      },
+      {
+        "value": "Furosemide",
+        "n": 194
+      },
+      {
+        "value": "1/2NS (ml/hr)",
+        "n": 191
+      },
+      {
+        "value": "D5 0.9 NS (ml/hr)",
+        "n": 191
+      },
+      {
+        "value": "sodium bicarb (ml/hr)",
+        "n": 189
+      },
+      {
+        "value": "Narcan (mg/hr)",
+        "n": 188
+      },
+      {
+        "value": "NS ABX (ml/hr)",
+        "n": 186
+      },
+      {
+        "value": "Nimbex  (mcg/kg/min)",
+        "n": 185
+      },
+      {
+        "value": "MVI (ml/hr)",
+        "n": 184
+      },
+      {
+        "value": "Tirofiban (mcg/kg/min)",
+        "n": 183
+      },
+      {
+        "value": "1/2NSS (ml/hr)",
+        "n": 183
+      },
+      {
+        "value": "NSS 3% (ml/hr)",
+        "n": 182
+      },
+      {
+        "value": "Rocuronium IVF Infused (ml/hr)",
+        "n": 182
+      },
+      {
+        "value": "NS w/ 20 KCL (ml/hr)",
+        "n": 182
+      },
+      {
+        "value": "NSS",
+        "n": 181
+      },
+      {
+        "value": "D5 NS (ml/hr)",
+        "n": 180
+      },
+      {
+        "value": "Acetylcysteine (ml/hr)",
+        "n": 178
+      },
+      {
+        "value": "Precedex (mg/kg/hr)",
+        "n": 178
+      },
+      {
+        "value": "Volume (ml) Heparin-heparin infusion 2 units/mL in 0.9% sodium chloride (ARTERIAL LINE) (ml/hr)",
+        "n": 178
+      },
+      {
+        "value": "3% NORMAL SALINE (ml/hr)",
+        "n": 178
+      },
+      {
+        "value": "Dobutamine",
+        "n": 176
+      },
+      {
+        "value": "NSS/ atbx (ml/hr)",
+        "n": 176
+      },
+      {
+        "value": "NS 0.9% (ml/hr)",
+        "n": 176
+      },
+      {
+        "value": "IVF's (ml/hr)",
+        "n": 175
+      },
+      {
+        "value": "Volume (mL) Naloxone (ml/hr)",
+        "n": 175
+      },
+      {
+        "value": "0.9% NS  (ml/hr)",
+        "n": 175
+      },
+      {
+        "value": "abx (ml/hr)",
+        "n": 175
+      },
+      {
+        "value": "NSS #1 (ml/hr)",
+        "n": 174
+      },
+      {
+        "value": "zosyn (ml/hr)",
+        "n": 174
+      },
+      {
+        "value": "normal saline  (ml/hr)",
+        "n": 172
+      },
+      {
+        "value": "vecuronium (mcg/kg/min)",
+        "n": 172
+      },
+      {
+        "value": "DILAUDID (mg/hr)",
+        "n": 172
+      },
+      {
+        "value": "NSS 0.9% (ml/hr)",
+        "n": 170
+      },
+      {
+        "value": "Versed (mg/hr)",
+        "n": 170
+      },
+      {
+        "value": "Banana bag (ml/hr)",
+        "n": 169
+      },
+      {
+        "value": "Agatroban (mcg/kg/min)",
+        "n": 168
+      },
+      {
+        "value": "NiCARDipine (max) 100 mg Sodium Chloride 0.9% 250 ml (mg/hr)",
+        "n": 168
+      },
+      {
+        "value": "D5 1/2 NSS (ml/hr)",
+        "n": 167
+      },
+      {
+        "value": "Amiodarone (mg/hr)",
+        "n": 166
+      },
+      {
+        "value": "AMICAR (mg/hr)",
+        "n": 165
+      },
+      {
+        "value": "TPA (ml/hr)",
+        "n": 165
+      },
+      {
+        "value": "D5 0.9%NSS (ml/hr)",
+        "n": 163
+      },
+      {
+        "value": "N/S (ml/hr)",
+        "n": 162
+      },
+      {
+        "value": "3% Hypertonic Saline (ml/hr)",
+        "n": 161
+      },
+      {
+        "value": "3%NaCl (ml/hr)",
+        "n": 161
+      },
+      {
+        "value": "ketamine (mg/kg/hr)",
+        "n": 160
+      },
+      {
+        "value": "NIMBEX (mcg/kg/hr)",
+        "n": 160
+      },
+      {
+        "value": "CISATRACURIUM  (mg/hr)",
+        "n": 160
+      },
+      {
+        "value": "tPA (mg/hr)",
+        "n": 160
+      },
+      {
+        "value": "DOBUTamine MAX 1000 mg Dextrose 5% 250 ml  Premix (mcg/kg/min)",
+        "n": 156
+      },
+      {
+        "value": "NS + 20meq KCL (ml/hr)",
+        "n": 154
+      },
+      {
+        "value": "Dexmedetomidine Inj 400 Mcg in Dextrose 5% 100 ml (mcg/kg/hr)",
+        "n": 153
+      },
+      {
+        "value": "D5/0.45 NSS (ml/hr)",
+        "n": 151
+      },
+      {
+        "value": "DOPamine MAX 800 mg Dextrose 5% 250 ml  Premix (mcg/kg/min)",
+        "n": 151
+      },
+      {
+        "value": "PRBC's (ml/hr)",
+        "n": 149
+      },
+      {
+        "value": "H2O flush (ml/hr)",
+        "n": 149
+      },
+      {
+        "value": "0.9 NSS (carrier) (ml/hr)",
+        "n": 148
+      },
+      {
+        "value": "D5w (ml/hr)",
+        "n": 148
+      },
+      {
+        "value": "Levophed (ml/hr)",
+        "n": 148
+      },
+      {
+        "value": "Hypertonic 3% saline (ml/hr)",
+        "n": 146
+      },
+      {
+        "value": "NSS w/ABT (ml/hr)",
+        "n": 145
+      },
+      {
+        "value": "NSS control (ml/hr)",
+        "n": 145
+      },
+      {
+        "value": "Oxytocin IVF Infused (ml/hr)",
+        "n": 145
+      },
+      {
+        "value": "Dexmedetomidine (mcg/min)",
+        "n": 145
+      },
+      {
+        "value": "dilaudid (mg/hr)",
+        "n": 145
+      },
+      {
+        "value": "Aminocaproic acid MAX 25 g Sodium Chloride 0.9% 250 ml (Unknown)",
+        "n": 143
+      },
+      {
+        "value": ".45% Normal Saline (ml/hr)",
+        "n": 143
+      },
+      {
+        "value": "NSS w/ Anbx (ml/hr)",
+        "n": 143
+      },
+      {
+        "value": "Midazolam (mcg/kg/min)",
+        "n": 142
+      },
+      {
+        "value": "0.2 % NS (ml/hr)",
+        "n": 142
+      },
+      {
+        "value": "Octreotide (mcg/hr) (mcg/hr)",
+        "n": 140
+      },
+      {
+        "value": "RL (ml/hr)",
+        "n": 139
+      },
+      {
+        "value": "d5 1/2 ns (ml/hr)",
+        "n": 138
+      },
+      {
+        "value": "Ninbex (mcg/kg/min)",
+        "n": 138
+      },
+      {
+        "value": "NaBicarb (ml/hr)",
+        "n": 138
+      },
+      {
+        "value": "d51/2ns (ml/hr)",
+        "n": 138
+      },
+      {
+        "value": "Pantoprazole (Protonix) 80 mg Sodium Chloride 0.9% 250 ml (mg/hr)",
+        "n": 137
+      },
+      {
+        "value": "NS 0.9%  (ml/hr)",
+        "n": 137
+      },
+      {
+        "value": "NACL (ml/hr)",
+        "n": 136
+      },
+      {
+        "value": "lr (ml/hr)",
+        "n": 135
+      },
+      {
+        "value": "Fibersource (ml/hr)",
+        "n": 135
+      },
+      {
+        "value": "Hypertonic Saline 3% (ml/hr)",
+        "n": 135
+      },
+      {
+        "value": "0.45% NaCl (ml/hr)",
+        "n": 135
+      },
+      {
+        "value": "Insulin (mg/hr)",
+        "n": 134
+      },
+      {
+        "value": "BiCarb (ml/hr)",
+        "n": 134
+      },
+      {
+        "value": "Bolus (ml/hr)",
+        "n": 132
+      },
+      {
+        "value": "Fibersource HN (ml/hr)",
+        "n": 132
+      },
+      {
+        "value": "normosol (ml/hr)",
+        "n": 131
+      },
+      {
+        "value": "EPIDURAL (ml/hr)",
+        "n": 131
+      },
+      {
+        "value": "Fentanyl (Unknown)",
+        "n": 131
+      },
+      {
+        "value": "FIBERSOURCE HN (ml/hr)",
+        "n": 131
+      },
+      {
+        "value": "Volume (ml) Abciximab  (ml/hr)",
+        "n": 130
+      },
+      {
+        "value": "Dexmedetomidine (mcg/hr)",
+        "n": 130
+      },
+      {
+        "value": "Abciximab (mcg/kg/min)",
+        "n": 130
+      },
+      {
+        "value": "Nitroglycerin (Unknown)",
+        "n": 130
+      },
+      {
+        "value": "Midazolam (mg/kg/hr)",
+        "n": 129
+      },
+      {
+        "value": "Hypertonic saline (ml/hr)",
+        "n": 129
+      },
+      {
+        "value": "Na Bicarb (ml/hr)",
+        "n": 129
+      },
+      {
+        "value": "alteplase (mg/hr)",
+        "n": 129
+      },
+      {
+        "value": "bupiv .1%, fent 2mcg/ml, duramorph 40mcg/ml (ml/hr)",
+        "n": 129
+      },
+      {
+        "value": "Nepro (ml/hr)",
+        "n": 128
+      },
+      {
+        "value": "NSw/20KCL (ml/hr)",
+        "n": 127
+      },
+      {
+        "value": "Prograf drip (ml/hr)",
+        "n": 127
+      },
+      {
+        "value": "TKO (ml/hr)",
+        "n": 126
+      },
+      {
+        "value": "KETAMINE (mg/hr)",
+        "n": 126
+      },
+      {
+        "value": "D5.9NSS (ml/hr)",
+        "n": 125
+      },
+      {
+        "value": "Vecuronium (mcg/kg/hr)",
+        "n": 125
+      },
+      {
+        "value": "PCA Dilaudid (mg/hr)",
+        "n": 125
+      },
+      {
+        "value": "tPA (ml/hr)",
+        "n": 125
+      },
+      {
+        "value": "D5/0.45%NS (ml/hr)",
+        "n": 124
+      }
+    ],
+    "respiratorycharting.respchartvaluelabel": [
+      {
+        "value": "FiO2",
+        "n": 3075308
+      },
+      {
+        "value": "RR (patient)",
+        "n": 2403325
+      },
+      {
+        "value": "PEEP",
+        "n": 1464808
+      },
+      {
+        "value": "Total RR",
+        "n": 1317809
+      },
+      {
+        "value": "Vent Rate",
+        "n": 1128156
+      },
+      {
+        "value": "Tidal Volume (set)",
+        "n": 1034549
+      },
+      {
+        "value": "TV/kg IBW",
+        "n": 1024017
+      },
+      {
+        "value": "LPM O2",
+        "n": 1018832
+      },
+      {
+        "value": "Mean Airway Pressure",
+        "n": 696659
+      },
+      {
+        "value": "Peak Insp. Pressure",
+        "n": 661865
+      },
+      {
+        "value": "Exhaled MV",
+        "n": 579068
+      },
+      {
+        "value": "O2 Device",
+        "n": 482085
+      },
+      {
+        "value": "Exhaled TV (machine)",
+        "n": 478980
+      },
+      {
+        "value": "Exhaled TV (patient)",
+        "n": 424724
+      },
+      {
+        "value": "SaO2",
+        "n": 380879
+      },
+      {
+        "value": "Plateau Pressure",
+        "n": 372398
+      },
+      {
+        "value": "Pressure Support",
+        "n": 371161
+      },
+      {
+        "value": "Flow Sensitivity",
+        "n": 262501
+      },
+      {
+        "value": "Head of Bed Elevation",
+        "n": 254591
+      },
+      {
+        "value": "Humidifier Temp",
+        "n": 235671
+      },
+      {
+        "value": "Compliance",
+        "n": 203562
+      },
+      {
+        "value": "FIO2 (%)",
+        "n": 144478
+      },
+      {
+        "value": "Peak Flow",
+        "n": 128859
+      },
+      {
+        "value": "PEEP/CPAP",
+        "n": 126638
+      },
+      {
+        "value": "O2 Percentage",
+        "n": 116672
+      },
+      {
+        "value": "Pressure Control",
+        "n": 83246
+      },
+      {
+        "value": "f Total",
+        "n": 74287
+      },
+      {
+        "value": "Pressure to Trigger PS",
+        "n": 71566
+      },
+      {
+        "value": "Adult Con Setting Set RR",
+        "n": 64578
+      },
+      {
+        "value": "Adult Con Setting Set Vt",
+        "n": 61323
+      },
+      {
+        "value": "RT Vent On/Off",
+        "n": 60101
+      },
+      {
+        "value": "Adult Con Pt/Vent MinuteVentil",
+        "n": 55428
+      },
+      {
+        "value": "Adult Con Pt/Vent Spont Rate",
+        "n": 55259
+      },
+      {
+        "value": "Adult Con Pt/Vent InspiratorTV",
+        "n": 55093
+      },
+      {
+        "value": "Vti",
+        "n": 54837
+      },
+      {
+        "value": "Tidal Volume Observed (VT)",
+        "n": 50564
+      },
+      {
+        "value": "Set Vt (Servo,LTV)",
+        "n": 49825
+      },
+      {
+        "value": "Oxygen Delivery Method",
+        "n": 46062
+      },
+      {
+        "value": "Adult Con Pt/Vent IBW in Kg",
+        "n": 29802
+      },
+      {
+        "value": "Tidal Volume, Delivered",
+        "n": 27779
+      },
+      {
+        "value": "Oxygen Flow Rate",
+        "n": 26711
+      },
+      {
+        "value": "Measured Ve",
+        "n": 25376
+      },
+      {
+        "value": "CPAP",
+        "n": 25006
+      },
+      {
+        "value": "Resp Rate Total",
+        "n": 25003
+      },
+      {
+        "value": "RR Spont",
+        "n": 23767
+      },
+      {
+        "value": "Lung Sound Location",
+        "n": 23577
+      },
+      {
+        "value": "Breath Sounds",
+        "n": 23281
+      },
+      {
+        "value": "Exhaled Vt",
+        "n": 22019
+      },
+      {
+        "value": "Lung Sound Location Modifier",
+        "n": 21462
+      },
+      {
+        "value": "Adult Con Alarms Hi Press Alarm",
+        "n": 21240
+      },
+      {
+        "value": "MVe",
+        "n": 20686
+      },
+      {
+        "value": "Head of Bed Elevated",
+        "n": 20516
+      },
+      {
+        "value": "Respiratory Phase",
+        "n": 20418
+      },
+      {
+        "value": "Endotracheal Tube Placement",
+        "n": 20412
+      },
+      {
+        "value": "Inspiratory Pressure, Set",
+        "n": 18355
+      },
+      {
+        "value": "Set Vt (Drager)",
+        "n": 17069
+      },
+      {
+        "value": "Secured at-ETT ",
+        "n": 16301
+      },
+      {
+        "value": "Tube Size",
+        "n": 14588
+      },
+      {
+        "value": "Adult Con Pt/Vent SpO2",
+        "n": 14017
+      },
+      {
+        "value": "Minute Ventilation Set(L/min)",
+        "n": 13844
+      },
+      {
+        "value": "Endotracheal Position at Lip",
+        "n": 13418
+      },
+      {
+        "value": "Cough Description",
+        "n": 13237
+      },
+      {
+        "value": "Adult Con Alarms Circuit T (Celsius)",
+        "n": 13228
+      },
+      {
+        "value": "A1: High Exhaled Vt",
+        "n": 13071
+      },
+      {
+        "value": "Inspiratory Flow Rate",
+        "n": 11434
+      },
+      {
+        "value": "PS",
+        "n": 8746
+      },
+      {
+        "value": "NIV Setting EPAP",
+        "n": 8698
+      },
+      {
+        "value": "Type of Treatment",
+        "n": 8316
+      },
+      {
+        "value": "Respiratory Device",
+        "n": 8302
+      },
+      {
+        "value": "Ventilator Population",
+        "n": 8129
+      },
+      {
+        "value": "Minute Volume Leak",
+        "n": 7687
+      },
+      {
+        "value": "Mechanical Ventilation Slope",
+        "n": 7668
+      },
+      {
+        "value": "Set Fraction of Inspired Oxygen (FIO2)",
+        "n": 7579
+      },
+      {
+        "value": "Heat Moisture Exchanger",
+        "n": 7534
+      },
+      {
+        "value": "Autoflow",
+        "n": 7449
+      },
+      {
+        "value": "Oxygen Delivery Status",
+        "n": 7329
+      },
+      {
+        "value": "Insp Flow (l/min)",
+        "n": 7120
+      },
+      {
+        "value": "Sputum Amount",
+        "n": 7058
+      },
+      {
+        "value": "PS above PEEP",
+        "n": 7040
+      },
+      {
+        "value": "Total RSBI",
+        "n": 7017
+      },
+      {
+        "value": "Insp Cycle Off (%)",
+        "n": 6914
+      },
+      {
+        "value": "Mechanical Ventilator High Tidal Volume Alarm",
+        "n": 6830
+      },
+      {
+        "value": "HR",
+        "n": 6637
+      },
+      {
+        "value": "Ventilator Heater Temperature",
+        "n": 6327
+      },
+      {
+        "value": "Flowtrigger",
+        "n": 5847
+      },
+      {
+        "value": "Adult Con Setting Spont Exp Vt",
+        "n": 5459
+      },
+      {
+        "value": "Adult Con Pt/Vent ETCO2",
+        "n": 5437
+      },
+      {
+        "value": "Endotracheal Tube Placement Checked",
+        "n": 5090
+      },
+      {
+        "value": "NIV Pt/Vent Spont_TidalV",
+        "n": 5082
+      },
+      {
+        "value": "Automatic Tube Compensation",
+        "n": 5005
+      },
+      {
+        "value": "NIV Pt/Vent Spont_Rate",
+        "n": 5003
+      },
+      {
+        "value": "Trapped Volume",
+        "n": 4980
+      },
+      {
+        "value": "Sputum Color",
+        "n": 4896
+      },
+      {
+        "value": "Chest Tube Location",
+        "n": 4893
+      },
+      {
+        "value": "HOB Elevated 30-45 Degrees at All Times",
+        "n": 4866
+      },
+      {
+        "value": "Sigh",
+        "n": 4853
+      },
+      {
+        "value": "Oral Care Complete Every 2 Hours",
+        "n": 4805
+      },
+      {
+        "value": "Spont TV",
+        "n": 4725
+      },
+      {
+        "value": "Mechanical Ventilator Mode",
+        "n": 4708
+      },
+      {
+        "value": "ETT Peptic Ulcer Prophylaxis",
+        "n": 4612
+      },
+      {
+        "value": "Sputum Consistency",
+        "n": 4598
+      },
+      {
+        "value": "DVT Prophylaxis",
+        "n": 4519
+      },
+      {
+        "value": "Non-invasive Ventilation Mode",
+        "n": 4404
+      },
+      {
+        "value": "EPAP",
+        "n": 4383
+      },
+      {
+        "value": "Chest Tube Description/Status",
+        "n": 4344
+      },
+      {
+        "value": "Chest Tube Drainage Color",
+        "n": 4306
+      },
+      {
+        "value": "VS RESP RATE",
+        "n": 4262
+      },
+      {
+        "value": "Mechanical Ventilator Resistance",
+        "n": 4255
+      },
+      {
+        "value": "Chest Tube Suction Type",
+        "n": 4244
+      },
+      {
+        "value": "Mechanical Ventilator Compliance",
+        "n": 4242
+      },
+      {
+        "value": "Chest Tube Suction Amount",
+        "n": 4208
+      },
+      {
+        "value": "End Tidal CO2 Status",
+        "n": 4175
+      },
+      {
+        "value": "PD I:E RATIO",
+        "n": 4172
+      },
+      {
+        "value": "IPAP",
+        "n": 4169
+      },
+      {
+        "value": "PULSE OX RESULTS VT",
+        "n": 4156
+      },
+      {
+        "value": "Endotracheal Tube Moved to",
+        "n": 4088
+      },
+      {
+        "value": "Backup RR (Set)",
+        "n": 3859
+      },
+      {
+        "value": "Backup IInsp Time (sec)",
+        "n": 3849
+      },
+      {
+        "value": "NIV Alarms Hi Press Alarm_5",
+        "n": 3786
+      },
+      {
+        "value": "NIV Alarms Low Press Alarm",
+        "n": 3741
+      },
+      {
+        "value": "Chest Tube Care",
+        "n": 3661
+      },
+      {
+        "value": "Chest Tube Label",
+        "n": 3602
+      },
+      {
+        "value": "Minute Volume, Spontaneous",
+        "n": 3537
+      },
+      {
+        "value": "ETCO2",
+        "n": 3393
+      },
+      {
+        "value": "ETT Sedation Vacation",
+        "n": 3368
+      },
+      {
+        "value": "Chest Tube Insertion Status",
+        "n": 3349
+      },
+      {
+        "value": "Adult Con Alarms Backup PC",
+        "n": 3195
+      },
+      {
+        "value": "Adult Con Alarms Backup RR",
+        "n": 3171
+      },
+      {
+        "value": "NIV Setting Set_RR",
+        "n": 3110
+      },
+      {
+        "value": "DABP",
+        "n": 3099
+      },
+      {
+        "value": "Apnea Ventilation",
+        "n": 2978
+      },
+      {
+        "value": "Volume Guarantee",
+        "n": 2976
+      },
+      {
+        "value": "AIRWAY TEMPERATURE",
+        "n": 2945
+      },
+      {
+        "value": "Skin Integrity",
+        "n": 2841
+      },
+      {
+        "value": "Ventilator Support Mode",
+        "n": 2838
+      },
+      {
+        "value": "Auto Release",
+        "n": 2807
+      },
+      {
+        "value": "ET Tube Repositioned",
+        "n": 2793
+      },
+      {
+        "value": "Weaning Assessment Criteria Collaboration",
+        "n": 2691
+      },
+      {
+        "value": "B2: EPAP",
+        "n": 2600
+      },
+      {
+        "value": "B1: IPAP",
+        "n": 2480
+      },
+      {
+        "value": "Bipap Delivery Mode",
+        "n": 2358
+      },
+      {
+        "value": "5. ARDS Eval (M or DNM)",
+        "n": 2342
+      },
+      {
+        "value": "Adult Con Alarms Backup I:E",
+        "n": 2339
+      },
+      {
+        "value": "Chest Tube Position",
+        "n": 2286
+      },
+      {
+        "value": "Trachestomy Tube Size",
+        "n": 2214
+      },
+      {
+        "value": "Unit of Measure",
+        "n": 2190
+      },
+      {
+        "value": "NIV Pt/Vent SpO2_5",
+        "n": 2187
+      },
+      {
+        "value": "B3: Est Mask Leak",
+        "n": 2176
+      },
+      {
+        "value": "NIV Setting Total RR_5",
+        "n": 2169
+      },
+      {
+        "value": "NIV Setting Spont Exp Vt_5",
+        "n": 2161
+      },
+      {
+        "value": "NIV Setting Leak_",
+        "n": 2120
+      },
+      {
+        "value": "WUA Patient Response/RASS Score",
+        "n": 2112
+      },
+      {
+        "value": "Vt Spontaneous (mL)",
+        "n": 2078
+      },
+      {
+        "value": "Patient Leak",
+        "n": 2062
+      },
+      {
+        "value": "Rise T",
+        "n": 2054
+      },
+      {
+        "value": "Adult Con Setting INO",
+        "n": 2054
+      },
+      {
+        "value": "Adult Con Setting Heliox_",
+        "n": 2012
+      },
+      {
+        "value": "V60 Mask Leak Value",
+        "n": 1974
+      },
+      {
+        "value": "Secured by",
+        "n": 1870
+      },
+      {
+        "value": "Rise",
+        "n": 1869
+      },
+      {
+        "value": "Ventilator Checks",
+        "n": 1868
+      },
+      {
+        "value": "Peak Pressure",
+        "n": 1864
+      },
+      {
+        "value": "CCU Ventilator Weaning Protocol Started",
+        "n": 1864
+      },
+      {
+        "value": "RSBI",
+        "n": 1851
+      },
+      {
+        "value": "Patient Position",
+        "n": 1848
+      },
+      {
+        "value": "Base Flow",
+        "n": 1845
+      },
+      {
+        "value": "Humidity",
+        "n": 1843
+      },
+      {
+        "value": "Suctioned patient",
+        "n": 1838
+      },
+      {
+        "value": "Trigger",
+        "n": 1830
+      },
+      {
+        "value": "Position at lip",
+        "n": 1828
+      },
+      {
+        "value": "Wake up assessment interventions",
+        "n": 1812
+      },
+      {
+        "value": "Backup Vent Active",
+        "n": 1765
+      },
+      {
+        "value": "Ventilator Type",
+        "n": 1715
+      },
+      {
+        "value": "Static Compliance",
+        "n": 1661
+      },
+      {
+        "value": "Unable to Obtain PEEPi and Vtrap",
+        "n": 1648
+      },
+      {
+        "value": "Spontaneous Respiratory Rate",
+        "n": 1626
+      },
+      {
+        "value": "Sedation Wean",
+        "n": 1560
+      },
+      {
+        "value": "Chest Tube Size",
+        "n": 1550
+      },
+      {
+        "value": "HR Post",
+        "n": 1509
+      },
+      {
+        "value": "EtCO2",
+        "n": 1458
+      },
+      {
+        "value": "SBT Method",
+        "n": 1435
+      },
+      {
+        "value": "Tube Feedings on Hold",
+        "n": 1427
+      },
+      {
+        "value": "RETIRED O2 Device",
+        "n": 1403
+      },
+      {
+        "value": "Adult Con Pt/Vent ETCO2_",
+        "n": 1395
+      },
+      {
+        "value": "Airway Attachments",
+        "n": 1314
+      },
+      {
+        "value": "Insp Time (%)",
+        "n": 1287
+      },
+      {
+        "value": "Tracheostomy Type",
+        "n": 1284
+      },
+      {
+        "value": "Lung Sound Respiratory Phase",
+        "n": 1267
+      },
+      {
+        "value": "Sedation Scoring Ventilation Depth",
+        "n": 1253
+      },
+      {
+        "value": "Wake up assessment performed",
+        "n": 1203
+      },
+      {
+        "value": "4. RSBI (RR/Vt)",
+        "n": 1135
+      },
+      {
+        "value": "Sedation outcome",
+        "n": 1058
+      },
+      {
+        "value": "Care",
+        "n": 1048
+      },
+      {
+        "value": "Postion at Lip",
+        "n": 1041
+      }
+    ]
+  },
+  "ok": true
+}

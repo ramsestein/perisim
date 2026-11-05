@@ -1,0 +1,30 @@
+{
+ "tag": "perisim-freeze-roll-2026-10-30-173256",
+ "at": "2026-10-30 17:32:56",
+ "registration": "LOCAL-PREREG-ROLL-2026-10-30",
+ "git": {
+  "tag": "perisim-freeze-roll-2026-10-30-173256",
+  "commit": "a9cc6d00f8c960dd4d01e229ab0dfc079938038f"
+ },
+ "hashes": {
+  "code": "b630267b6518",
+  "config": "734680c6193c87c8",
+  "hypo": {
+   "tag": "perisim-freeze-hypo-2026-10-29-120652",
+   "code": "cf0d0b80c70a",
+   "config": "772940e4ed77"
+  },
+  "t2": {
+   "tag": "perisim-freeze-t2-2026-10-27-141040",
+   "code_hash": "77b25fe8f629",
+   "config_hash": "1f6d4f5b89d4"
+  },
+  "t2_final_model": "053654c00406a05f",
+  "streams": {
+   "all": "98e8c48712104ce5",
+   "n": 1190,
+   "skipped": 0
+  }
+ },
+ "prereg_sha": "c1626e504ccffc4a"
+}

@@ -1,0 +1,67 @@
+# Quick test profile with synthetic data (`python -m perisim smoke`).
+# Only sizes and grids change; the pipeline logic is the same as on KHDP.
+experiment:
+  resources:
+    max_parallel_jobs: 2
+    threads_per_job: 2
+  cohorts:
+    allow_missing_cohorts: false
+  cv:
+    outer_folds: 3
+    inner_folds: 2
+  importance:
+    n_explain: 150
+    augment_copies: 1
+    stopping: {W: 2, P: 2, n_min: 3, n_max: 6, min_delta: auto, tol_delta: 0.01, max_attempts_factor: 3}
+    n_reference_pairs: 2000
+    curves: {subsample: 120, max_bins: 8, min_bin: 20, top_importance_share: 1.0}
+    sage: {batch_size: 128, max_passes: 1, convergence_threshold: 0.05}
+  metric:
+    vdm_m_grid: [1, 20]
+    lambda_grid: [0, 1]
+    n_candidates: 60
+    nca: {epochs: 3, batch_size: 128, lr: 0.05, refresh_every: 2, eps0: 1.0e-4, label_smoothing: 1.0e-3}
+  knn:
+    k_grid: [5, 10, 20]
+    k_primary: 10
+    alpha_grid: [0, 1]
+  k_sweep:
+    k_grid: [1, 3, 5, 10, 20, 40, 80]
+    max_fraction: 0.3
+  pilot:
+    n_models: 6
+  gates:
+    audit_acknowledged: true
+  evaluation:
+    n_bootstrap: 50
+  transport:
+    tuning_max_patients: 40
+    tuning_sizes: [20, 40]
+    accumulation: {n_local: [0, 20, all], repetitions: 2, orders: [blocks, random], ood_repetitions: 1}
+    shapes: {n_models: 4}
+    hospitals: {min_index_stays: 60}
+  sensitivity:
+    enabled: true
+    variants:
+      - name: margin_4h
+        mode: refit
+        overrides: {experiment: {time: {cutoff_margin_hours: 4}}}
+      - name: t2_absolute
+        mode: relabel
+        targets: [t2]
+        overrides: {targets: {t2: {categories: absolute}}}
+      - name: t1_no_antibiotic
+        mode: relabel
+        targets: [t1, t3]
+        overrides: {targets: {t1: {exclude_components: [antibiotic_course]}}}
+model_space:
+  families:
+    random_forest: {params: {n_estimators: {int: [20, 40]}}}
+    lightgbm: {params: {n_estimators: {int: [20, 60]}}}
+    xgboost: {params: {n_estimators: {int: [20, 60]}}}
+  baselines:
+    lgbm: {n_estimators: 50}
+    lgbm_grid: {num_leaves: [7, 15], learning_rate: [0.1], max_estimators: 80, early_stopping_rounds: 10}
+    rf: {n_estimators: 30}
+    rf_gap: {n_estimators: 20}
+    relieff: {n_samples: 300, n_neighbors: 5}
