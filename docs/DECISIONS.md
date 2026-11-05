@@ -4,6 +4,18 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-05 — joblib pinned below 1.6 (environment only; no frozen code or configuration changed)
+
+- joblib 1.6 removed `joblib.externals.cloudpickle`. `src/hypo/frozen.py` imports it to save and load `hypo`'s frozen
+  artefacts, so in a fresh environment `hypo`, `roll`, the `hypo` post hoc scripts and three test modules
+  (`test_hypo_ablation`, `test_hypo_external`, `test_hypo_posthoc`) failed at import.
+- The import is not changed: `src/hypo` is under `hypo`'s and `roll`'s code hashes, and the artefacts already saved
+  reference the vendored module when unpickled, so a standalone `cloudpickle` would not read them reliably anyway.
+- Instead `requirements.txt` pins `joblib>=1.3,<1.6` (lock: 1.5.3). Dependency ranges are not part of any freeze
+  (README, Paths and resources), so the T2, `hypo` and `roll` freezes are unaffected. With joblib 1.5.3 the whole
+  suite passes (158 passed, 5 skipped).
+- A later, unfrozen version may move to a standalone `cloudpickle` once the artefacts are re-saved with it.
+
 ## 2026-10-21 — Execution infrastructure on KHDP
 
 - Code in a public GitHub repository, cloned in the pod through `http://github.khdp-forward-server`.
