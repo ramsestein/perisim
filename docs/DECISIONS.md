@@ -4,6 +4,20 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-05 — The technique renamed: portable-metric kNN, PM-kNN (lead)
+
+- **CE-kNN (consensus effect-space kNN, 2026-10-30) becomes PM-kNN (portable-metric kNN).** The ablations of `hypo`
+  (REPORT §14) and T2 (PERISIM@50 against diagonal NCA@50: Δ log-loss 0.0004, CI −0.003 to 0.003; λ ≈ 0 in every
+  fold) put the accuracy in the learned diagonal-NCA weights, not in the consensus of the curves. The name now says
+  what the method offers, a metric learned at some sites and used unchanged at another with the local case base,
+  rather than the component that adds least to prediction. The shapes stay as the layer for reading the metric and
+  for drift.
+- **Nothing in the method changes.** The frozen code and configuration are untouched, and so are the documents whose
+  hashes the freezes record or that are records of their date (SPECS, pre-registrations, design and freeze records,
+  reports, earlier DECISIONS entries): they keep "CE-kNN". The READMEs use the new name and point to it.
+- **The library** moves from the branch `ceknn` (package `ceknn` 0.2.0) to the branch `pmknn` (package `pmknn` 0.3.0,
+  class `PMKNN`). Metric files written by `ceknn` load unchanged.
+
 ## 2026-10-21 — Execution infrastructure on KHDP
 
 - Code in a public GitHub repository, cloned in the pod through `http://github.khdp-forward-server`.

@@ -46,7 +46,7 @@ them. The per-fold CV artifacts are left out because of their size; they are sum
 | section | material |
 |---|---|
 | Methods: data and harmonisation | `t2/reports/schema_*.md`, `t2/reports/completeness_*.html`, `t2/flow/flow.md`; `hypo/reports/landmarks_summary.md`, `hypo/reports/audit.md`; [docs/AUDIT.md](../docs/AUDIT.md) |
-| Methods: the method (CE-kNN) | [SPECS.md](../SPECS.md) §5; the library on the branch `ceknn` |
+| Methods: the method (PM-kNN, formerly CE-kNN) | [SPECS.md](../SPECS.md) §5; the library on the branch `pmknn` |
 | Methods: pre-registration and freezes | [docs/prereg_hypo.md](../docs/prereg_hypo.md), [docs/freeze_hypo.md](../docs/freeze_hypo.md), [docs/prereg_amendment_transport.md](../docs/prereg_amendment_transport.md), `t2/docs/OSF_registration.md`; [docs/prereg_roll.md](../docs/prereg_roll.md), [docs/freeze_roll.md](../docs/freeze_roll.md) |
 | Results: T2, internal, with the comparators of SPECS §6.4 | `t2/reports/results_main.html`, `t2/artifacts/main/results.json`. The comparators are Euclidean, HVDM, mean \|SHAP\|, RF importance, ReliefF, NCA only, SAGE only, RF-GAP, logistic regression and LightGBM. Also the sensitivity reports and the k sweep |
 | Results: T2, external and transport | `t2/reports/external.html`, `t2/reports/transport.html`, `t2/results/transport/` |
