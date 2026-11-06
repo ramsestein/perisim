@@ -4,6 +4,60 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Post hoc, pre-specified: does the intervention-state mechanism predict sedation? (`hypo`; lead; plan and rule fixed before running)
+
+**Why.** The second novelty review (2026-11-07) ranks the vasopressor finding (REPORT §15.1, §18) as the article's most
+original piece, but it is post hoc, at one site, with one intervention. The proposed mechanism makes predictions that
+can be tested on data already in hand. **INSPIRE records neither vasopressors nor sedation** (`config/hypo.yaml`,
+inputs missing at INSPIRE: `vaso_on`, `sedation_on`, `vaso_hours`), so the mechanism predicts for sedation what was
+seen for the vasopressor. Mechanical ventilation (`vent_on`) is recorded at all three sites and is the negative
+control. This partly replaces an external confirmation in NWICU, which lacks `inputevents` and may lack the MAP.
+
+**What has been seen before this plan.** The weight tables (§7.4, §14.2) include the sedation and ventilation inputs.
+No performance by sedation or ventilation stratum has ever been computed. The vasopressor results are known; the
+vasopressor is re-run only as the reference case.
+
+**The mechanism, stated so it can fail.** An input constant within one development source gets little weight in the
+jointly learned diagonal metric. Where the intervention changes the physiology in the target, the transported metric
+pays. Neighbours drawn from the query's own intervention state (B0, as in §18) repair that without refitting.
+
+**Arms** (all on the external stage's five folds; nothing refitted):
+- stored: NCA transported, NCA local, Euclidean kNN (Phase 2), LightGBM transported (`comps`, uncalibrated), LightGBM
+  local (Phase 2), MI transported (§17);
+- new: B0 for each state `s` = the frozen transported metric, each query voting among case-base landmarks of its own
+  state `s` (whole case base if fewer than k + 1 same-state landmarks). Gate: the frozen metric rebuilds the stored
+  transported predictions on fold 0 to 1e-9.
+
+**Quantities** (patient bootstrap, 2,000 resamples, the same patient weights for every stratum and arm):
+- cost by stratum = L(transported) − L(local), in `s` = 1 and `s` = 0, and their contrast (on − off);
+- repair = L(transported) − L(B0) in `s` = 1; safety = upper 95 % limit of L(B0) − L(transported) over all landmarks;
+- R = (L_euclid − L_arm)/(L_euclid − L_local) for the transported arm and for B0, with 90 % CI and the denominator
+  rule of §16 (not evaluable below 0.005 nats or with a CI including 0);
+- descriptive: each state's weight share in each transported metric; LightGBM's transport cost by stratum.
+
+**Per site and state:** failure = cost in `s` = 1 with lower 95 % limit > 0 **and** contrast with lower 95 % limit > 0;
+repairs = repair ≥ **0.001 nats** (a minimum effect, the A-sel lesson) with lower 95 % limit > 0; safe = safety < 0.001.
+
+**Pre-specified predictions** (sedation can be tested only where it is recorded: MIMIC-IV and eICU as targets; INSPIRE
+as a target has no sedated stratum):
+- **P1 (weights).** Sedation's weight share is lower in the metrics transported to MIMIC-IV and to eICU (learned with
+  INSPIRE) than in the metric transported to INSPIRE (learned on MIMIC-IV and eICU).
+- **P2 (sedation).** Wherever the sedated stratum fails, B0 repairs it, and B0 is safe at every site where sedation is
+  recorded. Reading: *confirmed* (both hold), *not confirmed*, or *no failure to repair*. The mechanism does not say
+  that sedation must fail: a failure needs the intervention to change the physiology at the target (eICU showed no
+  vasopressor failure). "No failure" is reported as such and is not a confirmation of P2.
+- **P3 (ventilation, control).** At no site does the ventilated stratum fail, and B0 by ventilation does not repair.
+
+**Limits fixed in advance.**
+- The landmark leak of v0.5 (audit 2026-11-05, item 1) also touches `sedation_on` and `vent_on`, above all in eICU,
+  whose supports are charted points; MIMIC-IV's sedation comes from `inputevents` intervals and is hardly affected.
+  The strata are the frozen v0.5 landmarks'. A sensitivity analysis on v0.6 landmarks is a later item.
+- One analyst knows the vasopressor result; the predictions follow from it, which is the point of the test.
+- No correction across the three states: P1–P3 are read jointly, as stated, not as separate significance tests.
+
+Script: `scripts/posthoc_state_test.py` (frozen hypo code via PERISIM_SRC). Outputs: `posthoc_state_test/`,
+`reports/posthoc_state_test.md`. Result to be added below this entry and as REPORT §19, whatever it is.
+
 ## 2026-11-06 — Post hoc: a fixed mutual-information metric against the transported learned metric (`hypo`; lead; plan fixed before running)
 
 **Why.** The literature review for the article (2026-11-06) found that the closest prior work, PRAM (Jeong et al.,
