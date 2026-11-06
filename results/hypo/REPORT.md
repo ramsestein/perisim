@@ -80,6 +80,13 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
     under-predicts (calibration in the large +0.19) while the mutual-information metric does not (+0.03): the
     information was in the development data (eICU), and the NCA weights hardly used it. This revises §16's reading;
   - every arm is calibrated by the local case base, whatever its metric: that part is not specific to the learned metric.
+- **Two repairs of the vasopressor failure (exploratory, §18; plan fixed before running)**:
+  - restricting the neighbours to the query's vasopressor state, with the frozen metric unchanged, **repairs** MIMIC-IV's
+    vasopressor stratum (Δ log-loss +0.0040, CI +0.0023 to +0.0057; calibration in the large +0.189 → −0.002) and
+    harms no site; MIMIC-IV's R rises from 0.74 to 0.80 (point estimate);
+  - an NCA regularised toward mutual information passes the rule only formally: the λ chosen inside the development
+    pair was 0 at every site and the effect is negligible (+0.0003); forced (λ = 1) it repairs MIMIC-IV but harms
+    INSPIRE and eICU; weights learned per vasopressor state do not repair and harm two sites.
 
 ## 1. Question and design
 
@@ -1028,6 +1035,58 @@ better). Δ3: neutral axes minus shapes, both with the NCA weights (positive: th
   (§15), so the stratified reading is descriptive. A metric whose MAP axis depends on the vasopressor state (an
   interaction) is beyond a diagonal, separable metric; whether regularising the NCA weights toward a univariate
   prior (mutual information, or the SAGE prior of SPECS §5.4) avoids the failure is a question for v0.6.
+
+## 18. Two repairs of the vasopressor failure (exploratory)
+
+**Why.** §17 located MIMIC-IV's deficit in the landmarks with a vasopressor running, where the transported metric
+(0.08 % of its weight on the vasopressor inputs) under-predicts. Two repairs, learned on the development pair only,
+were tested: (A) an NCA regularised toward the mutual-information profile; (B) a metric that depends on the
+vasopressor state. Plan, arms, gate and rule were committed before running ([docs/DECISIONS.md](../../docs/DECISIONS.md),
+2026-11-06); `scripts/posthoc_vaso_repair.py`, `hypo`'s frozen code. Full tables:
+[reports/posthoc_vaso_repair.md](reports/posthoc_vaso_repair.md).
+
+**Design.** Every arm keeps the transported metric's encoder and shapes and its development pair's learning sample
+(reproduced exactly), the site's own case base, k = 50 and the vote. Reference: the NCA refitted without prior by the
+same procedure; it reproduced the frozen weights exactly (log-weight correlation 1.000, identical predictions). Gate:
+the stored transported arm rebuilt by the script matched the stored predictions exactly (max |Δp| = 0) at every site.
+- A-sel: NCA with a mutual-information prior, λ chosen in {0, 0.01, 0.1, 1, 10} on a patient split inside the
+  development pair. A-strong: λ = 1.
+- B0: the frozen metric, neighbours restricted to the query's vasopressor state (`vaso_on`).
+- B: NCA weights learned separately for vasopressor off and on, each with the same-state part of the case base.
+
+**Rule (pre-specified).** An arm repairs when, in MIMIC-IV's vasopressor stratum, the lower 95 % limit of
+L(NCA-refit) − L(arm) is > 0; it is safe when, at every site, the upper 95 % limit of L(arm) − L(NCA-refit) is
+< 0.001 nats; it works when it does both.
+
+| arm | MIMIC-IV, vasopressor: Δ (95 % CI) | CITL in that stratum | overall Δ: INSPIRE / MIMIC-IV / eICU | rule |
+|---|---|---|---|---|
+| NCA-refit (reference) | — | +0.189 | — | — |
+| **B0: same-state neighbours** | **+0.0040 (+0.0023 to +0.0057)** | **−0.002** | 0.0000 / **+0.0006** / +0.0001 | **works** |
+| A-sel: MI prior, λ chosen (0) | +0.0003 (+0.00001 to +0.0006) | +0.187 | −0.0005 / 0.0000 / +0.0001 | works (formally) |
+| A-strong: MI prior, λ = 1 | +0.0046 (+0.0029 to +0.0064) | +0.032 | −0.0046 / −0.0009 / −0.0036 | not safe |
+| B: per-state weights | +0.0013 (−0.0009 to +0.0037) | −0.048 | −0.0010 / 0.0000 / −0.0006 | neither |
+
+Δ: positive = better than NCA-refit. R (§16's ratio) with B0: INSPIRE 0.91 (unchanged; no vasopressor is recorded
+there), MIMIC-IV 0.80 (from 0.74), eICU 0.97 (from 0.96).
+
+- **The repair that works is a neighbourhood rule, not a new metric.** Requiring the neighbours to share the query's
+  vasopressor state removes MIMIC-IV's under-prediction (calibration in the large +0.189 → −0.002, slope 0.92 →
+  1.00) and harms nothing elsewhere; MIMIC-IV improves overall. A patient whose MAP is held up by a drug is no longer
+  compared with patients whose MAP is not. Nothing is refitted: it is a transparent rule over the same frozen metric.
+- **A-sel passes the rule only formally, and the rule is at fault.** The validation inside the development pair chose
+  λ = 0 at all three sites, so the prior only changed the NCA's starting point; the effect is +0.0003 nats with a lower
+  limit of +0.00001 and the stratum's calibration is unchanged (+0.187). The rule had no minimum effect size; this arm
+  is not counted as a repair. The development pair's validation cannot see a failure that appears only at the target.
+- **Forcing the prior trades one failure for another.** With λ = 1 the weights become close to the mutual-information
+  profile (vasopressor share 3.6 %) and inherit its losses at INSPIRE and eICU (§17).
+- **Per-state weights do not help.** Weights learned separately per vasopressor state repair nothing significantly and
+  lose at INSPIRE and eICU, likely because each state is learned on fewer rows (MIMIC-IV's development pair has
+  vasopressor-on rows only from eICU). Both per-state metrics keep the same shapes, so this tests reweighting, not a
+  different deformation of the axes per state.
+- **Limits.** Post hoc, after §17; one target site carries the failure; `vaso_on` comes from v0.5's landmarks (§15),
+  though MIMIC-IV's vasopressors are intervals and hardly affected by that leak; whether a same-state rule should be
+  pre-specified for other inputs that mark a different physiology (e.g. ventilation) is a design question for a new,
+  pre-registered experiment.
 
 ## Reproducibility
 

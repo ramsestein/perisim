@@ -49,6 +49,16 @@ mutual-information metric at a site when the lower limit is > 0.
 - AUROC, calibration in the large and slope of every arm; Δ1 by `vaso_on` stratum (v0.5's landmarks: the strata are
   partly defined with information after L, REPORT §15, so only descriptive).
 
+## 2026-11-06 — Result: two repairs of the vasopressor failure (`hypo`)
+
+Run on the lead's workstation with `hypo`'s frozen code (freeze record checked at the start and the end; the gate
+reproduced the stored transported arm exactly at every site; the NCA refit reproduced the frozen weights exactly).
+By the pre-specified rule, B0 (the frozen metric with neighbours of the query's vasopressor state) and A-sel work;
+A-strong is not safe; B neither repairs nor is safe. **A-sel is not read as a repair**: λ = 0 was chosen at every
+site, and its effect (+0.0003 nats, lower limit +0.00001) is negligible with the stratum's calibration unchanged;
+the rule lacked a minimum effect size, a fault of the plan recorded here rather than corrected after the fact.
+Details: results/hypo/REPORT.md §18.
+
 ## 2026-11-06 — Post hoc: two repairs of the vasopressor failure — an NCA regularised toward mutual information, and a vasopressor-conditioned metric (`hypo`; lead; plan fixed before running)
 
 **Why.** §17: the metric transported to MIMIC-IV (learned on INSPIRE and eICU) gives the three vasopressor inputs 0.08 %
