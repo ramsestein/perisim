@@ -4,6 +4,51 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-06 — Post hoc: a fixed mutual-information metric against the transported learned metric (`hypo`; lead; plan fixed before running)
+
+**Why.** The literature review for the article (2026-11-06) found that the closest prior work, PRAM (Jeong et al.,
+2026, medRxiv), already swaps a local case bank under a FIXED distance (cosine, or Euclidean weighted by mutual
+information), and names learned NCA-type metrics as open future work. If the transported NCA metric does not beat a
+fixed mutual-information metric used the same way, the novelty reduces to "a kNN with a local case base", which PRAM
+partly covers. This is the decisive comparison for the framing "transport the metric, not the model".
+
+**Status.** Exploratory, post hoc, run with `hypo`'s frozen code (`PERISIM_SRC=frozen/hypo/src`; the freeze record is
+checked at the start and the end; nothing frozen is refitted). The transported NCA, local NCA and Euclidean
+predictions are already known (REPORT §4, §16); the mutual-information arms have not been computed when this plan is
+fixed. Code: `scripts/posthoc_fixed_metric.py`.
+
+**Arms** (every arm: each site X's own out-of-fold case base, the external stage's five folds, k = 50, distinct
+patients, the same smoothed vote; α tuned by leave-one-out on the case base with the Euclidean comparator's seed):
+- NCA-transported, NCA-local, Euclidean: the stored predictions (external stage; Phase 2's `euclidean`).
+- **MI-transported** (primary comparator): Euclidean kNN on the neutral axes of the Euclidean comparator (encoder
+  fitted on the fold's case base), each variable weighted by its mutual information with the outcome computed on all
+  landmarks of the two development sites (the transported metric's development data).
+- MI-local: the same, with mutual information computed on the fold's case base.
+- NCA-weights, neutral axes: the transported metric's weights on the neutral axes (no shapes): isolates the weights.
+- Mutual information: plug-in estimator, natural log; continuous and ordinal variables on 20 quantile bins of their
+  observed values; binary and missing-indicator variables as 0 / 1; nominal and procedure variables as categories,
+  those with < 50 landmarks pooled; observed rows only. Weights = mutual information (0 → variable dropped), rescaled
+  to sum to the number of variables (the scale does not change the neighbours).
+
+**Gate.** Rebuilding the Euclidean comparator with the script's own code (weights 1) on fold 0 of every site must
+reproduce Phase 2's predictions to 1e-9 on the same rows; otherwise the script stops.
+
+**Primary endpoint and rule.** At each site, Δ1 = log-loss(MI-transported) − log-loss(NCA-transported), with a 95 %
+patient-bootstrap CI (2,000 resamples, the same for every arm of a site). The learned metric adds over a fixed
+mutual-information metric at a site when the lower limit is > 0.
+- Supported if it holds at all three sites; not supported if it holds at none (the article's novelty claim then
+  reduces to the local case base and must be reframed); otherwise reported site by site.
+
+**Secondary (descriptive).**
+- Q = (L_euclidean − L_MI-transported) / (L_euclidean − L_NCA-transported): the share of the transported NCA metric's
+  gain over the Euclidean kNN already obtained by mutual-information weights (90 % and 95 % CIs; not evaluable when
+  the denominator's 95 % CI includes 0 or it is below 0.005 nats).
+- R for MI-transported (§16's ratio, relative to the local NCA metric), to set beside the NCA metric's R.
+- Δ2 = L(MI-local) − L(NCA-transported); Δ3 = L(NCA-weights, neutral axes) − L(NCA-transported) (the shapes);
+  L(MI-transported) − L(NCA-weights, neutral axes) (weights against weights on the same geometry).
+- AUROC, calibration in the large and slope of every arm; Δ1 by `vaso_on` stratum (v0.5's landmarks: the strata are
+  partly defined with information after L, REPORT §15, so only descriptive).
+
 ## 2026-11-05 — v0.6: the defects of the 2026-11-05 audit fixed; v0.5 kept in frozen/; history condensed (lead)
 
 **What happened.** A software audit of the whole repository (six independent reviews, each finding reproduced on
