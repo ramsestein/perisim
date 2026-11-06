@@ -49,6 +49,15 @@ mutual-information metric at a site when the lower limit is > 0.
 - AUROC, calibration in the large and slope of every arm; Δ1 by `vaso_on` stratum (v0.5's landmarks: the strata are
   partly defined with information after L, REPORT §15, so only descriptive).
 
+## 2026-11-06 — Result: fixed mutual-information metric against the transported learned metric (`hypo`)
+
+Run on the lead's workstation with `hypo`'s frozen code (freeze record checked at the start and the end; the gate
+reproduced the Euclidean comparator exactly at every site). The pre-specified rule came out **mixed**: the learned
+metric adds over a fixed mutual-information metric in INSPIRE and eICU, not in MIMIC-IV, where the deficit sits in the
+landmarks with a vasopressor running (a calibration failure of the transported NCA metric in that stratum). Details
+and limits: results/hypo/REPORT.md §17, which also revises §16's reading of MIMIC-IV (a weight-learning failure, not
+an unobservable input). Not changed by this result: the plan, the arms and the rule of the entry below.
+
 ## 2026-11-05 — v0.6: the defects of the 2026-11-05 audit fixed; v0.5 kept in frozen/; history condensed (lead)
 
 **What happened.** A software audit of the whole repository (six independent reviews, each finding reproduced on

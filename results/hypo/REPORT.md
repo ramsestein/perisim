@@ -69,6 +69,17 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
     just short of the margin. In eICU, where the development pair saw vasopressors through MIMIC-IV, the same
     stratum is equivalent (0.90, 0.84–0.96);
   - T2, for contrast, is not equivalent in either site (MIMIC-IV 0.49, eICU 0.72).
+- **A fixed mutual-information metric against the transported learned metric (exploratory, §17; plan fixed before
+  running)**, the comparison with PRAM-style retrieval under a fixed distance:
+  - the pre-specified rule came out **mixed**: the transported NCA metric beats a mutual-information-weighted metric
+    with the same case base in INSPIRE (Δ log-loss +0.0048, CI +0.0036 to +0.0060) and eICU (+0.0040, +0.0033 to
+    +0.0047), not in MIMIC-IV (−0.0008, −0.0016 to −0.0001); the fixed metric reaches 55 % and 70 % of the learned
+    metric's gain over the Euclidean kNN in INSPIRE and eICU;
+  - on the same geometry, the NCA weights beat the mutual-information weights in INSPIRE and eICU and tie in MIMIC-IV;
+  - MIMIC-IV's deficit sits in the landmarks with a vasopressor running, where the transported NCA metric
+    under-predicts (calibration in the large +0.19) while the mutual-information metric does not (+0.03): the
+    information was in the development data (eICU), and the NCA weights hardly used it. This revises §16's reading;
+  - every arm is calibrated by the local case base, whatever its metric: that part is not specific to the learned metric.
 
 ## 1. Question and design
 
@@ -947,11 +958,77 @@ kNN is below 0.005 nats or its 95 % CI includes 0; no unit was. 2,000 patient-le
   An input transports where the development sites could observe it. The strata are post hoc: this locates the
   non-equivalence and is consistent with that reading; it does not confirm it. eICU's vasopressor stratum is also
   the one most affected by the support leak of v0.5's landmarks (box at the head of §15), which weakens this contrast.
+  **Revised by §17:** a fixed mutual-information metric learned on the same development pair (INSPIRE and eICU)
+  keeps 0.94 of the gain in MIMIC-IV's vasopressor stratum. The information was observable in the development data;
+  the NCA weights did not use it. The deficit is a weight-learning failure on a rare but informative input, not the
+  input's absence.
 - **T2 is not equivalent in either site**, with an absolute cost about an order of magnitude larger (0.016–0.021 nats, against 0.0005–0.0028 in `hypo`). Where the inputs
   carry little information about the outcome (ICU discharge), the learned geometry transports less; where physiology
   is dense (`hypo`), it is equivalent where the inputs are observable.
 - **Precision.** The vasopressor strata are smaller, so their intervals are wider; MIMIC-IV's without vasopressor
   misses the margin by 0.03 at the lower limit, with a point estimate above it.
+
+## 17. A fixed mutual-information metric against the transported learned metric (exploratory)
+
+**Why.** The closest prior work, PRAM (Jeong et al., 2026, medRxiv), swaps a local case bank under a fixed distance
+(cosine, or Euclidean weighted by mutual information) and leaves learned NCA-type metrics as future work. If the
+transported NCA metric did not beat a fixed mutual-information metric used the same way, the contribution would
+reduce to "a kNN with a local case base". Plan, arms, gate and rule were fixed and committed before running
+([docs/DECISIONS.md](../../docs/DECISIONS.md), 2026-11-06); `scripts/posthoc_fixed_metric.py`, run with `hypo`'s frozen
+code (freeze record checked at the start and the end; nothing frozen refitted). Full tables:
+[reports/posthoc_fixed_metric.md](reports/posthoc_fixed_metric.md).
+
+**Design.** Every arm uses the site's own out-of-fold case base, the external stage's five folds, k = 50, distinct
+patients and the same vote; only the metric changes. MI-transported: the Euclidean comparator's neutral axes,
+variables weighted by their mutual information with the outcome on the two development sites (plug-in, 20 quantile
+bins). MI-local: mutual information on the case base. NCA weights, neutral axes: the transported metric's weights
+without its shapes. Gate: the Euclidean comparator rebuilt by the script reproduced Phase 2's predictions exactly
+(max |Δp| = 0) at every site.
+
+| site | Euclidean | NCA-transported | NCA-local | MI-transported | MI-local | NCA weights, neutral axes |
+|---|---|---|---|---|---|---|
+| INSPIRE | 0.3381 | 0.3276 | 0.3265 | 0.3324 | 0.3287 | 0.3294 |
+| MIMIC-IV | 0.5138 | 0.5059 | 0.5031 | 0.5051 | 0.5058 | 0.5044 |
+| eICU | 0.4100 | 0.3965 | 0.3960 | 0.4005 | 0.3976 | 0.3969 |
+
+Log-loss per landmark (lower is better).
+
+| site | Δ1 MI-transported − NCA-transported (95 % CI) | rule | Q (90 % CI) | NCA w. − MI w., same geometry | shapes (Δ3) |
+|---|---|---|---|---|---|
+| INSPIRE | +0.0048 (+0.0036 to +0.0060) | learned metric adds | 0.55 (0.46–0.63) | +0.0029 (+0.0017 to +0.0041) | +0.0019 (+0.0009 to +0.0029) |
+| MIMIC-IV | −0.0008 (−0.0016 to −0.0001) | does not | 1.11 (1.03–1.20) | +0.0007 (−0.0001 to +0.0015) | −0.0015 (−0.0021 to −0.0009) |
+| eICU | +0.0040 (+0.0033 to +0.0047) | learned metric adds | 0.70 (0.67–0.74) | +0.0037 (+0.0030 to +0.0043) | +0.0004 (−0.0002 to +0.0009) |
+
+Q: share of the transported NCA metric's gain over the Euclidean kNN already obtained by mutual-information weights.
+"NCA w. − MI w.": log-loss of MI weights minus NCA weights, both on the neutral axes (positive: the NCA weights are
+better). Δ3: neutral axes minus shapes, both with the NCA weights (positive: the shapes help).
+
+- **The pre-specified rule came out mixed.** The learned metric adds over a fixed mutual-information metric in INSPIRE
+  and eICU, where the fixed metric reaches only 55 % and 70 % of the learned metric's gain; it does not in MIMIC-IV,
+  where the fixed metric is marginally better. The transported NCA metric also beats a mutual-information metric
+  computed on the site's own case base in INSPIRE and eICU (+0.0011 in both) and ties with it in MIMIC-IV.
+- **Weights against weights.** On the same neutral geometry the NCA weights beat the mutual-information weights in
+  INSPIRE and eICU and tie in MIMIC-IV. The shapes help in INSPIRE, hurt in MIMIC-IV and are neutral in eICU, so
+  part of MIMIC-IV's result is the shapes, not the weights.
+- **MIMIC-IV's deficit is calibration within the vasopressor stratum.** With a vasopressor running (21 % of
+  landmarks), the arms rank alike (AUROC 0.719 NCA-transported, 0.723 MI-transported and NCA-local), but the
+  transported NCA metric under-predicts (calibration in the large +0.189, slope 0.92) where the mutual-information
+  metric does not (+0.030); without a vasopressor it slightly over-predicts (−0.037). The metric learned on INSPIRE
+  (where the input is always 0) and eICU has none of the three vasopressor inputs among its ten largest weights (each
+  below 0.8 % of the total) and weights the hours since admission heavily (28 %); the mutual-information weights give
+  the three 3.6 % together. A plausible mechanism: a patient on a vasopressor, whose MAP is held up by the drug, draws
+  neighbours with a similar MAP who are not on one, and whose risk is lower. It is not the whole story: eICU's metric
+  does not weight the vasopressor inputs heavily either (none among its ten largest), yet its stratum is calibrated
+  (+0.008).
+- **Calibration comes from the local case base whatever the metric.** Every arm with a weighted metric is close to
+  calibrated (calibration in the large −0.012 to +0.045, slopes 1.00–1.08); the uniform Euclidean metric's slopes are
+  1.11–1.19. This supports "the local case base calibrates without refitting", but it is not specific to the learned
+  metric.
+- **Limits.** Post hoc, after the NCA and Euclidean results were known (the mutual-information arms were not); the
+  vasopressor strata use v0.5's landmarks, whose supports were partly defined with information after the landmark
+  (§15), so the stratified reading is descriptive. A metric whose MAP axis depends on the vasopressor state (an
+  interaction) is beyond a diagonal, separable metric; whether regularising the NCA weights toward a univariate
+  prior (mutual information, or the SAGE prior of SPECS §5.4) avoids the failure is a question for v0.6.
 
 ## Reproducibility
 
