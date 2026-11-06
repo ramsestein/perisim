@@ -49,6 +49,55 @@ mutual-information metric at a site when the lower limit is > 0.
 - AUROC, calibration in the large and slope of every arm; Δ1 by `vaso_on` stratum (v0.5's landmarks: the strata are
   partly defined with information after L, REPORT §15, so only descriptive).
 
+## 2026-11-06 — Post hoc: two repairs of the vasopressor failure — an NCA regularised toward mutual information, and a vasopressor-conditioned metric (`hypo`; lead; plan fixed before running)
+
+**Why.** §17: the metric transported to MIMIC-IV (learned on INSPIRE and eICU) gives the three vasopressor inputs 0.08 %
+of its weight and under-predicts in the vasopressor stratum (calibration in the large +0.189), while a fixed
+mutual-information metric does not fail. Two repairs, learned on the development pair only (no information from the
+target site), test whether the failure can be avoided: (A) keep the learned weights near a univariate
+mutual-information profile, so a rare but informative input cannot be discarded; (B) let the metric depend on the
+vasopressor state, the simplest non-separable deformation (two physiologies, two metrics).
+
+**Status.** Exploratory, post hoc, `hypo`'s frozen code (`PERISIM_SRC=frozen/hypo/src`; freeze record checked at the
+start and the end; the frozen artefacts are only read; the new metrics are new artefacts of this analysis). None of
+the new arms has been computed when this plan is fixed. Code: `scripts/posthoc_vaso_repair.py`.
+
+**Common to every arm.** The development pair's learning sample is reproduced exactly (`learning_sample`, the frozen
+artefacts' seed, 30,000 landmarks per site); the transported metric's encoder with its shapes is kept (the geometry
+does not change, only the weights); the NCA settings and seed are the frozen ones; the case base is the site's own
+out-of-fold patients, k = 50, α by leave-one-out on the case base with the external stage's seed. The vasopressor
+state is `vaso_on` (missing → 0, not running).
+
+**Reference arm.** NCA-refit: the NCA refitted on the reproduced sample without prior, same procedure as the repairs,
+so that refit noise is not read as an effect. The stored transported predictions and the mutual-information arm of
+§17 are reported beside it.
+
+**Gate.** The transported arm rebuilt by the script from the frozen metric must reproduce the stored predictions on
+fold 0 of every site (|Δp| ≤ 1e-9); otherwise the script stops. How closely NCA-refit reproduces the frozen weights
+(correlation of log weights) is reported, not gated.
+
+**Arms.**
+- A-sel: NCA with a mutual-information prior (each variable's share of the mutual information on the learning
+  sample; one group per variable; the existing λ penalty of SPECS §5.4). λ chosen in {0, 0.01, 0.1, 1, 10} inside the
+  development pair: an 80 / 20 patient split of the learning sample, fit on 80 %, log-loss of the kNN predictions on
+  the 20 % with the 80 % as case base; the lowest wins (ties → the smaller λ); then refitted on the whole sample.
+- A-strong (secondary): the same with λ = 1 fixed.
+- B0, stratified: the frozen transported metric with neighbours restricted to the query's vasopressor state (the
+  case base split by state, α per part).
+- B, conditional: NCA weights learned separately on the vasopressor-off and vasopressor-on rows of the learning
+  sample (no prior), each used with the same-state part of the case base. A state with fewer than 1,000 learning
+  rows uses NCA-refit's weights.
+
+**Primary endpoint and rule.** For each repair arm, in MIMIC-IV's vasopressor stratum: Δ = L(NCA-refit) − L(arm),
+95 % patient-bootstrap CI (2,000 resamples, the same for every arm of a site); the arm repairs when the lower limit
+is > 0. Safety: at every site, the upper 95 % limit of L(arm) − L(NCA-refit) over all landmarks is < 0.001 nats. An
+arm works when it repairs and is safe at all three sites.
+
+**Secondary (descriptive).** Overall and stratified log-loss differences against NCA-refit and against the
+mutual-information arm; AUROC, calibration in the large and slope by stratum; λ chosen; the vasopressor inputs'
+share of the weights. The strata use v0.5's landmarks (supports partly defined after the landmark, REPORT §15): the
+stratified reading, and B0/B's use of `vaso_on` at inference, inherit that limitation.
+
 ## 2026-11-06 — Result: fixed mutual-information metric against the transported learned metric (`hypo`)
 
 Run on the lead's workstation with `hypo`'s frozen code (freeze record checked at the start and the end; the gate

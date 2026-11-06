@@ -1014,12 +1014,11 @@ better). Δ3: neutral axes minus shapes, both with the NCA weights (positive: th
   landmarks), the arms rank alike (AUROC 0.719 NCA-transported, 0.723 MI-transported and NCA-local), but the
   transported NCA metric under-predicts (calibration in the large +0.189, slope 0.92) where the mutual-information
   metric does not (+0.030); without a vasopressor it slightly over-predicts (−0.037). The metric learned on INSPIRE
-  (where the input is always 0) and eICU has none of the three vasopressor inputs among its ten largest weights (each
-  below 0.8 % of the total) and weights the hours since admission heavily (28 %); the mutual-information weights give
-  the three 3.6 % together. A plausible mechanism: a patient on a vasopressor, whose MAP is held up by the drug, draws
-  neighbours with a similar MAP who are not on one, and whose risk is lower. It is not the whole story: eICU's metric
-  does not weight the vasopressor inputs heavily either (none among its ten largest), yet its stratum is calibrated
-  (+0.008).
+  (where the input is always 0) and eICU gives the three vasopressor inputs 0.08 % of its total weight and the hours
+  since admission 28 %; the mutual-information weights give the three 3.6 %, and eICU's transported metric (learned
+  with MIMIC-IV in the development pair) 1.75 %, about twenty times MIMIC-IV's, and its stratum is calibrated
+  (+0.008). A plausible mechanism: a patient on a vasopressor, whose MAP is held up by the drug, draws neighbours with
+  a similar MAP who are not on one, and whose risk is lower, unless the metric gives the vasopressor some weight.
 - **Calibration comes from the local case base whatever the metric.** Every arm with a weighted metric is close to
   calibrated (calibration in the large −0.012 to +0.045, slopes 1.00–1.08); the uniform Euclidean metric's slopes are
   1.11–1.19. This supports "the local case base calibrates without refitting", but it is not specific to the learned
