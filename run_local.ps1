@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -24,6 +24,8 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              90 % CIs for `hypo` (three sites, by vasopressor) and T2 (scripts\posthoc_equivalence.py; minutes)
   fixed-metric exploratory (`hypo`): a fixed mutual-information metric (PRAM-style) against the transported learned
              metric, same case base (scripts\posthoc_fixed_metric.py; set PERISIM_SRC=frozen\hypo\src; ~45 min)
+  vaso-repair  exploratory (`hypo`): two repairs of the vasopressor failure, an NCA with a mutual-information prior and
+             a vasopressor-conditioned metric (scripts\posthoc_vaso_repair.py; PERISIM_SRC=frozen\hypo\src; 1-2 h)
   hypo       experiment `hypo` (hypotension in the next 6 h, docs\design_hypotension.md): python -m hypo <command>,
              e.g. `hypo landmarks` builds the landmark tables from the original tables, `hypo smoke --external eicu`
              runs the whole model on the other two sites (Phase 1), `hypo cv` the internal validation by
@@ -200,6 +202,7 @@ switch ($Command) {
     "case-base" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_case_base.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "equivalence" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_equivalence.py") @ProfArgs @Rest; exit $LASTEXITCODE }
     "fixed-metric" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_fixed_metric.py") @Rest; exit $LASTEXITCODE }
+    "vaso-repair" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_vaso_repair.py") @Rest; exit $LASTEXITCODE }
     "hypo" { Invoke-Setup; & $Py -m hypo @Rest; exit $LASTEXITCODE }
     "hypo-posthoc" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_hypo.py") @Rest; exit $LASTEXITCODE }
     "hypo-ablation" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_hypo_ablation.py") @Rest; exit $LASTEXITCODE }
@@ -209,5 +212,5 @@ switch ($Command) {
     "roll" { Invoke-Setup; & $Py -m roll @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | resources)" }
 }
