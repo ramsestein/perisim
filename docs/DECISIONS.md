@@ -17,7 +17,7 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
   note).
 - **NWICU B0 (descriptive):** on the vasopressor stratum, +0.0036 for the INSPIRE + eICU metric, −0.0020 and
   −0.0024 for the other two.
-- **NWICU, intravenous forms only:** 8 records removed; every figure unchanged.
+- **NWICU, intravenous forms only:** fewer than ten records removed; every figure unchanged.
 
 ## 2026-11-07 — Audit of the day's analyses (lead asked for a full check; plan before running the follow-ups)
 

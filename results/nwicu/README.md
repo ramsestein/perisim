@@ -38,8 +38,8 @@ sites did: the local reference is data-limited.
   weight, and the same one that failed in MIMIC-IV. For the other two metrics B0 costs 0.0020 and 0.0024. Over all
   landmarks B0 costs 0.0003 to 0.0008. These are point estimates, with no test.
 - **Intravenous vasopressor forms only (post hoc sensitivity).** The primary rule also counted nasal, rectal,
-  ophthalmic and oral phenylephrine and the epinephrine auto-injector. Inside the cohort they are 8 of 29,254
-  vasopressor records. With them removed, every figure of the table is unchanged to the fourth decimal
+  ophthalmic and oral phenylephrine and the epinephrine auto-injector. Inside the cohort they are fewer than ten of the
+  cohort's vasopressor records. With them removed, every figure of the table is unchanged to the fourth decimal
   ([ivonly/transport.md](ivonly/transport.md)).
 
 **Reading.**
