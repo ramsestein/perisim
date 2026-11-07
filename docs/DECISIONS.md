@@ -4,6 +4,21 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Results of the audit follow-ups
+
+- **Effective weight shares** (`results/hypo/reports/posthoc_audit_checks.md`):
+  - vasopressor inputs: raw → effective 3.64 % → 0.29 % (INSPIRE target, inputs absent), 0.08 % → 0.47 % (MIMIC-IV),
+    1.75 % → 1.61 % (eICU);
+  - sedation: 0.41 % → 0.23 %, 0.54 % → 1.46 %, 2.36 % → 1.67 %.
+
+  P1 stays false. The MIMIC-IV metric still gives the vasopressor the least weight among the sites that record it.
+  REPORT §16, §18 and §19 are annotated.
+- **eICU patients in several hospitals:** 0 to 17 per target hospital, at most about 1.5 %. Negligible (REPORT §20,
+  note).
+- **NWICU B0 (descriptive):** on the vasopressor stratum, +0.0036 for the INSPIRE + eICU metric, −0.0020 and
+  −0.0024 for the other two.
+- **NWICU, intravenous forms only:** 8 records removed; every figure unchanged.
+
 ## 2026-11-07 — Audit of the day's analyses (lead asked for a full check; plan before running the follow-ups)
 
 **What was checked.**

@@ -32,9 +32,9 @@ Pre-registered: docs/prereg_nwicu.md. 2,001 patients, 30,833 landmarks, outcome 
 
 ## Descriptive: vasopressor stratum (on in 12.8% of landmarks)
 
-- rotation inspire: transport cost on -0.0082, off -0.0025
-- rotation mimic: transport cost on -0.0080, off -0.0031
-- rotation eicu: transport cost on -0.0114, off -0.0035
+- rotation inspire: transport cost on -0.0082, off -0.0025; B0 (same-state neighbours) on the stratum -0.0020 (positive = B0 better), overall +0.0005 (B0 − kNN)
+- rotation mimic: transport cost on -0.0080, off -0.0031; B0 (same-state neighbours) on the stratum +0.0036 (positive = B0 better), overall +0.0003 (B0 − kNN)
+- rotation eicu: transport cost on -0.0114, off -0.0035; B0 (same-state neighbours) on the stratum -0.0024 (positive = B0 better), overall +0.0008 (B0 − kNN)
 
 ## Rule (pre-registered)
 

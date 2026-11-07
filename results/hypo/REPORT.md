@@ -1090,7 +1090,8 @@ better). Δ3: neutral axes minus shapes, both with the NCA weights (positive: th
   landmarks), the arms rank alike (AUROC 0.719 NCA-transported, 0.723 MI-transported and NCA-local), but the
   transported NCA metric under-predicts (calibration in the large +0.189, slope 0.92) where the mutual-information
   metric does not (+0.030); without a vasopressor it slightly over-predicts (−0.037). The metric learned on INSPIRE
-  (where the input is always 0) and eICU gives the three vasopressor inputs 0.08 % of its total weight and the hours
+  (where the input is always 0) and eICU gives the three vasopressor inputs 0.08 % of its total weight (raw share; 0.47 % effective, see the audit note in
+  §19) and the hours
   since admission 28 %; the mutual-information weights give the three 3.6 %, and eICU's transported metric (learned
   with MIMIC-IV in the development pair) 1.75 %, about twenty times MIMIC-IV's, and its stratum is calibrated
   (+0.008). A plausible mechanism: a patient on a vasopressor, whose MAP is held up by the drug, draws neighbours with
@@ -1108,7 +1109,7 @@ better). Δ3: neutral axes minus shapes, both with the NCA weights (positive: th
 ## 18. Two repairs of the vasopressor failure (exploratory)
 
 **Why.** §17 located MIMIC-IV's deficit in the landmarks with a vasopressor running, where the transported metric
-(0.08 % of its weight on the vasopressor inputs) under-predicts. Two repairs, learned on the development pair only,
+(0.08 % of its raw weight, 0.47 % effective, on the vasopressor inputs) under-predicts. Two repairs, learned on the development pair only,
 were tested: (A) an NCA regularised toward the mutual-information profile; (B) a metric that depends on the
 vasopressor state. Plan, arms, gate and rule were committed before running ([docs/DECISIONS.md](../../docs/DECISIONS.md),
 2026-11-06); `scripts/posthoc_vaso_repair.py`, `hypo`'s frozen code. Full tables:
@@ -1207,6 +1208,22 @@ sedation INSPIRE 0.41 %, MIMIC-IV 0.54 %, eICU 2.36 %; vasopressor INSPIRE 3.64 
 - **R after B0 in MIMIC-IV is 0.797 (90 % CI 0.747–0.848)**: the point estimate reaches the margin, the interval
   does not; MIMIC-IV stays "not shown equivalent".
 
+**Audit note (2026-11-07): effective weight shares.** The raw shares above (w_j/Σw) are not comparable across
+metrics, because each metric's axes are scaled on its own development data. The like-for-like measure is each input's
+share of the weighted squared distance between random pairs of the target's landmarks
+([reports/posthoc_audit_checks.md](reports/posthoc_audit_checks.md)):
+
+| inputs | raw → effective, INSPIRE | MIMIC-IV | eICU |
+|---|---|---|---|
+| vasopressor | 3.64 % → 0.29 % | 0.08 % → 0.47 % | 1.75 % → 1.61 % |
+| sedation | 0.41 % → 0.23 % | 0.54 % → 1.46 % | 2.36 % → 1.67 % |
+
+At INSPIRE the vasopressor inputs are absent, so the effective share there is not comparable. Both readings survive:
+- P1 is still false: sedation's effective share is lowest in the metric learned without INSPIRE.
+- The metric transported to MIMIC-IV still gives the vasopressor the least weight among the sites that record it
+  (0.47 % against eICU's 1.61 %). Its effective weight is about six times its raw share, but it is still small next
+  to the MAP inputs.
+
 **Reading.** The test was set up so the mechanism could fail, and its general form failed: the evidence does not
 support "an input missing in one source is under-weighted and transport breaks where it matters" as a rule. What
 stands is narrower. The vasopressor stratum is where transport costs most for every model, consistent with
@@ -1273,6 +1290,11 @@ clearly enough for R's denominator.
 **Reading.** For a hospital of this size, the practical choice is not "local metric or transported metric": a
 borrowed weight profile is better than one learned on the hospital's own patients, and it hardly matters whether it
 was borrowed from the same system or from abroad. The hospital's own patients are most useful as the case base.
+
+**Audit note (2026-11-07).** eICU identifies patients across hospitals, so a few target-hospital patients also have
+landmarks in another hospital: 0 to 17 per hospital, at most about 1.5 %. Their other-hospital landmarks entered the
+other-hospital NCA pool. This is leakage into weight learning only, and negligible at that size
+([reports/posthoc_audit_checks.md](reports/posthoc_audit_checks.md)).
 
 **Limits.** One system's hospitals; the ten largest only (smaller hospitals would favour borrowing even more); the
 shapes are the cross-system metric's for every arm; the strata use v0.5 landmarks (not relevant here).
