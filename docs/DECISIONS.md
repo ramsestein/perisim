@@ -4,6 +4,51 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Post hoc, pre-specified: robustness of the neighbour alignment (`hypo` §15.3; lead; plan and rule fixed before running)
+
+**Why.** The second novelty review (2026-11-07) raised two objections to §15.3:
+1. **k and set size.** Mutual-kNN alignment depends on k and on how dense the set of candidates is (Koepke et al.,
+   2026). By construction, §15.3's case-base measure uses the same case base for every metric, and its within-sample
+   measure the same 1,000 items, so the n-axis does not change the gallery. But the readings were shown at k = 10
+   and 50 only.
+2. **"Other neighbours, the same vote" may be generic.** Transported–local shares 14 % of its 50 neighbours with
+   logits correlated 0.91. Whether any two metrics with that little overlap agree as much was not measured.
+
+**What has been seen.** §15.3's tables at k = 10 (within) and k = 10, 50 (case base), and all 300 pairs' overlap
+and logit correlation in `alignment_hypo_*.json` were computed, but the overlap–agreement relation over pairs was
+never examined.
+
+**Data.** Only `posthoc_alignment`'s per-metric caches (fold 0, one query per test patient, 25 metrics per site).
+Numpy only; nothing is refitted.
+
+**R1 (k and set size).**
+- Case base at k ∈ {5, 10, 20, 50}.
+- Within a sample (Huh et al.) at 1,000 items, k ∈ {5, 10, 20, 50, 100}, with the analytic chance k/(n − 1).
+- Set sizes {500, 1,000, 2,000, 4,000} items at k = 10 and at k = n/100.
+- Query (= patient) bootstrap, 1,000 resamples.
+
+Readings checked at every setting:
+- C1, convergence: halves > n2,000 pair > n500 pair;
+- C2, transported–local below the two halves: case base, upper 95 % limit of the difference < 0; within a sample,
+  point estimate;
+- C3, against Euclidean–local: described; §15.3 found INSPIRE not closer and MIMIC-IV and eICU closer.
+
+**Rule R1.** §15.3 is *robust* if C1 and C2 hold at every setting at all three sites; otherwise the settings where
+they fail are reported and §15.3's readings are restricted accordingly.
+
+**R2 (overlap against agreement).** Over the 300 metric pairs of each site, fit by least squares
+r_logit = a + b × overlap (case base, k = 50) on the pairs without the transported metric. Then compare the
+transported–local pair with the 95 % prediction interval at its overlap. Readings:
+- *generic*: inside the interval;
+- *transport agrees more* than its overlap predicts: above it;
+- *transport agrees less*: below it.
+
+The local–local pairs (500 to half) are reported beside it. The pairs are not independent, so the interval is
+descriptive.
+
+Script: `scripts/posthoc_alignment_robustness.py`. Outputs: `posthoc_alignment/robustness.{json,md}`. Result below and
+as an addendum to §15.3, whatever it is.
+
 ## 2026-11-07 — Result: the intervention-state test (`hypo`; REPORT §19)
 
 Run on the lead's workstation with v0.5 (= `hypo`'s frozen code); gate exact at every site; freeze record checked at
