@@ -4,6 +4,16 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Result: NWICU (pre-registered, OSF 10.17605/OSF.IO/P5CA3; `results/nwicu/`)
+
+Read by the pre-registered rule, unchanged.
+- **Primary: confirmed.** All three frozen metrics are equivalent: R 1.46, 1.53 and 1.64; every lower 90 % limit
+  ≥ 1.10.
+- **Secondary 1: kNN worse** than the recalibrated LightGBM at all three rotations (+0.010 to +0.013 nats).
+- **Secondary 2:** CITL +0.07 to +0.10, slope 1.00–1.06.
+- **Secondary 3:** local LightGBM beats the best transported kNN by 0.0095.
+- **Vasopressor stratum (descriptive):** no failure.
+
 ## 2026-11-07 — NWICU: fourth system, pre-registered (lead; plan fixed before any NWICU outcome exists)
 
 **Why.** An independent, shareable replication of the main result: the frozen metrics keep their gain in a new
