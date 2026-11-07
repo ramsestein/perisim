@@ -4,6 +4,20 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Result: transport INSPIRE → iPROVE (`results/iprove/`)
+
+Run on the lead's workstation. By the rule fixed below, unchanged:
+- **Q1 not evaluable.** Local NCA does not beat uniform weights in iPROVE.
+- **Q2: kNN better** than recalibrated logistic regression (−0.0155) and recalibrated LightGBM (−0.0224).
+- **Q3:** CITL +0.03, slope 0.91.
+
+The transported NCA weights are the worst kNN arm. MI weights are the best kNN arm, and LightGBM trained on iPROVE
+is best overall.
+
+**Consequence.** Replicates "the case base adapts across settings better than recalibrating a transported model".
+Does not replicate "the learned weights travel": INSPIRE's diagnosis-coded comorbidities mean something else in
+iPROVE, and the NCA weights follow those artefacts.
+
 ## 2026-11-07 — New experiment, pre-specified: transport INSPIRE → iPROVE (lead; plan and rule fixed before running)
 
 **Why.** A replication of the transport result in a completely different setting: a different country, a different
