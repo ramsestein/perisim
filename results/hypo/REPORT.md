@@ -96,6 +96,11 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
   - Same-state neighbours repair it in MIMIC-IV but not in eICU, whose stratum also fails under the pre-specified
     definition; MIMIC-IV's R after the repair is 0.797 (90 % CI 0.747–0.848), not shown equivalent.
   - The same-state rule is a site-specific repair for one intervention, not a demonstrated mechanism.
+  - **Without the landmark leak (§19, sensitivity):** MIMIC-IV's vasopressor failure and repair are unchanged; eICU's
+    vasopressor failure does not survive.
+- **Transport between eICU hospitals (§20; pre-specified):** for each of the ten largest hospitals, weights learned on
+  the other hospitals, or on the two other systems, beat weights learned on the hospital's own patients (pooled
+  R 1.35 and 1.38; equivalent in all 8 evaluable hospitals), and the two sources do not differ (−0.0004 nats).
 
 ## 1. Question and design
 
@@ -1205,6 +1210,66 @@ same-state rule is a site-specific repair for one intervention, not a demonstrat
 
 **Limits.** Strata from v0.5 landmarks (leak above all in eICU); one analyst knew the vasopressor result; the three
 states are read jointly as stated, without multiplicity correction; LightGBM transported is uncalibrated.
+
+**Without the landmark leak (pre-specified sensitivity, 2026-11-07).** The three states were rebuilt from records
+before L only (v0.6's rule; eICU's rate-0 stop markers not available in the v0.5 extract) and the test re-run with
+those strata and B0 by them; predictions unchanged ([reports/posthoc_leak_sensitivity.md](reports/posthoc_leak_sensitivity.md)).
+- The leak only ever turned states on: 0.5 % (eICU vasopressor) to 3.7 % (eICU ventilation) of landmarks go from on
+  to off; none from off to on. MIMIC-IV's vasopressor and sedation strata do not change at all (intervals).
+- **MIMIC-IV's vasopressor failure and its repair by B0 are unchanged.**
+- **eICU's vasopressor failure does not survive**: its stratum contrast falls to +0.0022 (−0.0001 to +0.0048). It
+  was partly made by records after L. eICU has no vasopressor failure to explain.
+- INSPIRE's B0 by ventilation becomes safe (upper limit +0.0010 on either side of the threshold); every other verdict,
+  and P1–P3, are unchanged.
+- So the one robust vasopressor finding is MIMIC-IV's, at the site whose infusions are recorded as intervals.
+
+## 20. Transport of the weights between hospitals inside eICU (pre-specified)
+
+**Why.** The external stage moved the metric between health systems. Here the unit is the hospital: does a weight
+profile learned elsewhere serve a hospital as well as one learned on its own patients, and does it matter whether
+"elsewhere" is the same system? Plan and rule committed before running ([docs/DECISIONS.md](../../docs/DECISIONS.md),
+2026-11-07, commit `54b5b0c`); `scripts/posthoc_hospital_transport.py`, `hypo`'s frozen code; the gate rebuilt the
+stored transported predictions exactly. Full table: [reports/posthoc_hospital_transport.md](reports/posthoc_hospital_transport.md).
+
+**Design.**
+- **Targets.** eICU's ten largest hospitals, all with at least 500 patients; together they hold 8,858 patients.
+- **Data per target.** Each target's own case base, from the external stage's folds restricted to that hospital.
+- **Arms.** All use the frozen eICU-target encoder; only the weights differ:
+  - uniform: the Euclidean reference;
+  - cross-system: the frozen weights from INSPIRE and MIMIC-IV;
+  - other hospitals: NCA on eICU minus the target;
+  - local: NCA on the target's own case-base landmarks, refitted per fold.
+- **R** as in §16, against the local weights.
+
+| | pooled (10 hospitals) |
+|---|---|
+| log-loss: uniform / cross-system / other hospitals / local | 0.4081 / 0.3922 / 0.3926 / 0.3966 |
+| R, other hospitals (90 % CI) | 1.35 (1.24–1.46) |
+| R, cross-system (90 % CI) | 1.38 (1.28–1.50) |
+| cross-system − other hospitals (95 % CI) | −0.0004 (−0.0013 to +0.0005) |
+
+**Rule.** Q1 is *equivalent*; Q2 is *no difference*; Q3: 8 of the 10 hospitals are evaluable, and in all 8 both the
+other-hospital and the cross-system weights are equivalent. In the other two, the local weights do not beat uniform
+clearly enough for R's denominator.
+
+- **Weights learned elsewhere beat weights learned in the hospital itself.** R is above 1 in every evaluable
+  hospital, and its 90 % CI lies above 1 in most of them. One hospital's 650–1,700 patients learn a weaker weight
+  profile than many hospitals' patients do. This fits §15.3–15.4, where a local metric is still converging at a few
+  thousand patients. R above 1 therefore says "the local reference is data-limited", not "transport improves on the
+  truth".
+- **The system boundary does not matter here.** Weights from two other health systems in other countries (INSPIRE,
+  Korea; MIMIC-IV, one Boston hospital) do as well as weights from the target's own system: pooled difference
+  −0.0004 (−0.0013 to +0.0005). By hospital it goes either way, with one significant in each direction (h2 favours
+  cross-system, h3 other hospitals).
+- **Calibration again comes from the case base.** Every arm, the uniform one included, is calibrated by the
+  hospital's own case base (pooled CITL −0.04 to −0.02); see hospitals.json.
+
+**Reading.** For a hospital of this size, the practical choice is not "local metric or transported metric": a
+borrowed weight profile is better than one learned on the hospital's own patients, and it hardly matters whether it
+was borrowed from the same system or from abroad. The hospital's own patients are most useful as the case base.
+
+**Limits.** One system's hospitals; the ten largest only (smaller hospitals would favour borrowing even more); the
+shapes are the cross-system metric's for every arm; the strata use v0.5 landmarks (not relevant here).
 
 ## Reproducibility
 

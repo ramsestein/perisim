@@ -4,6 +4,17 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Results: transport between eICU hospitals (REPORT §20) and §19 without the landmark leak
+
+Both run on the lead's workstation with `hypo`'s frozen code; gates exact; freeze record checked at start and end.
+- **A, hospitals.** Q1 equivalent (pooled R of other-hospital weights 1.35, 90 % CI 1.24–1.46). Q2 no difference
+  (cross-system − other hospitals −0.0004, −0.0013 to +0.0005). Q3: 8 of 10 evaluable, all 8 equivalent for both
+  sources. R > 1 because one hospital's patients learn weaker weights than many hospitals' patients: the local
+  reference is data-limited.
+- **B, leak.** Not all verdicts unchanged. eICU's vasopressor failure disappears (contrast +0.0022, −0.0001 to
+  +0.0048), and INSPIRE's B0 by ventilation becomes safe, at the threshold. MIMIC-IV's vasopressor failure and repair,
+  P1–P3 and every other cell are unchanged. The vasopressor finding is MIMIC-IV's alone.
+
 ## 2026-11-07 — Post hoc, pre-specified: transport between eICU hospitals, and §19 without the landmark leak (`hypo`; lead; plans and rules fixed before running)
 
 ### A. Transport of the weights between hospitals inside eICU
