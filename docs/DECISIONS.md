@@ -4,6 +4,30 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+
+## 2026-11-08 — Repository made presentable; old tags and branches deleted (lead)
+
+**Why.** The lead plans to write to PRAM's authors, possibly to join efforts, and asked for a clean, understandable
+repository in English. The repository was already in English, so the work was structure and presentation.
+
+**Done** (commit `618f338`). Code and results were not moved: the frozen paths and their hashes stay valid.
+- **README** rewritten as a front page: the question, key results with their level of evidence, the experiments, a
+  repository map, reproduction, privacy, history and naming, licence and citation.
+- **`docs/FINDINGS.md`**: every result in plain language, graded as pre-registered, post hoc pre-specified or
+  exploratory, with a section on what is ours and what is not. It cites PRAM v2's supplementary Table S13, in which
+  a transferred NCA performs about like one fitted on the target bank, both below cosine distance.
+- **`docs/README.md`**: an index that separates records from living documents.
+- **`docs/RUNNING.md`**: the operational guide, moved from the README unchanged.
+- **`LICENSE`** (MIT, as `pyproject.toml` already declared) and **`CITATION.cff`**.
+
+**Deleted on GitHub** at the lead's request. Done from the lead's workstation with the lead's own git (a .bat; this
+session cannot push deletions):
+- the three freeze tags (T2, `hypo`, `roll`), which pointed into the pre-snapshot history;
+- twelve stale branches.
+
+`main` and `pmknn` remain. The frozen code is in `frozen/` with its hashes. The references of PRs #1 and #2 can only
+be removed by GitHub support.
+
 ## 2026-11-07 — Results of the audit follow-ups
 
 - **Effective weight shares** (`results/hypo/reports/posthoc_audit_checks.md`):

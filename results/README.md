@@ -34,7 +34,9 @@ for stay/patient identifiers before it is copied. Patient-level data are never c
 and, in `work/`, the extractions, features and per-patient predictions. The PhysioNet data use agreements restrict
 them. The per-fold CV artifacts are left out because of their size; they are summarised in `results*.json`.
 
-**Provenance.**
+**Provenance.** The freeze tags named below were deleted from GitHub on 2026-11-08, together with the stale
+branches, because they pointed into the pre-snapshot history. The code and configuration they froze are kept file for
+file in [`frozen/`](../frozen/README.md), with their hashes.
 - T2's internal results come from the code of the freeze tag `perisim-freeze-t2-2026-10-27-141040` (commit `c4cc8b7`;
   the k sweep by the same commit). Its external validation and transport results come from that frozen version: see
   `t2/docs/OSF_registration.md`.
