@@ -87,6 +87,15 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
   - an NCA regularised toward mutual information passes the rule only formally: the λ chosen inside the development
     pair was 0 at every site and the effect is negligible (+0.0003); forced (λ = 1) it repairs MIMIC-IV but harms
     INSPIRE and eICU; weights learned per vasopressor state do not repair and harm two sites.
+- **Pre-specified test of the intervention-state mechanism (§19; plan fixed before running)**: its general form
+  fails.
+  - Sedation, also missing at INSPIRE, is not under-weighted and its stratum does not fail; the ventilation control
+    holds (no failure, no repair).
+  - The vasopressor stratum costs most for every transported model: LightGBM's on/off contrast is about 4–9 times the
+    kNN's.
+  - Same-state neighbours repair it in MIMIC-IV but not in eICU, whose stratum also fails under the pre-specified
+    definition; MIMIC-IV's R after the repair is 0.797 (90 % CI 0.747–0.848), not shown equivalent.
+  - The same-state rule is a site-specific repair for one intervention, not a demonstrated mechanism.
 
 ## 1. Question and design
 
@@ -1087,6 +1096,66 @@ there), MIMIC-IV 0.80 (from 0.74), eICU 0.97 (from 0.96).
   though MIMIC-IV's vasopressors are intervals and hardly affected by that leak; whether a same-state rule should be
   pre-specified for other inputs that mark a different physiology (e.g. ventilation) is a design question for a new,
   pre-registered experiment.
+
+## 19. Does the intervention-state mechanism predict sedation? (pre-specified test)
+
+**Why.** §18's repair rests on a proposed mechanism: an input that one development source cannot record gets little
+weight in the jointly learned metric, and transport then pays where that intervention changes the physiology.
+INSPIRE records neither vasopressors nor sedation, so the mechanism predicts for sedation what was seen for the
+vasopressor; sedation strata had never been examined. Ventilation, recorded at all three sites, is the negative
+control; the vasopressor is re-run as the reference, now with LightGBM and the MI metric by stratum. Plan,
+predictions and rule were committed before running ([docs/DECISIONS.md](../../docs/DECISIONS.md), 2026-11-07,
+commit `ed7f031`); `scripts/posthoc_state_test.py`, `hypo`'s frozen code; the gate rebuilt the stored transported
+arm exactly (max |Δp| = 0) at every site. Full tables: [reports/posthoc_state_test.md](reports/posthoc_state_test.md).
+
+**Rule.** Failure = transport cost L(transported) − L(local) in the stratum with lower 95 % limit > 0 **and** its
+contrast with the other stratum > 0. Repair = B0 (same-state neighbours) better by ≥ 0.001 nats with lower limit > 0.
+Safe = B0's overall upper 95 % limit against the transported arm < 0.001.
+
+| state (role) | target | on | weight share | cost on − off (95 % CI) | B0 repair on stratum | verdict |
+|---|---|---|---|---|---|---|
+| sedation (test) | MIMIC-IV | 26.2 % | 0.54 % | +0.0009 (−0.0007 to +0.0026) | +0.0002 (−0.0005 to +0.0009) | no failure |
+| sedation (test) | eICU | 6.5 % | 2.36 % | −0.0011 (−0.0035 to +0.0014) | −0.0029 (−0.0050 to −0.0010) | no failure |
+| ventilation (control) | INSPIRE | 15.4 % | 0.52 % | −0.0015 (−0.0048 to +0.0019) | −0.0010 (−0.0034 to +0.0016) | no failure; B0 not safe (upper +0.0010) |
+| ventilation (control) | MIMIC-IV | 35.3 % | 0.50 % | +0.0002 (−0.0014 to +0.0018) | −0.0001 (−0.0005 to +0.0003) | no failure |
+| ventilation (control) | eICU | 17.0 % | 0.03 % | +0.0014 (−0.0001 to +0.0030) | +0.0008 (−0.0005 to +0.0021) | no failure |
+| vasopressor (reference) | MIMIC-IV | 21.1 % | 0.08 % | +0.0054 (+0.0034 to +0.0074) | **+0.0040 (+0.0024 to +0.0057)** | failure, repaired |
+| vasopressor (reference) | eICU | 7.6 % | 1.75 % | +0.0028 (+0.0005 to +0.0053) | −0.0002 (−0.0011 to +0.0006) | failure, not repaired |
+
+Weight shares of each state's inputs in the metric transported to each target (learned on the other two sites):
+sedation INSPIRE 0.41 %, MIMIC-IV 0.54 %, eICU 2.36 %; vasopressor INSPIRE 3.64 %, MIMIC-IV 0.08 %, eICU 1.75 %.
+
+- **P1 (weights) fails.** Sedation does not lose weight when INSPIRE is a development source: its share is lower in
+  the metric learned without INSPIRE (0.41 %) than in the two learned with it. "Absent in one source, therefore
+  under-weighted" is not a general property of the NCA here; for the vasopressor it does hold (3.64 % without
+  INSPIRE against 0.08 % and 1.75 % with it).
+- **P2 (sedation) has nothing to test.** The sedated stratum does not fail at either target, so there is no failure
+  to repair. This is not a confirmation of the repair; it says that sedation, in these data, does not mark a
+  physiology that the transported metric gets wrong. B0 by sedation is safe overall but costs 0.0029 nats in eICU's
+  sedated stratum.
+- **P3 (ventilation control) holds**: no failure and no repair at any site. B0 by ventilation is not safe at INSPIRE
+  (upper limit +0.0010, at the threshold): restricting neighbours by a state that does not matter only shrinks the
+  case base.
+- **The vasopressor stratum is hard for every transported model, not only for the kNN.** Transported LightGBM's
+  loss rises much more on vasopressor landmarks than off them: +0.0481 against +0.0133 nats in MIMIC-IV, +0.0515
+  against +0.0105 in eICU (against its own local refit; the transported LightGBM is uncalibrated, so read the
+  on/off contrast, not the level). The transported kNN's contrast is +0.0054 and +0.0028.
+- **With the pre-specified definition, eICU's vasopressor stratum also fails**, which §15 had not called a failure
+  (it had no contrast test). B0 does not repair it (−0.0002), and the transported metric already gives the
+  vasopressor 1.75 % of its weight there. eICU's `vaso_on` is the stratum most affected by v0.5's landmark leak
+  (audit 2026-11-05).
+- **R after B0 in MIMIC-IV is 0.797 (90 % CI 0.747–0.848)**: the point estimate reaches the margin, the interval
+  does not; MIMIC-IV stays "not shown equivalent".
+
+**Reading.** The test was set up so the mechanism could fail, and its general form failed: the evidence does not
+support "an input missing in one source is under-weighted and transport breaks where it matters" as a rule. What
+stands is narrower. The vasopressor stratum is where transport costs most for every model, consistent with
+vasopressor-supported patients being a different population across sites. In MIMIC-IV, where the transported metric
+nearly ignores the vasopressor, same-state neighbours repair the kNN without refitting; in eICU they do not. The
+same-state rule is a site-specific repair for one intervention, not a demonstrated mechanism.
+
+**Limits.** Strata from v0.5 landmarks (leak above all in eICU); one analyst knew the vasopressor result; the three
+states are read jointly as stated, without multiplicity correction; LightGBM transported is uncalibrated.
 
 ## Reproducibility
 

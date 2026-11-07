@@ -4,6 +4,21 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Result: the intervention-state test (`hypo`; REPORT §19)
+
+Run on the lead's workstation with v0.5 (= `hypo`'s frozen code); gate exact at every site; freeze record checked at
+start and end. Read by the rule fixed below, unchanged:
+- **P1 (weights): false.** Sedation's share is 0.41 % in the metric learned without INSPIRE, 0.54 % and 2.36 % in the
+  two learned with it.
+- **P2 (sedation): no failure to repair** at MIMIC-IV or eICU; B0 by sedation safe overall. Not a confirmation.
+- **P3 (ventilation control): holds.** No failure, no repair anywhere; B0 by ventilation not safe at INSPIRE (upper
+  limit +0.0010, at the threshold).
+- Reference: the vasopressor stratum fails at MIMIC-IV (repaired by B0, +0.0040) and, under this definition, at eICU
+  (not repaired, −0.0002). LightGBM transported pays far more on vasopressor landmarks than off them at both sites.
+- **Consequence for the article.** The mechanism's general form is not supported; the same-state rule is reported as
+  a site-specific repair for the vasopressor, and the vasopressor stratum as where transport costs most for every
+  model. The claim "a source-missing input is under-weighted and breaks transport" is withdrawn.
+
 ## 2026-11-07 — Post hoc, pre-specified: does the intervention-state mechanism predict sedation? (`hypo`; lead; plan and rule fixed before running)
 
 **Why.** The second novelty review (2026-11-07) ranks the vasopressor finding (REPORT §15.1, §18) as the article's most
