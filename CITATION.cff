@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this code or its results, please cite it as below."
+title: "PERISIM: transporting a learned patient-similarity metric across hospitals"
+authors:
+  - family-names: "Marrero García"
+    given-names: "Ramsés"
+    affiliation: "Hospital Clínic de Barcelona"
+repository-code: "https://github.com/ramsestein/perisim"
+license: MIT
+version: "0.6.0"
+date-released: "2026-11-08"
+keywords:
+  - nearest neighbours
+  - metric learning
+  - transportability
+  - clinical prediction
+  - intensive care
