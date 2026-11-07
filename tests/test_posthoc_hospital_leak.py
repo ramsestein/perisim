@@ -61,6 +61,7 @@ def test_hospital_chain(tmp_path, monkeypatch):
 
 
 def test_leak_chain(tmp_path, monkeypatch):
+    pytest = __import__("pytest")
     frames = _chain(tmp_path, monkeypatch, ["transported", "local", "comps"])
     ex = tmp_path / "experiments" / "hypo" / "extract"
     ex.mkdir(parents=True, exist_ok=True)
@@ -73,6 +74,9 @@ def test_leak_chain(tmp_path, monkeypatch):
             .write_parquet(ex / f"{c}_supports.parquet")
     import posthoc_state_test as T
     monkeypatch.setattr(T, "N_BOOT", 200)
+    with pytest.raises(RuntimeError, match="needed for the comparison"):
+        K.main(["--sites", "eicu", "--threads", "1", "--quick"])
+    assert T.main(["--sites", "eicu", "--threads", "1", "--quick"]) == 0
     assert K.main(["--sites", "eicu", "--threads", "1", "--quick"]) == 0
     from hypo.frozen import external_dir
     out = json.loads((external_dir().with_name("posthoc_leak_sensitivity") / "leak.json").read_text())

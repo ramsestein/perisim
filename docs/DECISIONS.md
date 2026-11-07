@@ -4,6 +4,56 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Audit of the day's analyses (lead asked for a full check; plan before running the follow-ups)
+
+**What was checked.**
+- The whole test suite, with the v0.6 code (260 passed, 6 skipped) and the frozen `hypo` code (26 passed).
+- Two independent reviews, which had not seen the conclusions, of the day's scripts: the NWICU build and transport,
+  the state test, the leak sensitivity, the hospital transport and the alignment robustness.
+- Every figure quoted in REPORT §15.4, §19 and §20 and in `results/nwicu/README.md`, traced back to its report file.
+- Privacy and the indexes.
+
+**Clean.** No leakage was found anywhere:
+- folds are patient-level;
+- case bases, α, every metric fit, recalibration and the local LightGBM see training folds only;
+- frozen comparators and embeddings are used as the frozen code uses them;
+- `states_before` matches v0.6's `SupportsBefore` (0 mismatches in 86,400 randomised cells);
+- every quoted figure matches its source.
+
+**Findings and what is done about them.**
+1. **R2's reference pairs included the ablation variants**, which are transported metrics too (§15.4). Re-checked
+   on the 55 pairs of genuinely local metrics only (local; n500–half, a and b). Transported–local stays inside the
+   prediction interval at all three sites:
+
+   | site | observed r | predicted r | 95 % PI |
+   |---|---|---|---|
+   | INSPIRE | 0.781 | 0.784 | 0.744–0.824 |
+   | MIMIC-IV | 0.906 | 0.913 | 0.898–0.928 |
+   | eICU | 0.895 | 0.891 | 0.868–0.913 |
+
+   The "generic" reading stands; it is noted in §15.4.
+2. **Raw weight shares are not comparable across metrics** (the share is w_j/Σw on axes scaled on each rotation's
+   development data). This is used in P1 (§19) and in the vasopressor narrative (0.08 %, 1.75 %, 3.64 %). To be
+   recomputed as effective shares: the share of the weighted squared distance between random pairs of the target's
+   landmarks (`scripts/posthoc_audit_checks.py`). Statements are to be corrected to whatever that shows.
+3. **eICU patients can appear in more than one hospital**, and their other-hospital landmarks entered §20's
+   other-hospital NCA pool. This is leakage into weight learning only. To be counted (same script).
+4. **NWICU, pre-registered B0 by vasopressor state (descriptive) was not computed.** It is added now to
+   `nwicu_transport.py`, late and labelled so; the units of the primary run are reused.
+5. **NWICU's vasopressor rule let in non-intravenous forms**: nasal, rectal, ophthalmic, oral, the auto-injector.
+   They account for about 250 of about 280,000 vasopressor events. This touches inputs only, never the outcome.
+   - Post hoc sensitivity: rebuild with intravenous forms only (`nwicu_build.py --iv-only`) and transport again
+     (`--tag nwicu_ivonly`).
+   - The primary result stays as pre-registered.
+6. **NWICU README overstatements**: "recalibrated LightGBM beats local LightGBM" had no CI, and "no failure" in a
+   descriptive stratum had no criterion. Softened.
+7. **Robustness of the code.**
+   - The leak sensitivity now refuses to run without §19's results, so it can no longer report a vacuous
+     "all unchanged", and it flags cells that drop out.
+   - NWICU units carry a run stamp, so they cannot be mixed across runs; the primary run started from an empty
+     folder.
+   - §15.4: INSPIRE's 4,000-item setting was skipped silently because it has 2,288 queries.
+
 ## 2026-11-07 — Result: NWICU (pre-registered, OSF 10.17605/OSF.IO/P5CA3; `results/nwicu/`)
 
 Read by the pre-registered rule, unchanged.

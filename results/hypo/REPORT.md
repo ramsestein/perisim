@@ -976,6 +976,12 @@ Two objections from the second novelty review were tested with a plan and rule c
 
 - Two local metrics learned on disjoint halves behave the same way: overlap 0.11–0.22, r 0.79–0.92.
 
+**Audit note (2026-11-07).** R2's reference included the ablation variants, which are themselves transported
+metrics. Restricted to the 55 pairs of genuinely local metrics, transported–local stays inside the prediction
+interval at all three sites: INSPIRE r 0.781 against 0.784 predicted (0.744–0.824); MIMIC-IV 0.906 against 0.913
+(0.898–0.928); eICU 0.895 against 0.891 (0.868–0.913). INSPIRE's 4,000-item setting is absent because INSPIRE has
+2,288 queries.
+
 **Reading.**
 - Within-site convergence with data is robust to k and to the set size.
 - The transported metric's shortfall against two local halves is robust in eICU and INSPIRE. In MIMIC-IV it is a

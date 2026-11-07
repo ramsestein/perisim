@@ -9,8 +9,11 @@ One folder per experiment:
 - [`roll/`](roll/README.md), the separate experiment `roll` (a rotating case base along prequential streams, on
   `hypo`'s outcome), with its report and a layout of its own, described there;
 - `feasibility/`, the two feasibility studies that came before `hypo`.
+- [`nwicu/`](nwicu/README.md), the pre-registered transport of `hypo`'s frozen metrics to NWICU, a fourth system
+  (OSF 10.17605/OSF.IO/P5CA3);
 - `alignment/`, a post hoc analysis across `hypo` and T2: do metrics learned apart retrieve the same neighbours?
-  (`posthoc_alignment.md`, its figure and per-site JSON; read in `hypo/REPORT.md` §15.3).
+  (`posthoc_alignment.md`, its figure and per-site JSON, and its robustness `robustness.md`; read in
+  `hypo/REPORT.md` §15.3–15.4).
 
 `python scripts/publish_supplement.py` adds what the export package and the hand copies leave out: T2's cohort
 flow, two large T2 transport tables split into parts, the feasibility studies, `hypo`'s first dry run and its second
@@ -48,15 +51,18 @@ them. The per-fold CV artifacts are left out because of their size; they are sum
 | section | material |
 |---|---|
 | Methods: data and harmonisation | `t2/reports/schema_*.md`, `t2/reports/completeness_*.html`, `t2/flow/flow.md`; `hypo/reports/landmarks_summary.md`, `hypo/reports/audit.md`; [docs/AUDIT.md](../docs/AUDIT.md) |
-| Methods: the method (PM-kNN, formerly CE-kNN) | [SPECS.md](../SPECS.md) §5; the library on the branch `pmknn` |
-| Methods: pre-registration and freezes | [docs/prereg_hypo.md](../docs/prereg_hypo.md), [docs/freeze_hypo.md](../docs/freeze_hypo.md), [docs/prereg_amendment_transport.md](../docs/prereg_amendment_transport.md), `t2/docs/OSF_registration.md`; [docs/prereg_roll.md](../docs/prereg_roll.md), [docs/freeze_roll.md](../docs/freeze_roll.md) |
+| Methods: the method (kNN with a learned diagonal NCA metric; formerly CE-kNN / PM-kNN) | [SPECS.md](../SPECS.md) §5; the library on the branch `pmknn` |
+| Methods: pre-registration and freezes | [docs/prereg_nwicu.md](../docs/prereg_nwicu.md) (OSF 10.17605/OSF.IO/P5CA3), [docs/prereg_hypo.md](../docs/prereg_hypo.md), [docs/freeze_hypo.md](../docs/freeze_hypo.md), [docs/prereg_amendment_transport.md](../docs/prereg_amendment_transport.md), `t2/docs/OSF_registration.md`; [docs/prereg_roll.md](../docs/prereg_roll.md), [docs/freeze_roll.md](../docs/freeze_roll.md) |
 | Results: T2, internal, with the comparators of SPECS §6.4 | `t2/reports/results_main.html`, `t2/artifacts/main/results.json`. The comparators are Euclidean, HVDM, mean \|SHAP\|, RF importance, ReliefF, NCA only, SAGE only, RF-GAP, logistic regression and LightGBM. Also the sensitivity reports and the k sweep |
 | Results: T2, external and transport | `t2/reports/external.html`, `t2/reports/transport.html`, `t2/results/transport/` |
 | Results: `hypo`, by rotation | `hypo/REPORT.md`, `hypo/reports/cv.md`, `hypo/reports/external.md` |
 | Results: `hypo`, metrics and ablation | `hypo/reports/posthoc_ablation.md` and its figures |
+| Results: NWICU, fourth system (pre-registered) | `nwicu/README.md`, `nwicu/transport.md` |
+| Results: `hypo`, transport between eICU hospitals | `hypo/REPORT.md` §20, `hypo/reports/posthoc_hospital_transport.md` |
+| Results: `hypo`, intervention strata (sedation test, ventilation control, vasopressor) | `hypo/REPORT.md` §19, `hypo/reports/posthoc_state_test.md`, `hypo/reports/posthoc_leak_sensitivity.md` |
 | Results: `roll`, prequential streams | `roll/REPORT.md`, `roll/reports/endpoints.md`, `roll/figures/`, `roll/results/` |
 | Results: drift and shapes | `hypo/REPORT.md` §7, §13 and §15.2, `hypo/reports/posthoc.md`; `t2/reports/posthoc_drift*.html` |
-| Results: do metrics learned apart share neighbours? (`hypo` and T2) | `hypo/REPORT.md` §15.3, `alignment/posthoc_alignment.md` and its figure |
+| Results: do metrics learned apart share neighbours? (`hypo` and T2) | `hypo/REPORT.md` §15.3–15.4, `alignment/posthoc_alignment.md` and its figure, `alignment/robustness.md` |
 | Supplement: post hoc analyses (exploratory) | T2: `posthoc_transport`, `posthoc_drift`, `posthoc_drift_missing`, `posthoc_case_base`; `hypo`: `posthoc.md`, `posthoc_ablation.md`, `posthoc_strata.md`, `posthoc_equivalence.md` (with T2's in `t2/reports/`), `posthoc_map_vaso.md`; both: `alignment/` |
 | Supplement: chronology | [docs/DECISIONS.md](../docs/DECISIONS.md) (dated entries), the three freeze records and tags, `hypo/results/external_dryrun_alpha0/` |
 | Background: choice of the use case | `feasibility/icu_trajectory.md`, `feasibility/hypotension.md`, [docs/design_hypotension.md](../docs/design_hypotension.md) |

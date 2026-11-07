@@ -26,6 +26,10 @@ their identifier.
 | `reports/posthoc_equivalence.md` | transport equivalence (exploratory; criterion fixed with the point estimates known, DECISIONS 2026-11-05; REPORT §16): R with 90 % CIs by the bioequivalence convention, all landmarks and by vasopressor |
 | `reports/posthoc_fixed_metric.md` | a fixed mutual-information metric (PRAM-style) against the transported learned metric, same case base (exploratory, plan fixed before running, DECISIONS 2026-11-06; REPORT §17) |
 | `reports/posthoc_vaso_repair.md` | two repairs of the vasopressor failure: an NCA with a mutual-information prior, same-state neighbours, per-state weights (exploratory, plan fixed before running, DECISIONS 2026-11-06; REPORT §18) |
+| `reports/posthoc_state_test.md` | the intervention-state mechanism: sedation (test), ventilation (control), vasopressor (reference) with LightGBM and MI by stratum (post hoc, plan and rule fixed before running, DECISIONS 2026-11-07; REPORT §19) |
+| `reports/posthoc_leak_sensitivity.md` | §19 with the intervention strata rebuilt from records before L only (pre-specified sensitivity, DECISIONS 2026-11-07; REPORT §19) |
+| `reports/posthoc_hospital_transport.md` | transport of the weights between eICU's ten largest hospitals (post hoc, plan and rule fixed before running, DECISIONS 2026-11-07; REPORT §20) |
+| `../alignment/robustness.md` | robustness of §15.3 to k and set size, and overlap against agreement (pre-specified, DECISIONS 2026-11-07; REPORT §15.4) |
 | `results/freeze.json` | the freeze record with every hash the external stage checked |
 | `results/cv/`, `results/final/`, `results/external/`, `results/external_dryrun/`, `results/posthoc/`, `results/posthoc_ablation/`, `results/posthoc_strata/`, `results/posthoc_equivalence/`, `results/posthoc_fixed_metric/`, `results/posthoc_vaso_repair/`, `results/posthoc_map_vaso/` | per-unit summaries (α, weights, shapes, drift, thresholds, timings, metrics), JSON only |
 | `results/external_dryrun_alpha0/` | the first dry run of the external stage, the one that found the α = 0 fault (DECISIONS 2026-10-29); kept for the record, not evidence |

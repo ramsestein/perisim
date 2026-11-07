@@ -36,8 +36,11 @@ N_BOOT = 2000
 R_MARGIN, MIN_DEN = 0.80, 0.005
 
 
+TAG = "nwicu"
+
+
 def work() -> Path:
-    return Path(os.environ.get("PERISIM_WORKDIR", "work")) / "experiments" / "nwicu"
+    return Path(os.environ.get("PERISIM_WORKDIR", "work")) / "experiments" / TAG
 
 
 def landmarks(cfg: dict):
@@ -89,6 +92,21 @@ def run_arms(cfg: dict, mcfg: dict, space: dict, lm, fold: np.ndarray, units: Pa
                 p_tr = np.asarray(comps[e](ref), dtype=np.float64)
                 write(path, te, p_te, {})
                 write(units / f"lgbmrecal_{e}_f{f}.parquet", te, recalibrate(p_tr, ref.y, p_te), {})
+        st_v = vaso_state(lm)
+        for e in ROTATIONS:                    # pre-registered descriptive: same-state neighbours (B0) by vasopressor
+            path = units / f"b0_{e}_f{f}.parquet"
+            if not path.exists():
+                p = np.full(te.size, np.nan)
+                for s_ in (False, True):
+                    qi, bi = te[st_v[te] == s_], tr[st_v[tr] == s_]
+                    if qi.size == 0:
+                        continue
+                    if bi.size < int(mcfg.get("k", 50)) + 1:
+                        bi = tr
+                    cb = CaseBase(metrics[e], lm.take(bi), mcfg, E=E[e][bi])
+                    cb.fit_alpha(seed)
+                    p[np.isin(te, qi)] = np.asarray(cb.predict(lm.take(qi), E=E[e][qi])["p"], dtype=np.float64)
+                write(path, te, p, {})
         path = units / f"local_f{f}.parquet"
         if not path.exists():
             rows = learning_sample(ref, int(mcfg["learn"]["per_patient"]), int(mcfg["learn"]["per_site"]), seed)
@@ -106,9 +124,14 @@ def run_arms(cfg: dict, mcfg: dict, space: dict, lm, fold: np.ndarray, units: Pa
         LOG.info("nwicu fold %d done (%.0f s)", f, time.perf_counter() - t0)
 
 
+def vaso_state(lm) -> np.ndarray:
+    v = np.asarray(lm.ft.num["vaso_on"], dtype=np.float64)
+    return np.where(np.isfinite(v), v > 0.5, False)
+
+
 def gather(units: Path, n: int) -> dict:
     arms = [f"knn_{e}" for e in ROTATIONS] + [f"lgbm_{e}" for e in ROTATIONS] + \
-        [f"lgbmrecal_{e}" for e in ROTATIONS] + ["local", "euclidean", "lightgbm"]
+        [f"lgbmrecal_{e}" for e in ROTATIONS] + ["local", "euclidean", "lightgbm"] + [f"b0_{e}" for e in ROTATIONS]
     P = {}
     for a in arms:
         p = np.full(n, np.nan)
@@ -125,7 +148,9 @@ def summarise(P: dict, y: np.ndarray, subj: np.ndarray, state: np.ndarray | None
     from hypo.stats import calibration_line_w, citl_w, logit, logloss_rows
     from sklearn.metrics import roc_auc_score
 
+    B0 = {a: P.pop(a) for a in [k for k in P if k.startswith("b0_")]}
     losses = {a: logloss_rows(p, y) for a, p in P.items()}
+    b0_loss = {a: logloss_rows(p, y) for a, p in B0.items()}
     est = {a: float(v.mean()) for a, v in losses.items()}
     B = FM._boot(losses, subj, N_BOOT, 20261107)
     arms = {}
@@ -159,7 +184,10 @@ def summarise(P: dict, y: np.ndarray, subj: np.ndarray, state: np.ndarray | None
     if state is not None and state.any() and (~state).any():          # descriptive: the vasopressor stratum
         out["vaso"] = {"share_on": float(state.mean()),
                        "cost_on": {e: float(np.mean(losses[f"knn_{e}"][state] - losses["local"][state])) for e in ROTATIONS},
-                       "cost_off": {e: float(np.mean(losses[f"knn_{e}"][~state] - losses["local"][~state])) for e in ROTATIONS}}
+                       "cost_off": {e: float(np.mean(losses[f"knn_{e}"][~state] - losses["local"][~state])) for e in ROTATIONS},
+                       "b0_repair_on": {e: float(np.mean(losses[f"knn_{e}"][state] - b0_loss[f"b0_{e}"][state]))
+                                        for e in ROTATIONS},
+                       "b0_minus_knn_all": {e: float(np.mean(b0_loss[f"b0_{e}"] - losses[f"knn_{e}"])) for e in ROTATIONS}}
     return out
 
 
@@ -201,7 +229,9 @@ def render(s: dict) -> str:
     if "vaso" in s:
         v = s["vaso"]
         L += ["", f"## Descriptive: vasopressor stratum (on in {v['share_on']:.1%} of landmarks)", ""]
-        L += [f"- rotation {e}: transport cost on {v['cost_on'][e]:+.4f}, off {v['cost_off'][e]:+.4f}" for e in ROTATIONS]
+        L += [f"- rotation {e}: transport cost on {v['cost_on'][e]:+.4f}, off {v['cost_off'][e]:+.4f}; B0 (same-state "
+              f"neighbours) on the stratum {v['b0_repair_on'][e]:+.4f} (positive = B0 better), overall "
+              f"{v['b0_minus_knn_all'][e]:+.4f} (B0 − kNN)" for e in ROTATIONS]
     L += ["", "## Rule (pre-registered)", "", "```", json.dumps(s["rule"], indent=1), "```", ""]
     return "\n".join(L)
 
@@ -210,7 +240,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--threads", type=int, default=8)
     ap.add_argument("--quick", action="store_true", help="quick frozen artefacts (tests)")
+    ap.add_argument("--tag", default="nwicu", help="work folder: nwicu (primary) or nwicu_ivonly (post hoc sensitivity)")
     a = ap.parse_args(argv)
+    global TAG
+    TAG = a.tag
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
                         stream=sys.stdout)
     from hypo.cv import outer_folds, settings
@@ -219,14 +252,20 @@ def main(argv=None) -> int:
     rec = check()
     cfg, mcfg, space = settings(a.quick)
     lm = landmarks(cfg)
+    units_dir = work() / "units"
+    stamp = units_dir / "run.json"           # audit 2026-11-07: never mix units from another landmark set or setting
+    key = {"quick": bool(a.quick), "n": len(lm), "ids_head": [str(x) for x in lm.ft.ids[:5]]}
+    if stamp.exists() and json.loads(stamp.read_text()) != key:
+        raise RuntimeError(f"nwicu: {units_dir} holds units of another run; move it away first")
+    units_dir.mkdir(parents=True, exist_ok=True)
+    stamp.write_text(json.dumps(key))
     fold = outer_folds(lm, int(cfg["cv"]["outer_folds"]), int(cfg["seed"]))
     units = work() / "units"
     units.mkdir(parents=True, exist_ok=True)
     run_arms(cfg, mcfg, space, lm, fold, units, a.threads)
     check()
     P = gather(units, len(lm))
-    state = np.asarray(lm.ft.num["vaso_on"], dtype=np.float64)
-    state = np.where(np.isfinite(state), state > 0.5, False)
+    state = vaso_state(lm)
     s = summarise(P, lm.y.astype(np.float64), lm.ft.subjects, state)
     s["freeze"] = rec.get("tag")
     s["rule"] = rule(s)

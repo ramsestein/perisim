@@ -98,9 +98,14 @@ def compare(old: dict, new: dict) -> dict:
         for var, s in r["states"].items():
             o = old.get(X, {}).get("states", {}).get(var)
             if o is None:
+                out[f"{X}|{var}"] = {"v05": None, "v06": s["verdict"], "unchanged": False}
                 continue
             out[f"{X}|{var}"] = {"v05": o["verdict"], "v06": s["verdict"], "unchanged": o["verdict"] == s["verdict"]}
-    return {"per_cell": out, "all_unchanged": all(v["unchanged"] for v in out.values())}
+    for X, r in old.items():                  # a cell that drops out under the leak-free strata is a change too
+        for var, o in r.get("states", {}).items():
+            if f"{X}|{var}" not in out:
+                out[f"{X}|{var}"] = {"v05": o["verdict"], "v06": None, "unchanged": False}
+    return {"per_cell": out, "all_unchanged": bool(out) and all(v["unchanged"] for v in out.values())}
 
 
 def render(res: dict, base: str) -> str:
@@ -115,7 +120,7 @@ def render(res: dict, base: str) -> str:
                      f"{r['off_to_on']:.1%} |")
     L += ["", "## Verdicts, v0.5 strata against leak-free strata", "", "| site · state | v0.5 | leak-free | unchanged |",
           "|---|---|---|---|"]
-    f = lambda v: f"failure {'yes' if v['failure'] else 'no'}, repairs {'yes' if v['repairs'] else 'no'}, " \
+    f = lambda v: "absent" if v is None else f"failure {'yes' if v['failure'] else 'no'}, repairs {'yes' if v['repairs'] else 'no'}, " \
                   f"safe {'yes' if v['safe'] else 'no'}"  # noqa: E731
     for k, v in res["compare"]["per_cell"].items():
         L.append(f"| {k} | {f(v['v05'])} | {f(v['v06'])} | {'yes' if v['unchanged'] else '**no**'} |")
@@ -157,7 +162,9 @@ def main(argv=None) -> int:
                       for var in T.STATES}
     res["rule_19"] = T.rule(res["sites"], res["weights"])
     old_path = external_dir().with_name("posthoc_state_test") / "state_test.json"
-    old = json.loads(old_path.read_text(encoding="utf-8"))["sites"] if old_path.exists() else {}
+    if not old_path.exists():                 # audit 2026-11-07: no vacuous "all unchanged"
+        raise RuntimeError(f"leak: {old_path} (§19's run) is needed for the comparison")
+    old = json.loads(old_path.read_text(encoding="utf-8"))["sites"]
     res["compare"] = compare(old, res["sites"])
     (od / "leak.json").write_text(json.dumps(res, indent=1, default=float), encoding="utf-8")
     base = T.render({"sites": res["sites"], "rule": res["rule_19"], "weights": res["weights"]})

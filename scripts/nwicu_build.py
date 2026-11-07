@@ -24,12 +24,15 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 DATA = Path(os.environ.get("PERISIM_DATASETS", "data")) / "nwicu" / "northwestern-icu-nwicu-database-0.1.0" / "data"
 WORK = Path(os.environ.get("PERISIM_WORKDIR", "work")) / "experiments" / "nwicu"
+IV_ONLY = False
 
 ITEMS = {"art_sbp": "320050", "art_dbp": "320051", "nibp_sbp": "320179", "nibp_dbp": "320180", "hr": "320045",
          "rr": "320210", "spo2": "320277", "temp_f": "323761"}
 LABS = {"100007": "hb", "100002": "creatinine", "100031": "lactate"}
 VASO = r"(?i)(norepinephrine|epinephrine|phenylephrine|vasopressin|dopamine)"
 VASO_NOT = r"(?i)(lidocaine|bupivacaine|ropivacaine|racepinephrine|articaine|prilocaine|nebu|inh)"
+# --iv-only (post hoc sensitivity, audit 2026-11-07): also drop non-intravenous forms the primary rule let in
+NON_IV = r"(?i)(NASL|RECT|OPHT|ORAL|\bTAB\b|\bCAP\b|LIQD|ATIN|SPRY|SUPP|\bDROP\b)"
 SEDATION = r"(?i)(propofol|dexmedetomidine|midazolam)"
 SURGICAL_ICU = ["SICU", "CTICU"]
 EMERGENCY = ["EMERGENCY", "URGENT", "TRAUMA"]
@@ -121,7 +124,10 @@ def tables(con, st: pl.DataFrame, cfg: dict) -> dict[str, pl.DataFrame]:
             JOIN k ON e.hadm_id = k.hadm_id WHERE e.event_txt IN ('Confirmed', 'Applied')
             AND (regexp_matches(e.medication, '{VASO[4:]}', 'i') OR regexp_matches(e.medication, '{SEDATION[4:]}', 'i'))""").arrow())
     med = pl.col("medication")
-    kind = (pl.when(med.str.contains(VASO) & ~med.str.contains(VASO_NOT)).then(pl.lit("vaso"))
+    vaso = med.str.contains(VASO) & ~med.str.contains(VASO_NOT)
+    if IV_ONLY:
+        vaso = vaso & ~med.str.contains(NON_IV)
+    kind = (pl.when(vaso).then(pl.lit("vaso"))
             .when(med.str.contains(SEDATION)).then(pl.lit("sedation")).otherwise(None))
     sup = em.with_columns(kind.alias("kind"), hours("charttime").alias("h")).drop_nulls(["kind", "h"]) \
         .select("stay_id", "kind", "h", pl.col("h").alias("h_end"))
@@ -144,8 +150,13 @@ def tables(con, st: pl.DataFrame, cfg: dict) -> dict[str, pl.DataFrame]:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--iv-only", action="store_true", help="post hoc sensitivity: intravenous vasopressor forms only")
     a = ap.parse_args(argv)
     import duckdb
+
+    global WORK, IV_ONLY
+    if a.iv_only:
+        IV_ONLY, WORK = True, WORK.with_name("nwicu_ivonly")
 
     LM, cfg = landmarks_module(), config()
     WORK.mkdir(parents=True, exist_ok=True)

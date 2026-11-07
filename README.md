@@ -1,7 +1,7 @@
 # PERISIM — Perioperative Similarity
 
-The project's technique is **portable-metric kNN (PM-kNN)**, a kNN with a learned distance metric, applied here to
-postoperative patients at ICU discharge. Every variable counts with a **weight** learned by a diagonal NCA, and is
+The project studies the **transport of a kNN with a learned diagonal metric** (weights learned by NCA) between
+hospitals and health systems, applied here to postoperative patients at ICU discharge. Every variable counts with a **weight** learned by a diagonal NCA, and is
 read on its consensus **shape function** (how its values move the prediction, from many competitive models). The
 metric is learned at the development sites and used unchanged at another, where it votes with that site's own
 patients. Development in INSPIRE, external validation in MIMIC-IV and eICU, with trivial, metric-learning and
@@ -14,19 +14,24 @@ parametric comparators. The full specification is in [SPECS.md](SPECS.md) (v0.5;
 > To re-run an analysis of a published experiment, point the scripts at its frozen code: `PERISIM_SRC=frozen/<exp>/src`.
 > The history of the repository was condensed into a single snapshot on that date.
 
-> **Name.** Until 2026-11-05 the technique was called consensus effect-space kNN (CE-kNN), and the frozen documents
-> (SPECS, pre-registrations, freeze records, reports) keep that name: they are records and are not rewritten. The
-> method is the same (DECISIONS 2026-11-05).
+> **Name.** The technique is not presented as a new method: it is a kNN with a learned diagonal (NCA) metric, and the
+> project is a study of its transport. Earlier names, consensus effect-space kNN (CE-kNN, until 2026-11-05) and
+> portable-metric kNN (PM-kNN, 2026-11-05 to 2026-11-07), remain in the frozen documents (SPECS, pre-registrations,
+> freeze records, reports), which are records and are not rewritten. The method is the same (DECISIONS 2026-11-05).
+
+> **NWICU (2026-11-07).** A fourth, independent system, pre-registered on OSF
+> ([10.17605/OSF.IO/P5CA3](https://doi.org/10.17605/OSF.IO/P5CA3)): the frozen `hypo` metrics transported to NWICU's
+> surgical ICUs. Results in [results/nwicu/](results/nwicu/README.md).
 
 **Three experiments, one per target**, each complete with its own freeze, run in this order: **T2** (post-ICU stay:
 short / medium / long / death — primary target and demonstration of the method), **T1** (complications, compared
 with T2), **T3** (both). Select one with `PERISIM_EXPERIMENT` (default `t2`); the extraction is shared.
 
-**A separate experiment, `hypo`**, applies PM-kNN to a different question: hypotension in the next 6 h in
+**A separate experiment, `hypo`**, applies the method to a different question: hypotension in the next 6 h in
 the ICU after surgery, learned on two cohorts and tested on the third by rotation. It has its own package
 (`src/hypo`), configuration, pre-registration and freeze, and is run locally: see [Experiment `hypo`](#experiment-hypo).
 
-**A second separate experiment, `roll`**, keeps `hypo`'s outcome and frozen metrics and asks how PM-kNN fares along a
+**A second separate experiment, `roll`**, keeps `hypo`'s outcome and frozen metrics and asks how the kNN fares along a
 stream of patients with a rotating case base, against ML managed as a hospital manages it. It too has its own package
 (`src/roll`), configuration, pre-registration and freeze: see [Experiment `roll`](#experiment-roll).
 
@@ -248,7 +253,7 @@ A prequential (test-then-train) evaluation on `hypo`'s outcome. Patients arrive 
 first, and joins the case base only once its outcome is known. PERISIM-FIFO keeps the last N patients in its case
 base, with `hypo`'s frozen metric, and nothing is refitted. Its comparator, arm 5, is a LightGBM managed as a hospital
 manages it: a monitor, a trigger, a closed-test update and a deployment delay of 3 months. The question is whether
-PM-kNN (then CE-kNN) is not less accurate than that, and more governable.
+the kNN (then CE-kNN) is not less accurate than that, and more governable.
 
 - **Design.**
   - **Streams:** three are confirmatory:

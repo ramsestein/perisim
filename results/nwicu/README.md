@@ -24,17 +24,19 @@ sites did: the local reference is data-limited.
 **Secondary.**
 - **Recalibrated LightGBM beats the transported kNN**: by 0.0104 to 0.0127 nats (95 % CIs exclude 0), at all three
   rotations. A LightGBM learned elsewhere, with two recalibration parameters fitted in NWICU (log-loss
-  0.3066–0.3077), also beats a LightGBM trained in NWICU (0.3086).
+  0.3066–0.3077), is nominally below a LightGBM trained in NWICU (0.3086); that difference was not tested.
 - **Calibration without recalibration**: the transported kNN has CITL +0.07 to +0.10 and slope 1.00–1.06. The raw
   transported LightGBM has CITL −0.48 to −0.89.
 - **Cost of not refitting**: local LightGBM beats the best transported kNN by 0.0095 (0.0068–0.0122).
-- **Vasopressor stratum (descriptive)**: no failure. The transported metrics beat the local one on and off
-  vasopressors.
+- **Vasopressor stratum (descriptive, no inferential criterion)**: the transported metrics' loss is below the local
+  metric's on and off vasopressors.
 
 **Reading.**
 - **The main result replicates in an independent, shareable system, as pre-registered.** A similarity metric learned
-  in two other systems, frozen and used with NWICU's own patients, keeps all of its gain; it does better than one
-  learned on NWICU's patients.
+  in two other systems, frozen and used with NWICU's own patients, keeps all of its gain; R's 90 % CIs lie above 1.
+- **Read R with its reference in mind.** The local metric gains only 0.007 nats over Euclidean, just above the
+  0.005 rule, and comes from one fit per fold. The bootstrap holds predictions fixed, so it does not carry the
+  variance of refitting. "Equivalent" here means "at least as good as a data-limited local metric".
 - **Two things do not favour the kNN.** In this system the strongest option is a transported parametric model with
   a two-parameter recalibration. And the kNN, calibrated without any recalibration, slightly underpredicts.
 
