@@ -19,7 +19,7 @@ concordance problems, suspected leakage, and data that cannot be shared.
 
 The lead chose the surgical-ICU proxy (SICU, CTICU) for the postoperative population.
 
-**Plan.** [docs/prereg_nwicu.md](prereg_nwicu.md), to be uploaded to OSF by the lead before the landmarks are built.
+**Plan.** [docs/prereg_nwicu.md](prereg_nwicu.md), registered on OSF by the lead before the landmarks were built: https://doi.org/10.17605/OSF.IO/P5CA3 (2026-11-07).
 - Three frozen metrics transported, with the local metric and Euclidean kNN as R's references.
 - R per metric, read with the bioequivalence rule: confirmed if all three are equivalent, partial if one or two.
 - Secondary comparisons against recalibrated and local LightGBM.

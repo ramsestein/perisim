@@ -1,5 +1,7 @@
 # Pre-registration: transport of the frozen `hypo` metrics to NWICU
 
+**Registered on OSF:** https://doi.org/10.17605/OSF.IO/P5CA3 (2026-11-07, before the landmarks were built).
+
 **Status.** This document fixes the plan before any NWICU outcome is built: before landmarks, MAP windows or
 hypotension labels exist. It is meant to be uploaded to OSF as written, and is also committed to the repository.
 - Before writing it, the lead's team looked at NWICU only through its data dictionary, table headers, the number of
