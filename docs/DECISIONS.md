@@ -5,6 +5,57 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-08 — Post hoc, pre-specified: a cosine kNN against the transported learned metric (`hypo` and NWICU; lead; plan fixed before running)
+
+**Why.** PRAM v2 (Jeong et al., 2026, medRxiv), supplementary Table S13, reports in eICU that a neighbourhood-components
+metric, transferred from development or fitted on the target bank, is below cosine distance (ΔAUROC over the frozen
+logistic model: cosine +0.0197 / +0.0358, transferred NCA +0.0105 / +0.0268, for AKI / 168 h mortality). PERISIM never
+ran a cosine kNN, so it cannot say whether its NCA metric beats cosine in its own setting. This analysis adds that arm.
+It cannot show that PRAM's NCA was suboptimal: their variables (42 static first-24 h aggregates), outcomes and NCA
+implementation differ, and any disagreement is attributable to the setting as a whole, not to one design choice.
+
+**Status.** Post hoc, pre-specified, run with `hypo`'s frozen code (v0.5; freeze record checked at the start and the
+end; nothing frozen is refitted). The cosine arms have not been computed when this plan is fixed. Code:
+`scripts/posthoc_cosine.py`.
+
+**Arms** (each target's own out-of-fold case base; the external stage's five folds for INSPIRE, MIMIC-IV and eICU, the
+pre-registered NWICU folds for NWICU; k = 50, distinct patients, the same smoothed vote; α tuned by leave-one-out on
+the case base with the comparators' seed):
+- **COS-neutral** (primary comparator; the analogue of PRAM's M0): cosine distance on the Euclidean comparator's
+  neutral axes (encoder fitted on the fold's case base, no outcome information), each column centred on the fold's
+  case-base mean. On equal-scale axes this is the cosine between standardised (rank-based) feature vectors, as cosine
+  on standardised features in PRAM. Implemented exactly as a Euclidean kNN on the centred, row-normalised vectors,
+  since ‖u − v‖² = 2 − 2 cos(u, v) for unit vectors (same neighbours, same order).
+- **COS-NCA** (secondary): the cosine on the transported NCA metric's weighted embedding (√w per column, shapes
+  installed), centred on the fold's case base: does the angle instead of the distance matter once weights are learned?
+  In NWICU, one per frozen metric.
+- Comparators, stored and unchanged: NCA-transported, NCA-local, Euclidean (all targets); MI-transported (§17; the
+  analogue of PRAM's M1; three `hypo` targets only).
+
+**Gate.** As in §17: the Euclidean comparator rebuilt with this script's code (weights 1) on fold 0 must reproduce the
+stored Euclidean predictions to 1e-9 at every target (Phase 2 for the `hypo` targets; `euclidean_f0` for NWICU);
+otherwise the script stops.
+
+**Primary endpoint and rule.** At each of the four targets, Δc = log-loss(COS-neutral) − log-loss(NCA-transported),
+with a 95 % patient-bootstrap CI (2,000 multinomial resamples of patients, shared by all arms of a target). In NWICU
+the NCA-transported arm is each of the three frozen metrics, each read separately. Per target:
+- **NCA beats cosine** if the lower 95 % limit of Δc is > 0;
+- **cosine beats NCA** if the upper limit is < 0;
+- otherwise **no difference shown**.
+
+Secondary, read the same way and reported because PRAM reports AUROC: ΔAUROC = AUROC(NCA-transported) −
+AUROC(COS-neutral) with the same resamples (weighted AUROC, ties counted one half). Also descriptive: COS-neutral
+against Euclidean (does the angle matter on neutral axes), COS-NCA against NCA-transported, and calibration in the
+large and slope of every arm.
+
+**Pre-specified reading.**
+- NCA beats cosine at every target: in this setting the learned metric beats cosine, unlike PRAM's S13; stated as a
+  difference between settings, not as an error in PRAM.
+- Cosine ≥ NCA at some target: PRAM's finding holds in our setting there, and FINDINGS and the article say so.
+- Mixed: reported per target, without pooling.
+
+**Privacy.** Aggregates only; per-fold predictions stay in the git-ignored work folder.
+
 ## 2026-11-08 — Repository made presentable; old tags and branches deleted (lead)
 
 **Why.** The lead plans to write to PRAM's authors, possibly to join efforts, and asked for a clean, understandable
