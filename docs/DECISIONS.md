@@ -4,6 +4,54 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Post hoc, pre-specified: transport between eICU hospitals, and §19 without the landmark leak (`hypo`; lead; plans and rules fixed before running)
+
+### A. Transport of the weights between hospitals inside eICU
+
+**Why.** The external stage moved the metric between health systems; reviewers will ask whether the hospital is
+the unit that matters (the review suggested eICU's hospitals as units). §6 used eICU's hospitals only for the case
+base, never to learn the metric.
+
+**Design** (`scripts/posthoc_hospital_transport.py`):
+- **Targets.** eICU hospitals with ≥ 500 patients in the analysis landmarks, at most the 10 largest; anonymised by
+  size rank.
+- **Data per target h.** The external stage's five folds restricted to h; queries are h's landmarks in fold f, and
+  the case base is h's landmarks of the other folds (k = 50, the frozen vote and α fit).
+- **Arms.** All share the frozen eICU-target metric's encoder (shapes and axes); only the weights change:
+  - uniform: all 1, the reference of R in this geometry;
+  - cross_system: the frozen weights from INSPIRE + MIMIC-IV;
+  - other_hosp: NCA weights learned on eICU minus h;
+  - local: NCA weights learned on h's case-base landmarks of each fold.
+
+  The NCA settings are the frozen ones (≤ 3 landmarks per patient, ≤ 30,000 landmarks, candidates from the whole
+  pool).
+- **Gate.** The frozen weights with eICU's whole case base rebuild the stored transported predictions on fold 0 to
+  1e-9.
+- **Statistics.** Patient bootstrap, 2,000 resamples. R_arm = (L_uniform − L_arm)/(L_uniform − L_local) with 90 %
+  CI and §16's denominator rule. Also cross_system − other_hosp in log-loss with 95 % CI. All per hospital and
+  pooled over the targets.
+
+**Pre-specified readings.**
+- Q1: pooled R of other_hosp — equivalent (lower 90 % limit ≥ 0.80) or not.
+- Q2: pooled cross_system − other_hosp — other hospitals better, cross-system better, or no difference.
+- Q3: number of evaluable hospitals whose R of other_hosp, and of cross_system, is equivalent.
+
+No direction is predicted for Q2. A local metric learned on one hospital's patients may be weak, which R's
+denominator rule handles: a hospital whose local gain over uniform is unclear is "not evaluable".
+
+### B. §19 with the intervention strata rebuilt without the landmark leak
+
+**Why.** The audit (2026-11-05, item 1) found that v0.5's states at L could be set by records after L, above all in
+eICU. §19's verdicts, including eICU's new vasopressor failure, rest on those strata.
+
+**Design** (`scripts/posthoc_leak_sensitivity.py`). The three states are recomputed with v0.6's rule from the v0.5
+extract's supports. A state is on at L when some record of that kind with h < L has its coverage, clipped at L,
+reaching hour max(L − 2, 0). §19's code is then re-run with those strata and with B0 by those states; predictions,
+inputs and comparators are unchanged. Not applied: v0.6's eICU rate-0 stop markers, which the v0.5 extract lacks.
+
+**Reading.** Report the share of landmarks reclassified per site and state. §19 is *robust to the leak* if every
+(site, state) verdict (failure, repairs, safe) is unchanged; the cells that change are named.
+
 ## 2026-11-07 — Result: robustness of the neighbour alignment (`hypo`; REPORT §15.4)
 
 Run on the lead's workstation (numpy, Linux shell of the workstation) from §15.3's caches. By the rule fixed below,
