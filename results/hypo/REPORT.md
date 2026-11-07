@@ -930,6 +930,55 @@ queries. Full tables: [../alignment/posthoc_alignment.md](../alignment/posthoc_a
 - **The weights are what the variants' neighbourhoods agree on most.**
 - **Limits.** Exploratory, one fold, no decision rule.
 
+### 15.4 Robustness of §15.3 (pre-specified, 2026-11-07)
+
+Two objections from the second novelty review were tested with a plan and rule committed before running
+([docs/DECISIONS.md](../../docs/DECISIONS.md), 2026-11-07, commit `e9741aa`). The analysis reuses §15.3's caches
+(fold 0, 25 metrics per site) and refits nothing; `scripts/posthoc_alignment_robustness.py`. Full tables:
+[../alignment/robustness.md](../alignment/robustness.md).
+
+**k and set size.**
+- **Convergence with data (C1) holds at every k and every set size, at all three sites.** Two local draws of half
+  the site always share more neighbours than draws of 2,000 patients, and these more than draws of 500.
+- **Transported–local stays below the two halves at every setting but one (C2).**
+  - The exception is MIMIC-IV's case base at k = 5: −0.003 (−0.007 to +0.002).
+  - In MIMIC-IV the gap grows with k: −0.003 at k = 5, −0.024 at k = 50. The transported and local metrics agree
+    on the closest neighbours about as much as two halves do, and diverge further out.
+  - In eICU the gap is clear at every k (−0.032 to −0.073).
+  - By the rule's letter §15.3 is therefore "not robust", and its MIMIC-IV reading is restricted to k ≥ 10.
+- **The raw measure depends on the set size, as Koepke et al. (2026) warn; the comparisons do not.**
+  - With k fixed at 10, every pair's alignment falls as the set grows. In MIMIC-IV, transported–local goes from 0.358
+    at 500 items to 0.236 at 4,000.
+  - With k proportional to the set (k = n/100), it is stable: 0.302–0.316.
+  - The orderings (halves > transported–local > n500 pair) hold at every size.
+- **INSPIRE's "transported no closer than Euclidean" is a near-tie that depends on k.**
+  - In the case base, transported is slightly below Euclidean at k ≥ 10 and level at k = 5.
+  - Within a sample, it is above Euclidean from k = 20 on (0.268 against 0.249).
+  - In MIMIC-IV and eICU, transported is closer than Euclidean at every k.
+
+**"Other neighbours, the same vote" is generic, not a property of transport (R2).**
+- Over the 276 pairs of metrics that do not involve the transported metric, agreement of the predictions rises only
+  slowly with the share of neighbours.
+- At zero overlap the fitted logit correlation is already 0.75 (INSPIRE), 0.85 (MIMIC-IV) and 0.83 (eICU). The slope
+  is 0.25–0.29 per unit of overlap.
+- The transported–local pair falls inside the 95 % prediction interval at all three sites:
+
+  | site | transported–local overlap | its logit r | r predicted at that overlap (95 % PI) |
+  |---|---|---|---|
+  | INSPIRE | 0.080 | 0.781 | 0.766 (0.715–0.817) |
+  | MIMIC-IV | 0.142 | 0.906 | 0.888 (0.809–0.966) |
+  | eICU | 0.144 | 0.895 | 0.871 (0.819–0.923) |
+
+- Two local metrics learned on disjoint halves behave the same way: overlap 0.11–0.22, r 0.79–0.92.
+
+**Reading.**
+- Within-site convergence with data is robust to k and to the set size.
+- The transported metric's shortfall against two local halves is robust in eICU and INSPIRE. In MIMIC-IV it is a
+  matter of the farther neighbours.
+- That many different neighbourhoods give the same risk is how these kNN predictors behave over a redundant case
+  base, whatever the metric. Transport does not add to it, and it is not evidence of a shared geometry. For
+  case-based explanation it means that the "similar patients" shown are not unique even when the risk is.
+
 ## 16. Transport equivalence (exploratory, not pre-registered)
 
 The criterion was fixed with the point estimates of `hypo` and T2 already known, and is reported with that label

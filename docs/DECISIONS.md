@@ -4,6 +4,19 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — Result: robustness of the neighbour alignment (`hypo`; REPORT §15.4)
+
+Run on the lead's workstation (numpy, Linux shell of the workstation) from §15.3's caches. By the rule fixed below,
+unchanged:
+- **C1 (convergence) holds** at every setting and site.
+- **C2 fails at one setting**: MIMIC-IV, case base, k = 5 (−0.003, −0.007 to +0.002); it holds at the other 3 case-base
+  k's and at every within-sample setting. §15.3 is "not robust" by the rule's letter; its MIMIC-IV reading is
+  restricted to k ≥ 10.
+- C3: INSPIRE's "no closer than Euclidean" is a near-tie that depends on k; MIMIC-IV and eICU are closer at every k.
+- **R2: generic at all three sites.** Transported–local's agreement is what any two metrics with its overlap show.
+- **Consequence for the article.** "Many neighbourhoods, the same risk" is reported as a property of kNN over a
+  redundant case base, not as a transport finding nor as evidence of a shared geometry.
+
 ## 2026-11-07 — Post hoc, pre-specified: robustness of the neighbour alignment (`hypo` §15.3; lead; plan and rule fixed before running)
 
 **Why.** The second novelty review (2026-11-07) raised two objections to §15.3:
