@@ -4,6 +4,29 @@ Implementation decisions taken by the lead or derived from SPECS.md. Those that 
 the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP dropped for cost,
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
+## 2026-11-07 — NWICU: fourth system, pre-registered (lead; plan fixed before any NWICU outcome exists)
+
+**Why.** An independent, shareable replication of the main result: the frozen metrics keep their gain in a new
+system, with that system's patients as the case base. NWICU is credentialed but open on PhysioNet, so anyone can
+re-run it. The INSPIRE → iPROVE experiment was withdrawn by the lead the same day, before this entry: variable
+concordance problems, suspected leakage, and data that cannot be shared.
+
+**Feasibility, without outcomes.** Dictionary, headers, stay counts, charting density and eMAR drug names only:
+- no measured MAP, so MAP is computed from SBP and DBP charted together;
+- vasopressors and sedation appear only as eMAR events (Confirmed / Applied / Not Given), with no intervals;
+- no ventilation anywhere;
+- no surgery table.
+
+The lead chose the surgical-ICU proxy (SICU, CTICU) for the postoperative population.
+
+**Plan.** [docs/prereg_nwicu.md](prereg_nwicu.md), to be uploaded to OSF by the lead before the landmarks are built.
+- Three frozen metrics transported, with the local metric and Euclidean kNN as R's references.
+- R per metric, read with the bioequivalence rule: confirmed if all three are equivalent, partial if one or two.
+- Secondary comparisons against recalibrated and local LightGBM.
+- The vasopressor stratum descriptive only.
+
+Scripts: `scripts/nwicu_build.py` (v0.6's landmark code), `scripts/nwicu_transport.py` (frozen `hypo` code).
+
 ## 2026-11-07 — Results: transport between eICU hospitals (REPORT §20) and §19 without the landmark leak
 
 Both run on the lead's workstation with `hypo`'s frozen code; gates exact; freeze record checked at start and end.
