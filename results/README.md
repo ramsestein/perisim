@@ -61,6 +61,7 @@ file in [`frozen/`](../frozen/README.md), with their hashes.
 | Results: `hypo`, metrics and ablation | `hypo/reports/posthoc_ablation.md` and its figures |
 | Results: NWICU, fourth system (pre-registered) | `nwicu/README.md`, `nwicu/transport.md` |
 | Results: `hypo`, transport between eICU hospitals | `hypo/REPORT.md` §20, `hypo/reports/posthoc_hospital_transport.md` |
+| Results: a cosine kNN against the learned metric (`hypo` targets and NWICU) | `hypo/REPORT.md` §21, `hypo/reports/posthoc_cosine.md` |
 | Results: `hypo`, intervention strata (sedation test, ventilation control, vasopressor) | `hypo/REPORT.md` §19, `hypo/reports/posthoc_state_test.md`, `hypo/reports/posthoc_leak_sensitivity.md` |
 | Results: `roll`, prequential streams | `roll/REPORT.md`, `roll/reports/endpoints.md`, `roll/figures/`, `roll/results/` |
 | Results: drift and shapes | `hypo/REPORT.md` §7, §13 and §15.2, `hypo/reports/posthoc.md`; `t2/reports/posthoc_drift*.html` |

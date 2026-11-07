@@ -21,6 +21,7 @@ The outcome is hypotension in the next 6 h after surgery in the ICU (`hypo`). Th
 | Does a metric learned at two systems keep its gain at a third? | Yes in INSPIRE and eICU (R 0.91 and 0.96, equivalent); not shown in MIMIC-IV (0.74) | pre-registered rotation ([report](results/hypo/REPORT.md)) |
 | Does it hold in a new, independent system? | Yes: all three frozen metrics are equivalent to, and better than, one learned in NWICU (R 1.46–1.64) | pre-registered on OSF, [10.17605/OSF.IO/P5CA3](https://doi.org/10.17605/OSF.IO/P5CA3) ([results](results/nwicu/README.md)) |
 | For a single hospital, is it better to borrow the metric or learn it locally? | Borrow: borrowed weights ≥ local ones in all 8 evaluable eICU hospitals, whether borrowed from the same system or from abroad | post hoc, pre-specified ([§20](results/hypo/REPORT.md)) |
+| Does the learned metric beat a plain cosine kNN? | Yes, at all four targets; cosine is no better than Euclidean | post hoc, pre-specified ([§21](results/hypo/REPORT.md)) |
 | What makes the predictions calibrated? | The local case base, with any reasonable metric; no recalibration needed | [§4, §17](results/hypo/REPORT.md) |
 | Is the kNN the most accurate option? | No. A transported LightGBM with a two-parameter recalibration, or a local LightGBM, predicts better | [results/nwicu](results/nwicu/README.md), [§3](results/hypo/REPORT.md) |
 

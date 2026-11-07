@@ -70,6 +70,10 @@ Source: [hypo report](../results/hypo/REPORT.md) §20.
 - **Jointly learned weights beat marginal ones, but only slightly.** The comparison is with a fixed metric weighted by
   mutual information (as in PRAM) on the same geometry: +0.0048 nats in INSPIRE, +0.0040 in eICU, −0.0008 in
   MIMIC-IV. [hypo report](../results/hypo/REPORT.md) §17.
+- **Learned weights clearly beat a cosine kNN** (post hoc, pre-specified), at all four targets: +0.008 to +0.015
+  nats and +0.007 to +0.019 AUROC. Cosine does no better than Euclidean, and fixed mutual-information weights also
+  beat it. So what pays is weighting the variables, not the choice between angle and distance.
+  [hypo report](../results/hypo/REPORT.md) §21.
 - **The per-variable shape functions add little.** What travels is mainly the weights.
 - **Few local patients are needed.** A case base of 250 patients is within 0.02 nats of the whole site, and 500
   within 0.01. [hypo report](../results/hypo/REPORT.md) §5.
@@ -135,7 +139,11 @@ Source: [results/t2](../results/t2/).
 - **Adapting a frozen model without retraining by swapping a local retrieval bank, with a fixed metric:** PRAM (Jeong
   et al., 2026, medRxiv, v2). PRAM's supplementary Table S13 also reports, in one target (eICU) and as a sensitivity
   analysis, a neighbourhood-components metric transferred from development that performs similarly to one fitted on
-  the target bank, both below cosine distance.
+  the target bank, both below cosine distance. In our setting the order is reversed (§21): NCA beats cosine, and so do
+  fixed mutual-information weights, which in PRAM's S13 match cosine. The two results are compatible: weighting the
+  variables pays in our setting (landmarks every 2 h, hypotension in 6 h) and hardly pays in theirs (42 static
+  first-24 h aggregates, AKI and mortality). Neither study isolates why; running both pipelines on the same features
+  would.
 - **Pooled or external models matching locally retrained ones when local data are scarce:** Johnson et al. (2018),
   Wiens et al. (2014), and the anchor-regression and foundation-model work of Londschien, Burger and colleagues.
 - **Transport failing mainly through calibration, and simple recalibration correcting it:** Van Calster et al.
@@ -149,6 +157,8 @@ Source: [results/t2](../results/t2/).
   pre-registered fourth system.
 - That for hospitals of ordinary size borrowed metric weights are at least as good as locally learned ones, whether
   borrowed from the same system or from abroad.
+- That, in this setting, a learned metric clearly beats a cosine kNN at four targets, and that the gain comes from
+  weighting the variables, not from the choice between angle and distance.
 - That what converges between sites is the relevance structure (the weights), not the neighbours.
 - A pre-specified, negative test of the "missing-in-source" failure mechanism, with a site-specific repair.
 

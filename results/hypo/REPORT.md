@@ -101,6 +101,9 @@ Draft for the lead, 2026-10-29. Pre-registration [docs/prereg_hypo.md](../../doc
 - **Transport between eICU hospitals (§20; pre-specified):** for each of the ten largest hospitals, weights learned on
   the other hospitals, or on the two other systems, beat weights learned on the hospital's own patients (pooled
   R 1.35 and 1.38; equivalent in all 8 evaluable hospitals), and the two sources do not differ (−0.0004 nats).
+- **A cosine kNN (§21; pre-specified):** the transported NCA metric beats a cosine kNN at all four targets, NWICU
+  included (Δ log-loss +0.008 to +0.015, Δ AUROC +0.007 to +0.019). Cosine ≈ Euclidean, and fixed mutual-information
+  weights also beat cosine: what pays is weighting the variables, unlike in PRAM's setting.
 
 ## 1. Question and design
 
@@ -1298,6 +1301,52 @@ other-hospital NCA pool. This is leakage into weight learning only, and negligib
 
 **Limits.** One system's hospitals; the ten largest only (smaller hospitals would favour borrowing even more); the
 shapes are the cross-system metric's for every arm; the strata use v0.5 landmarks (not relevant here).
+
+## 21. A cosine kNN against the transported learned metric (pre-specified)
+
+**Why.** PRAM v2 (Jeong et al., 2026), supplementary Table S13, reports in eICU that an NCA metric, transferred or
+fitted on the target, is below a cosine kNN. PERISIM had never run a cosine kNN. Plan and rule committed before
+running ([docs/DECISIONS.md](../../docs/DECISIONS.md), 2026-11-08, commit `3f52b4d`); `scripts/posthoc_cosine.py`,
+`hypo`'s frozen code; at all four targets the gate rebuilt the stored Euclidean predictions exactly (max |Δp| = 0).
+Full tables: [reports/posthoc_cosine.md](reports/posthoc_cosine.md).
+
+**Design.** Same case base, k = 50, distinct patients and vote as every other arm; only the metric changes.
+- **Cosine, neutral axes** (primary comparator, the analogue of PRAM's cosine): the cosine between the rank-based,
+  equal-scale feature vectors of the Euclidean comparator, centred on the fold's case base.
+- **Cosine on the NCA embedding** (secondary): the angle instead of the distance on the transported metric's
+  weighted embedding.
+- Four targets: INSPIRE, MIMIC-IV and eICU (external stage), and NWICU with each of the three frozen metrics.
+
+| target | Δ log-loss, cosine − NCA transported (95 % CI) | Δ AUROC, NCA transported − cosine (95 % CI) |
+|---|---|---|
+| INSPIRE | +0.0128 (+0.0112 to +0.0144) | +0.0177 (+0.0145 to +0.0209) |
+| MIMIC-IV | +0.0077 (+0.0067 to +0.0088) | +0.0067 (+0.0056 to +0.0079) |
+| eICU | +0.0146 (+0.0138 to +0.0155) | +0.0159 (+0.0147 to +0.0171) |
+| NWICU, metric from MIMIC-IV + eICU | +0.0100 (+0.0066 to +0.0137) | +0.0171 (+0.0093 to +0.0251) |
+| NWICU, metric from INSPIRE + eICU | +0.0106 (+0.0069 to +0.0144) | +0.0179 (+0.0102 to +0.0256) |
+| NWICU, metric from INSPIRE + MIMIC-IV | +0.0113 (+0.0079 to +0.0151) | +0.0190 (+0.0116 to +0.0270) |
+
+**Rule.** The transported NCA metric beats cosine in 6 of 6 comparisons, in log-loss and in AUROC.
+
+- **The order is the reverse of PRAM's S13.** Here: NCA ≥ mutual-information weights > cosine ≈ Euclidean.
+- **The angle is not what matters.** Cosine and Euclidean on the same neutral axes differ by at most 0.0023 in
+  log-loss and 0.004 in AUROC. On the NCA embedding, the cosine is close to the distance (Δ log-loss 0.0000 to
+  +0.0045). The gap with cosine is the gap made by weighting the variables.
+- **Fixed mutual-information weights also beat cosine** (§17's arm, three `hypo` targets): Δ log-loss +0.0080 to
+  +0.0106, Δ AUROC −0.0076 to −0.0107 against cosine. In PRAM's S13, mutual-information weights and cosine are about
+  equal. So the difference between the two studies is not specific to NCA. It is that **weighting the variables pays
+  here and hardly pays there**.
+- **Calibration.** The cosine arms are less well calibrated in the large (CITL −0.08 to −0.14, against −0.02 to
+  +0.10 for the distance arms); descriptive.
+
+**Reading.** In this setting, a learned metric clearly beats cosine, by about as much as it beats Euclidean. This does
+not show that PRAM's NCA was suboptimal. Even fixed mutual-information weights beat cosine here, while in PRAM they did
+not. That points to the setting — 42 static first-24 h aggregates, AKI and mortality, against landmarks every 2 h and
+hypotension in the next 6 h — rather than to a single design choice. Running both pipelines on the same features
+would separate the two explanations.
+
+**Limits.** Our cosine is on rank-based axes, PRAM's on standardised values; one outcome; the comparison is between
+kNNs, while PRAM reports gains over a frozen logistic model.
 
 ## Reproducibility
 

@@ -5,6 +5,21 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-08 — Result: a cosine kNN against the transported learned metric (REPORT §21)
+
+Run on the lead's workstation with `hypo`'s frozen code (v0.5), plan commit `3f52b4d`; the gate passed at all four
+targets (max |Δp| = 0). Report: `results/hypo/reports/posthoc_cosine.md`.
+- **Rule:** NCA beats cosine in 6 of 6 comparisons (INSPIRE, MIMIC-IV, eICU, and NWICU with each of the three frozen
+  metrics), in log-loss (+0.0077 to +0.0146) and AUROC (+0.0067 to +0.0190).
+- Cosine ≈ Euclidean on the neutral axes; the cosine on the NCA embedding is close to the NCA distance.
+- Fixed mutual-information weights (§17) also beat cosine at the three `hypo` targets.
+- **Reading, as pre-specified:** in this setting the learned metric beats cosine, unlike PRAM's S13. This is stated as
+  a difference between settings, not as an error in PRAM: even fixed MI weights beat cosine here, while in PRAM they
+  match it, so the difference is not specific to NCA.
+- **Incident.** While launching this run, `run_audit.bat` (the row above `run_cosine.bat`) was started by mistake. It
+  only re-summarises cached units: its outputs (NWICU transport, IV-only sensitivity, audit checks) were checked and
+  are identical to the published ones.
+
 ## 2026-11-08 — Post hoc, pre-specified: a cosine kNN against the transported learned metric (`hypo` and NWICU; lead; plan fixed before running)
 
 **Why.** PRAM v2 (Jeong et al., 2026, medRxiv), supplementary Table S13, reports in eICU that a neighbourhood-components
