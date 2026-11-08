@@ -142,8 +142,14 @@ Source: [results/t2](../results/t2/).
   the target bank, both below cosine distance. In our setting the order is reversed (§21): NCA beats cosine, and so do
   fixed mutual-information weights, which in PRAM's S13 match cosine. The two results are compatible: weighting the
   variables pays in our setting (landmarks every 2 h, hypotension in 6 h) and hardly pays in theirs (42 static
-  first-24 h aggregates, AKI and mortality). Neither study isolates why; running both pipelines on the same features
-  would.
+  first-24 h aggregates, AKI and mortality).
+
+  A pre-registered follow-up (OSF [10.17605/OSF.IO/3SBFG](https://doi.org/10.17605/OSF.IO/3SBFG);
+  [results/pram](../results/pram/README.md)) rebuilt PRAM's setting and reproduced S13's ordering. It found that the
+  reversal is explained mainly by **how the neighbours are used together with the NCA implementation**: a mixture
+  with a frozen model and a full-matrix NCA erases the learned metric's advantage, also in our data; a standalone
+  diagonal NCA restores it in PRAM's setting for AKI. The vote plays no part, and for 168 h mortality weighting gains
+  little in either study.
 - **Pooled or external models matching locally retrained ones when local data are scarce:** Johnson et al. (2018),
   Wiens et al. (2014), and the anchor-regression and foundation-model work of Londschien, Burger and colleagues.
 - **Transport failing mainly through calibration, and simple recalibration correcting it:** Van Calster et al.
@@ -159,6 +165,8 @@ Source: [results/t2](../results/t2/).
   borrowed from the same system or from abroad.
 - That, in this setting, a learned metric clearly beats a cosine kNN at four targets, and that the gain comes from
   weighting the variables, not from the choice between angle and distance.
+- That the disagreement with PRAM about learned metrics against cosine is mainly methodological (mixture plus full-matrix
+  NCA against a standalone diagonal NCA), shown by a pre-registered factorial reconstruction of both settings.
 - That what converges between sites is the relevance structure (the weights), not the neighbours.
 - A pre-specified, negative test of the "missing-in-source" failure mechanism, with a site-specific repair.
 

@@ -5,6 +5,26 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-08 — Result: the factors behind the learned-metric vs cosine reversal (OSF 10.17605/OSF.IO/3SBFG)
+
+Tier 1 and Tier 2 completed on the lead's workstation (Tier 1 exit 0 at 18:07 KST, all 22 gates passed; Tier 2 exit
+0 at 15:57 KST). Summary and rule application: `results/pram/README.md`; full tables: `results/pram/tier{1,2}.*`.
+- **R0.** PRAM's S13 ordering is reproduced with confidence: Δ −0.0018 (AKI) and −0.0041 (mortality), against
+  PRAM's −0.009.
+- **Hypotheses:**
+  - H-U not supported: mortality in Tier 2 goes the other way, −0.0136.
+  - H-V inconclusive; its effects are negligible.
+  - H-I inconclusive by the rule: 7 of 8 units support it, and NWICU with the MIMIC-IV + eICU metric includes 0.
+  - H-S not supported.
+- **Attribution (§6).**
+  - No single factor is sufficient in both tiers.
+  - The pair U + I (a mixture with a full-matrix NCA, against a standalone diagonal NCA) is sufficient in Tier 2 for
+    both outcomes, and in Tier 1 in 5 of 6 units (not eICU).
+  - V plays no part. The setting alone does not explain the reversal, but for 168 h mortality weighting gains little
+    in either study.
+- **Sensitivity.** With a chosen by log-loss, the U switch alone is sufficient in fewer Tier 1 units; the pairwise
+  attribution was not re-derived for this sensitivity.
+
 ## 2026-11-08 — PRAM factors study: registered; Tier 2 cohort check and deviations (before any model)
 
 **Registered** on OSF by the lead before any analysis: https://doi.org/10.17605/OSF.IO/3SBFG. Code at
