@@ -38,12 +38,12 @@ $env:PERISIM_ARM = "arc"
 .\run_local.ps1 roll check ; .\run_local.ps1 roll streams ; .\run_local.ps1 roll freeze --registration <OSF_ID>
 .\run_local.ps1 roll run ; .\run_local.ps1 roll endpoints ; .\run_local.ps1 roll t2
 # 5. the pre-specified post hoc analyses (no PERISIM_SRC: they run on this branch's code)
-.\run_local.ps1 equivalence ; python scripts\posthoc_hospital_transport.py ; python scripts\posthoc_cosine.py
+.\run_local.ps1 equivalence ; .\run_local.ps1 hospital-transport ; .\run_local.ps1 cosine
 # 6. this arm's per-row log-losses for the paired contrast
-python scripts\arc_dump.py
+.\run_local.ps1 arc-dump
 ```
 
-When both arms have finished: `python scripts\arc_compare.py --value work_value --arc work_arc` writes
+When both arms have finished: `.\run_local.ps1 arc-compare` (`scripts\arc_compare.py --value work_value --arc work_arc`) writes
 `work_arc\reports\arc_compare.md` and `work_arc\arc_compare\compare.json` (aggregates only).
 
 Do not set `PERISIM_SRC` on this branch: the frozen v0.5 code in `frozen/` is the published runs' code, not either

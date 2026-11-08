@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|seed-arc|nwicu-build|nwicu-transport|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|seed-arc|nwicu-build|nwicu-transport|hospital-transport|cosine|arc-dump|arc-compare|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -52,6 +52,9 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              tables) into this branch's work folder, e.g. `seed-arc --from <repo>\work` (scripts\arc_seed_inputs.py)
   nwicu-build / nwicu-transport   NWICU landmarks and the transport of the frozen `hypo` metrics to NWICU
              (scripts\nwicu_build.py, scripts\nwicu_transport.py; docs\prereg_nwicu.md)
+  hospital-transport / cosine   the pre-specified post hoc analyses REPORT §20 and §21, on this branch's code
+  arc-dump   branch arc-metric: this arm's per-row log-losses for the paired contrast (scripts\arc_dump.py)
+  arc-compare  branch arc-metric: the paired contrast of <repo>\work_value and <repo>\work_arc (scripts\arc_compare.py)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
@@ -233,7 +236,11 @@ switch ($Command) {
     "seed-arc" { & $Py (Join-Path $RepoDir "scripts\arc_seed_inputs.py") --to $env:PERISIM_WORKDIR @Rest; exit $LASTEXITCODE }
     "nwicu-build" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\nwicu_build.py") @Rest; exit $LASTEXITCODE }
     "nwicu-transport" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\nwicu_transport.py") @Rest; exit $LASTEXITCODE }
+    "hospital-transport" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_hospital_transport.py") @Rest; exit $LASTEXITCODE }
+    "cosine" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_cosine.py") @Rest; exit $LASTEXITCODE }
+    "arc-dump" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\arc_dump.py") @ProfArgs @Rest; exit $LASTEXITCODE }
+    "arc-compare" { & $Py (Join-Path $RepoDir "scripts\arc_compare.py") --value (Join-Path $RepoDir "work_value") --arc (Join-Path $RepoDir "work_arc") @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | seed-arc | nwicu-build | nwicu-transport | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | seed-arc | nwicu-build | nwicu-transport | hospital-transport | cosine | arc-dump | arc-compare | resources)" }
 }
