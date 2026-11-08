@@ -299,6 +299,20 @@ predictions stay on the analyst's machine. Published files pass `scripts/check_p
 - One target system in Tier 2 (eICU), as in S13; PRAM's MIMIC-III analyses are not repeated.
 - Bootstrap CIs carry test-set sampling variability, not the variance of refitting the metrics or base models.
 
+## 11. Implementation clarifications (fixed while writing the code, before any run)
+1. **Complementarity.** An AUROC for the continuous residual y − p_base is undefined. §7's "AUROC of each kNN for the
+   base model's residual" is computed as the Spearman correlation between p_kNN and y − p_base.
+2. **NCA fitted on the target bank (M3) in the inner cross-validation for a.** The metric fitted on the whole bank is
+   reused in the three inner folds, not refitted per inner fold. M3 is optimistic anyway, as in PRAM; it is
+   secondary.
+3. **Development split.** One split serves both outcomes, stratified jointly by acute kidney injury and death.
+4. **eICU age.** Stays with a missing age are excluded, since adulthood cannot be verified.
+5. **Seeds.**
+   - The kNN α subset uses seed + fold; the inner folds use seed + fold + inner fold + 1.
+   - Tier 2's seed is PRAM's 42; Tier 1's is `hypo`'s.
+6. **Tier 2 cosine.** The cosine of the standardised vectors as they are, standardised on the MIMIC-IV training
+   split as in PRAM, with no re-centring on the bank. Tier 1's cosine is §21's, centred on the bank.
+
 ## References
 
 Goldberger, J., Hinton, G. E., Roweis, S. T., & Salakhutdinov, R. R. (2005). Neighbourhood components analysis. In
