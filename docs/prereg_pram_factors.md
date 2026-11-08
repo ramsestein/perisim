@@ -304,9 +304,9 @@ predictions stay on the analyst's machine. Published files pass `scripts/check_p
 Goldberger, J., Hinton, G. E., Roweis, S. T., & Salakhutdinov, R. R. (2005). Neighbourhood components analysis. In
 *Advances in Neural Information Processing Systems 17* (pp. 513–520). MIT Press.
 
-Jeong, I., Lee, T., Kim, B., Park, J.-H., Kim, Y., & Lee, H. (2026). *PRAM: Post-hoc retrieval augmentation for
-parameter-free domain adaptation of ICU clinical prediction models* (Version 2) [Preprint]. medRxiv.
-https://doi.org/10.64898/2026.04.03.26350132
+Jeong, I., Lee, T., Kim, B., Park, J.-H., Kim, Y., & Lee, H. (2026). *PRAM: Post-hoc retrieval augmentation adapts
+intensive care prediction models without retraining and can be shared across hospitals* (Version 2) [Preprint].
+medRxiv. https://doi.org/10.64898/2026.04.03.26350132
 
 Johnson, A. E. W., Bulgarelli, L., Shen, L., Gayles, A., Shammout, A., Horng, S., Pollard, T. J., Hao, S., Moody, B.,
 Gow, B., Lehman, L. H., Celi, L. A., & Mark, R. G. (2023). MIMIC-IV, a freely accessible electronic health record
