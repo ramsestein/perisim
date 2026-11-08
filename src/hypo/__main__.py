@@ -250,6 +250,9 @@ def main(argv=None) -> int:
     p = sub.add_parser("external-report", help="aggregate report of the external stage")
     p.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
+    from perisim.arc_guard import ensure_arc_workdir
+
+    ensure_arc_workdir(workdir().parents[1])   # branch arc-metric: never a work folder of the published runs
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
                         stream=sys.stdout)
     if a.cmd == "audit":

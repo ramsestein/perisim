@@ -84,7 +84,8 @@ def _site_constant(enc: Encoder, E: np.ndarray, site: np.ndarray) -> list[int]:
 
 
 def fit_encoder(lm: Landmarks, scfg: dict) -> tuple[Encoder, list[str]]:
-    enc = Encoder(geometry="shape", max_bins=int(scfg["max_bins"]), min_bin=int(scfg["min_bin"])).fit(lm.ft, lm.y, C)
+    enc = Encoder(geometry="shape", max_bins=int(scfg["max_bins"]), min_bin=int(scfg["min_bin"]),
+                  shape_embedding=str(scfg.get("embedding", "value"))).fit(lm.ft, lm.y, C)
     drop = _site_constant(enc, enc.transform(lm.ft), lm.site)
     dropped = [enc.blocks[j].name for j in drop]
     if drop:

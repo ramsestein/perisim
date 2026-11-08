@@ -16,6 +16,20 @@ Two geometries:
   one-hot for nominal / PCS. Binary variables and missingness indicators keep 0/1 (their shape is equivalent after
   normalization); an unobserved binary takes the training prevalence. Missing values keep median imputation +
   indicator.
+
+  How a shaped continuous / ordinal value is placed on its axis is `shape_embedding` (branch arc-metric,
+  docs/prereg_arc.md):
+  - ``value`` (v0.5–v0.6): φ_j(x) = g_j(bin(x)), the consensus value of x's bin. Distance = ‖g_j(a) − g_j(b)‖, the
+    NET change of the curve: constant within a bin, a jump at each edge, and the two sides of a non-monotone
+    curve (a U) collapse onto each other.
+  - ``arc``: φ_j(x) = the ARC LENGTH of the consensus curve from its first node to x, ∫ ‖g_j′‖. The nodes are the
+    bin midpoints ((e_v + e_v+1) / 2, where the ALE value of a bin sits for a curve linear within the bin), the
+    length of a segment is ‖g_j[v+1] − g_j[v]‖ (Euclidean over the class components) and φ is interpolated
+    linearly between nodes, constant beyond the outer nodes. Distance = the path walked along the curve between
+    the two values: continuous, monotone in x, zero only where the curve is flat, and every stretch where the
+    prediction changes adds distance whichever its direction. The consensus g_j (its estimation, shrinkage and
+    flatness test), the bins, the neutral axes, the nominal / PCS geometry and everything downstream (s_j,
+    weights, NCA, kNN) are unchanged; only this placement differs.
 - **hvdm (v0.4, comparator).** Continuous: standardized value; ordinal: range scaled to [0, 1]; nominal: smoothed
   VDM, φ = p_c = (n_c·P̂(y|c) + m·P(y)) / (n_c + m), rare categories pooled, unseen ones → P(y) (AUDIT B7);
   hierarchical: one-hot/√2 with explicit "other" and "missing" dimensions (AUDIT B6).
@@ -35,6 +49,7 @@ from perisim.features.table import FeatureTable
 MISSING = "__missing__"
 OTHER = "__other__"
 SHAPEABLE = ("continuous", "ordinal", "nominal", "hier")
+SHAPE_EMBEDDINGS = ("value", "arc")
 
 
 @dataclass
@@ -55,7 +70,7 @@ class Encoder:
     def __init__(self, *, m: float = 5.0, missing_threshold: float = 0.05, hier_min_count: int = 10,
                  hier_max_levels: int = 200, nominal_min_count: int = 10, nominal_max_categories: int = 50,
                  dx_min_prevalence: float = 0.005, med_min_count: int = 10, geometry: str = "hvdm",
-                 max_bins: int = 20, min_bin: int = 50):
+                 max_bins: int = 20, min_bin: int = 50, shape_embedding: str = "value"):
         self.m = float(m)
         self.missing_threshold = missing_threshold
         self.hier_min_count = hier_min_count
@@ -67,6 +82,9 @@ class Encoder:
         if geometry not in ("shape", "hvdm"):
             raise ValueError(f"unknown geometry {geometry!r}")
         self.geometry = geometry
+        if shape_embedding not in SHAPE_EMBEDDINGS:
+            raise ValueError(f"unknown shape_embedding {shape_embedding!r}")
+        self.shape_embedding = shape_embedding
         self.max_bins = int(max_bins)
         self.min_bin = int(min_bin)
         self.blocks: list[_Block] = []
@@ -80,7 +98,8 @@ class Encoder:
                    hier_max_levels=f["hier_max_levels"], nominal_min_count=f["nominal_min_count"],
                    nominal_max_categories=f["nominal_max_categories"], dx_min_prevalence=f["dx_min_prevalence"],
                    geometry=geometry or cfg.experiment["metric"].get("geometry", "shape"),
-                   max_bins=int(c.get("max_bins", 20)), min_bin=int(c.get("min_bin", 50)))
+                   max_bins=int(c.get("max_bins", 20)), min_bin=int(c.get("min_bin", 50)),
+                   shape_embedding=cfg.experiment["metric"].get("shape_embedding", "value"))
 
     # ------------------------------------------------------------------ fitting
     def fit(self, ft: FeatureTable, y: np.ndarray, n_classes: int, y_aux: np.ndarray | None = None) -> "Encoder":
@@ -301,13 +320,38 @@ class Encoder:
                 continue
             g = shapes.get(j)
             b.shape = None if g is None else np.asarray(g, dtype=np.float64)
-            b.dims = b.shape.shape[1] if b.shape is not None else self._neutral_dims(b)
+            b.dims = self._shaped_dims(b) if b.shape is not None else self._neutral_dims(b)
             sj = _scale(enc._metric_block(b, ft)) if b.shape is not None else b.neutral_scale
             if b.shape is not None and sj <= 1e-12:         # constant on the training data → neutral axis
                 b.shape, b.dims, sj = None, self._neutral_dims(b), b.neutral_scale
             b.scale = sj
         enc._index()
         return enc
+
+    def _arc(self, b: _Block) -> bool:
+        """Is this shaped block placed by arc length? (Encoders pickled before the option existed: no.)"""
+        return getattr(self, "shape_embedding", "value") == "arc" and b.kind in ("continuous", "ordinal")
+
+    def _shaped_dims(self, b: _Block) -> int:
+        return 1 if self._arc(b) else int(b.shape.shape[1])
+
+    @staticmethod
+    def arc_nodes(b: _Block) -> tuple[np.ndarray, np.ndarray]:
+        """(x, φ) of the arc-length placement of a shaped continuous / ordinal block: the bin midpoints and the
+        cumulative length of the consensus curve through them (φ = 0 at the first node)."""
+        e = np.asarray(b.params["edges"], dtype=np.float64)
+        g = np.asarray(b.shape, dtype=np.float64)
+        x = 0.5 * (e[:-1] + e[1:])
+        seg = np.linalg.norm(np.diff(g, axis=0), axis=1) if g.shape[0] > 1 else np.zeros(0)
+        return x, np.concatenate([[0.0], np.cumsum(seg)])
+
+    def shape_points(self, b: _Block) -> tuple[np.ndarray, bool]:
+        """Metric coordinates of each value of a shaped block, one row per value of `value_index` (unscaled), and
+        whether they are exact. `arc`: the arc length at each bin's node, so a value elsewhere in its bin is
+        quantised to the node (inexact, as the neutral rank axis is in the drift lookup)."""
+        if self._arc(b):
+            return self.arc_nodes(b)[1][:, None], False
+        return np.asarray(b.shape, dtype=np.float64), True
 
     def _neutral_dims(self, b: _Block) -> int:
         if b.kind == "nominal":
@@ -367,6 +411,11 @@ class Encoder:
 
     def _metric_block(self, b: _Block, ft: FeatureTable) -> np.ndarray:
         if self.geometry == "shape":
+            if b.shape is not None and self._arc(b):
+                x = ft.num[b.source]
+                x = np.where(np.isfinite(x), x, b.params["median"])      # missing → median, as the bin lookup
+                xn, phi = self.arc_nodes(b)
+                return np.interp(x, xn, phi)[:, None]                   # constant beyond the outer nodes
             if b.shape is not None:
                 idx = self.value_index(b, ft)
                 out = np.zeros((len(idx), b.shape.shape[1]))

@@ -57,7 +57,7 @@ def lookup(enc, w) -> list[dict]:
         if b.kind in ("continuous", "ordinal"):
             e = b.params["edges"]
             if b.shape is not None:
-                pts = np.asarray(b.shape, float)
+                pts, exact = enc.shape_points(b)        # arc-metric: arc length at each bin's node (inexact)
             else:
                 srt = b.params["sorted"]
                 mid = (np.searchsorted(srt, e[:-1], "left") + np.searchsorted(srt, e[1:], "right")) / (2.0 * srt.size)

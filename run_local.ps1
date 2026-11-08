@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|seed-arc|nwicu-build|nwicu-transport|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -48,14 +48,19 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
              real streams: sizes and windows, nothing fitted), `roll dry` (the Phase 2 dry run, synthetic data),
              `roll freeze --registration <ID>` (Phase 3), then `roll run`, `roll endpoints`, `roll t2` (Phase 4,
              frozen version only; resumable)
+  seed-arc   branch arc-metric: copy the metric-independent inputs of a published run (extraction, landmark
+             tables) into this branch's work folder, e.g. `seed-arc --from <repo>\work` (scripts\arc_seed_inputs.py)
+  nwicu-build / nwicu-transport   NWICU landmarks and the transport of the frozen `hypo` metrics to NWICU
+             (scripts\nwicu_build.py, scripts\nwicu_transport.py; docs\prereg_nwicu.md)
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
 git ignores (the repository is public), and outside OneDrive; the script refuses otherwise.
 Defaults, overridable with the same variables as run_pod.sh:
   PERISIM_DATASETS    <repo>\data             (one folder per cohort; found by their tables)
-  PERISIM_WORKDIR     <repo>\work             (work and results)
-  PERISIM_LOCAL       <repo>\perisim_run      (logs, PID, smoke test)
+  PERISIM_ARM         arc                     (branch arc-metric: arc | value, the two arms of docs\prereg_arc.md)
+  PERISIM_WORKDIR     <repo>\work_<arm>       (work and results of that arm; never the published <repo>\work)
+  PERISIM_LOCAL       <repo>\perisim_run_<arm> (logs, PID, smoke test)
   PERISIM_EXPERIMENT  t2
   PERISIM_JOBS / PERISIM_THREADS  5 / 4       (the 5 outer folds in one round)
   PERISIM_PYTHON      python
@@ -79,9 +84,11 @@ function Set-Default([string]$Name, [string]$Value) {
 function Say([string]$Text) { Write-Host "[perisim] $Text" -ForegroundColor Cyan }
 function Die([string]$Text) { Write-Host "[perisim] $Text" -ForegroundColor Red; exit 1 }
 
-Set-Default "PERISIM_DATASETS" (Join-Path $RepoDir "data")          # all three git-ignored (/data/, /work/, /perisim_run/)
-Set-Default "PERISIM_WORKDIR" (Join-Path $RepoDir "work")
-Set-Default "PERISIM_LOCAL" (Join-Path $RepoDir "perisim_run")
+Set-Default "PERISIM_ARM" "arc"                                      # branch arc-metric: arc | value (docs\prereg_arc.md)
+if ("arc", "value" -notcontains $env:PERISIM_ARM) { Die "PERISIM_ARM must be arc or value" }
+Set-Default "PERISIM_DATASETS" (Join-Path $RepoDir "data")          # all git-ignored (/data/, /work_*/, /perisim_run_*/)
+Set-Default "PERISIM_WORKDIR" (Join-Path $RepoDir "work_$env:PERISIM_ARM")   # one folder per arm, never the published one
+Set-Default "PERISIM_LOCAL" (Join-Path $RepoDir "perisim_run_$env:PERISIM_ARM")
 Set-Default "PERISIM_EXPERIMENT" "t2"
 Set-Default "PERISIM_JOBS" "5"
 Set-Default "PERISIM_THREADS" "4"
@@ -91,6 +98,19 @@ $ProfArgs = @()
 if ($env:PERISIM_PROFILE) { $ProfArgs = @("--profile", $env:PERISIM_PROFILE) }   # run, status and freeze alike
 if ("t1", "t2", "t3" -notcontains $env:PERISIM_EXPERIMENT) { Die "PERISIM_EXPERIMENT must be t1, t2 or t3" }
 
+# Branch arc-metric: never a work folder of the published runs (src\perisim\arc_guard.py does the same in Python)
+$ArcMarker = Join-Path $env:PERISIM_WORKDIR "ARC_METRIC_WORKDIR"
+if (Test-Path $ArcMarker) {
+    $MarkArm = (Get-Content $ArcMarker -Raw | ConvertFrom-Json).arm
+    if ($MarkArm -ne $env:PERISIM_ARM) { Die "$env:PERISIM_WORKDIR is the work folder of arm $MarkArm, not $env:PERISIM_ARM" }
+}
+if (($Command -ne "seed-arc") -and -not (Test-Path $ArcMarker)) {
+    foreach ($d in "experiments", "common", "state", "cache") {
+        if (Test-Path (Join-Path $env:PERISIM_WORKDIR $d)) {
+            Die "$env:PERISIM_WORKDIR holds pipeline data but no ARC_METRIC_WORKDIR marker (a work folder of the published runs?). Use a new folder, or: seed-arc --from <old work folder>"
+        }
+    }
+}
 # git matches directory patterns (/work/, /perisim_run/) only for folders that exist: create them before checking
 foreach ($p in @($env:PERISIM_WORKDIR, $env:PERISIM_LOCAL)) { New-Item -ItemType Directory -Force -Path $p | Out-Null }
 # Data governance: never inside the public repository nor inside a cloud-synchronised folder
@@ -155,7 +175,7 @@ function Invoke-SmokeIfNew {
     New-Item -ItemType File -Force -Path $marker | Out-Null
 }
 
-Say "experiment $env:PERISIM_EXPERIMENT | data $env:PERISIM_DATASETS | work $env:PERISIM_WORKDIR | $env:PERISIM_JOBS jobs x $env:PERISIM_THREADS threads"
+Say "arm $env:PERISIM_ARM | experiment $env:PERISIM_EXPERIMENT | data $env:PERISIM_DATASETS | work $env:PERISIM_WORKDIR | $env:PERISIM_JOBS jobs x $env:PERISIM_THREADS threads"
 switch ($Command) {
     { $_ -in "start", "run" } {
         Assert-NotRunning; Invoke-Setup; Invoke-SmokeIfNew
@@ -210,7 +230,10 @@ switch ($Command) {
     "hypo-map-vaso" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_hypo_map_vaso.py") @Rest; exit $LASTEXITCODE }
     "alignment" { Invoke-Setup; Use-FrozenSrc; & $Py (Join-Path $RepoDir "scripts\posthoc_alignment.py") @Rest; exit $LASTEXITCODE }
     "roll" { Invoke-Setup; & $Py -m roll @Rest; exit $LASTEXITCODE }
+    "seed-arc" { & $Py (Join-Path $RepoDir "scripts\arc_seed_inputs.py") --to $env:PERISIM_WORKDIR @Rest; exit $LASTEXITCODE }
+    "nwicu-build" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\nwicu_build.py") @Rest; exit $LASTEXITCODE }
+    "nwicu-transport" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\nwicu_transport.py") @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | seed-arc | nwicu-build | nwicu-transport | resources)" }
 }

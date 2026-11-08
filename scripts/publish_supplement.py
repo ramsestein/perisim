@@ -23,6 +23,7 @@ Usage:  python scripts/publish_supplement.py [--workdir <work folder>]
 from __future__ import annotations
 
 import argparse
+import os
 import csv
 import io
 import json
@@ -119,7 +120,7 @@ def problems(files: dict[Path, bytes], cohort_n: dict) -> list[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--workdir", default=str(ROOT / "work"))
+    ap.add_argument("--workdir", default=str(ROOT / f"work_{os.environ.get('PERISIM_ARM') or 'arc'}"))
     a = ap.parse_args(argv)
     work = Path(a.workdir)
     res = ROOT / "results"

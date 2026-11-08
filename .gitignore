@@ -13,6 +13,8 @@ KHDP_settings.md
 # Patient data and extracts (never in the repo, §9)
 /data/
 /work/
+/work_*/
+/perisim_run_*/
 /perisim_run/
 /workdir/
 *.parquet

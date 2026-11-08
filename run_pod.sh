@@ -48,6 +48,10 @@ case "$REPO_DIR" in
   *) PERISIM_RUN="bash $REPO_DIR/run_pod.sh" ;;
 esac
 export PERISIM_RUN
+# Branch arc-metric (docs/prereg_arc.md): the arm of the re-run, arc | value; each arm has its own work folder
+: "${PERISIM_ARM:=arc}"
+case "$PERISIM_ARM" in arc|value) ;; *) echo "PERISIM_ARM must be arc or value" >&2; exit 1 ;; esac
+export PERISIM_ARM
 CMD="${1:-start}"
 [ $# -gt 0 ] && shift || true
 
@@ -70,17 +74,17 @@ _user="$(id -un 2>/dev/null || echo "${USER:-khdp-user}")"
 # by several processes (first real run, 2026-10-24). Every run then copies its reports and export package (aggregates
 # only) to updown, which is persistent and shared.
 if [ -d "$PERISIM_WORKSPACE" ]; then
-  : "${PERISIM_WORKDIR:=$PERISIM_WORKSPACE/perisim_work}"
+  : "${PERISIM_WORKDIR:=$PERISIM_WORKSPACE/perisim_work_$PERISIM_ARM}"   # one folder per arm, never the published one
 else
-  : "${PERISIM_WORKDIR:=$REPO_DIR/work}"
+  : "${PERISIM_WORKDIR:=$REPO_DIR/work_$PERISIM_ARM}"
 fi
 if [ -d "$PERISIM_WORKSPACE/updown" ]; then
-  : "${PERISIM_PUBLISH_DIR=$PERISIM_WORKSPACE/updown/perisim/$_user/results}"
+  : "${PERISIM_PUBLISH_DIR=$PERISIM_WORKSPACE/updown/perisim/$_user/results_$PERISIM_ARM}"
 fi
 # Environment and run files in the workspace, outside updown (shared object storage, slow for the many small files
 # of an environment) and without hidden folders. Without a workspace (local development): next to the repository.
 _rundir="$PERISIM_WORKSPACE"; [ -d "$_rundir" ] || _rundir="$REPO_DIR"
-: "${PERISIM_LOCAL:=$_rundir/perisim_run}"
+: "${PERISIM_LOCAL:=$_rundir/perisim_run_$PERISIM_ARM}"
 : "${PERISIM_VENV:=$_rundir/venv}"
 : "${PERISIM_CONDA_ENV:=$PERISIM_LOCAL/conda-py311}"
 : "${PERISIM_PIP_INDEX:=http://pypi.khdp-forward-server/simple}"
@@ -94,6 +98,21 @@ export PERISIM_WORKSPACE PERISIM_DATASETS PERISIM_WORKDIR PERISIM_LOCAL PERISIM_
 _np="${no_proxy:-${NO_PROXY:-}}"
 case ",$_np," in *",.khdp-forward-server,"*) ;; *) _np="${_np:+$_np,}.khdp-forward-server" ;; esac
 export no_proxy="$_np" NO_PROXY="$_np"
+
+# Branch arc-metric: never a work folder of the published runs (src/perisim/arc_guard.py does the same in Python)
+if [ -f "$PERISIM_WORKDIR/ARC_METRIC_WORKDIR" ]; then
+  if ! grep -q "\"arm\": \"$PERISIM_ARM\"" "$PERISIM_WORKDIR/ARC_METRIC_WORKDIR"; then
+    echo "[perisim] $PERISIM_WORKDIR is the work folder of the other arm (PERISIM_ARM=$PERISIM_ARM)" >&2; exit 1
+  fi
+else
+  for _d in experiments common state cache; do
+    if [ -e "$PERISIM_WORKDIR/$_d" ]; then
+      echo "[perisim] $PERISIM_WORKDIR holds pipeline data but no ARC_METRIC_WORKDIR marker (a work folder of the published runs?)." >&2
+      echo "[perisim] Use a new folder, or copy the inputs: python scripts/arc_seed_inputs.py --from <old work> --to $PERISIM_WORKDIR" >&2
+      exit 1
+    fi
+  done
+fi
 
 PIDFILE="$PERISIM_LOCAL/run.pid"
 LOGDIR="$PERISIM_LOCAL/logs"

@@ -48,6 +48,11 @@ def main(argv: list[str] | None = None) -> int:
     rh = sub.add_parser("rehearse")
     rh.add_argument("--threads", type=int, default=16)
     a = ap.parse_args(argv)
+    from perisim.arc_guard import ensure_arc_workdir
+
+    from .config import base_workdir
+
+    ensure_arc_workdir(base_workdir())          # branch arc-metric: never a work folder of the published runs
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     if a.cmd == "freeze":
         from .frozen import freeze

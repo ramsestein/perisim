@@ -19,7 +19,12 @@ def _cfg(args):
     over = {}
     if getattr(args, "workdir", None):
         over = {"experiment": {"paths": {"workdir": str(Path(args.workdir).resolve())}}}
-    return load_config(getattr(args, "config_dir", None), getattr(args, "profile", None), over)
+    cfg = load_config(getattr(args, "config_dir", None), getattr(args, "profile", None), over)
+    if getattr(args, "fn", None) in (cmd_run, cmd_freeze, cmd_ksweep, cmd_export):
+        from perisim.arc_guard import ensure_arc_workdir
+
+        ensure_arc_workdir(cfg.workdir)        # branch arc-metric: never a work folder of the published runs
+    return cfg
 
 
 def _keep_awake() -> None:
@@ -238,11 +243,23 @@ def cmd_freeze(args) -> int:
     write_json(ws.state / "freeze.json", {"tag": tag, "at": now_iso(), "code_hash": code_hash(),
                                           "config_hash": cfg.scientific_hash(), "git": git,
                                           "registration": args.registration or "PENDING",
-                                          "packages": _package_versions()})
+                                          "packages": _package_versions(), **_arc_record()})
     from perisim.utils import run_cmd
 
     print(f"[perisim] Frozen ({tag}). The external stage can now run: {run_cmd()}")
     return 0
+
+
+def _arc_record() -> dict:
+    """Branch arc-metric: the arm (also inside config_hash) and the SHA-256 of docs/prereg_arc.md."""
+    import hashlib
+
+    from perisim.arc_guard import current_arm
+    from perisim.config import REPO_ROOT
+
+    pr = REPO_ROOT / "docs" / "prereg_arc.md"
+    return {"arm": current_arm(),
+            "prereg_arc_sha": hashlib.sha256(pr.read_bytes()).hexdigest()[:16] if pr.is_file() else None}
 
 
 def _package_versions() -> dict:

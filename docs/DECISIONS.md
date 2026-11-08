@@ -5,6 +5,24 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-08 — Branch `arc-metric`: arc-length placement of the shapes, every experiment re-run in two arms (lead)
+
+**Why.** The intended reading of g_j is a deformed axis: equal steps count as more distance where the risk changes
+fast. The published placement, φ_j(x) = g_j(bin(x)), measures the net change of the curve instead: constant within a
+bin, a jump at each edge, and the two sides of a non-monotone curve collapse (INSPIRE's pH for death, a U). The arc
+placement measures the path walked along g_j (∫ ‖g_j′‖), continuous and monotone in x.
+
+**Decided.**
+- **New option `Encoder.shape_embedding`** = `value` (published) | `arc`. Nothing else in the method changes.
+- **Two arms on v0.6.** Both placements are re-run on the same v0.6 code, not the arc arm against the published v0.5
+  numbers, which would mix two changes. The lead chose this over arc alone on v0.6 and over arc patched onto v0.5.
+- **The arm is chosen by `PERISIM_ARM`.** It enters the configuration hashes and the freeze records. Each arm has its
+  own work folder, guarded against the published one (`src/perisim/arc_guard.py`).
+- **Primary contrast.** Bioequivalence of Q = (L_euclid − L_arc)/(L_euclid − L_value), with the 90 % CI inside
+  [0.80, 1.25], in the six `hypo` and NWICU units, plus the paired D = L_arc − L_value.
+- **Pre-registration:** [prereg_arc.md](prereg_arc.md), to be registered on OSF before the first real-data run of
+  either arm.
+
 ## 2026-11-08 — PRAM factors study: registered; Tier 2 cohort check and deviations (before any model)
 
 **Registered** on OSF by the lead (as an addition to the project's OSF registrations) before any analysis. Code at

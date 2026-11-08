@@ -116,6 +116,10 @@ metric:                         # §5.2, §5.4
   # shape (v0.5): every variable on its consensus shape function g_j (centred log-odds, one component per class);
   # hvdm (v0.4): standardized continuous + VDM nominal — kept as a comparator
   geometry: shape
+  # placement of a shaped continuous / ordinal value on its axis (branch arc-metric, docs/prereg_arc.md):
+  # value = g_j of its bin (v0.5–v0.6, the published results); arc = arc length of g_j up to the value, interpolated.
+  # Both arms are re-run on this code; the arm is PERISIM_ARM and enters the scientific hash.
+  shape_embedding: ${PERISIM_ARM:-arc}   # the arm of the re-run (src/perisim/arc_guard.py): arc | value
   vdm_m_grid: [1, 5, 20, 50]    # VDM m (HVDM comparator only; fixed at the second value, not selected)
   # λ multiplies the MEAN squared log-deviation of the group totals from the SAGE prior (B2/B4), so the grid has the
   # same meaning whatever the number of variables

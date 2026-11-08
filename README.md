@@ -8,6 +8,11 @@ neighbourhood components analysis (NCA). The contribution is not a new algorithm
 pre-registered measurement of **what travels and what is lost** when the metric moves between health systems, on
 postoperative ICU patients in four databases.
 
+> **Branch `arc-metric`.** This branch re-runs every experiment in two arms that differ only in how a shaped value is
+> placed on its axis: the published placement (`value`) and the arc length of the shape function (`arc`). Plan:
+> [docs/prereg_arc.md](docs/prereg_arc.md). How to run it: [docs/RUNNING.md](docs/RUNNING.md#branch-arc-metric-every-experiment-in-two-arms).
+> Its results go to `results/arc-metric/<arm>/`. Everything below describes the published results.
+
 > **Start here:** [docs/FINDINGS.md](docs/FINDINGS.md) summarises every result in plain language, with the strength
 > of evidence, the relation to prior work, and links to the full reports.
 

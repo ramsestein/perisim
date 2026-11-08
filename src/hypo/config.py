@@ -6,6 +6,8 @@ import hashlib
 import os
 from pathlib import Path
 
+from perisim.arc_guard import default_workdir_name
+
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
@@ -13,18 +15,20 @@ PKG = Path(__file__).resolve().parent
 
 
 def load(path: str | Path | None = None) -> dict:
+    from perisim.config import _expand_env
+
     with open(path or REPO / "config" / "hypo.yaml", encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        return _expand_env(yaml.safe_load(fh))          # branch arc-metric: metric.shapes.embedding = ${PERISIM_ARM}
 
 
 def workdir() -> Path:
     """<PERISIM_WORKDIR or repo/work>/experiments/hypo: patient-level data, git-ignored like the rest of work/."""
-    return Path(os.environ.get("PERISIM_WORKDIR") or REPO / "work") / "experiments" / "hypo"
+    return Path(os.environ.get("PERISIM_WORKDIR") or REPO / default_workdir_name()) / "experiments" / "hypo"
 
 
 def common_dir(cohort: str) -> Path:
     """T2's common format of a cohort (its stays_candidates are this experiment's population source)."""
-    return Path(os.environ.get("PERISIM_WORKDIR") or REPO / "work") / "common" / cohort
+    return Path(os.environ.get("PERISIM_WORKDIR") or REPO / default_workdir_name()) / "common" / cohort
 
 
 def dataset_dirs(profile: str | None = "local") -> dict[str, Path]:

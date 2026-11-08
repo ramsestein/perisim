@@ -142,6 +142,9 @@ metric:
     max_bins: 20
     min_bin: 50
     flat_alpha: 0.05
+    # placement of a shaped continuous / ordinal value (branch arc-metric, docs/prereg_arc.md): value = g_j of its
+    # bin (the published results); arc = arc length of g_j up to the value, interpolated between bin midpoints
+    embedding: ${PERISIM_ARM:-arc}   # the arm of the re-run (src/perisim/arc_guard.py): arc | value
     corr_cluster_threshold: 0.8    # feature-dropout groups as T2
     site_adjusted: true        # the development site enters the models (not the metric): g_j are within-site effects
     n_reference_pairs: 20000   # stability trace Δ of the distance (uniform weights) over the accepted models

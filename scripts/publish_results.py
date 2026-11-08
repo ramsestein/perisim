@@ -1,6 +1,6 @@
-"""Copies an experiment's AGGREGATE results into the repository (results/<experiment>/), for version control.
+"""Copies an experiment's AGGREGATE results into the repository (results/arc-metric/<arm>/<experiment>/ on branch arc-metric), for version control.
 
-Usage:  python scripts/publish_results.py [t2 t1 t3] [--workdir <work folder>]   (default: <repo>/work, every
+Usage:  python scripts/publish_results.py [t2 t1 t3] [--workdir <work folder>]   (default: <repo>/work_<PERISIM_ARM>, every
         experiment that has an export package)
 
 Source: the experiment's export package (<work>/experiments/<t>/export/: aggregates only, already scanned for
@@ -18,6 +18,7 @@ Does not touch src/ or config/, so it never changes the frozen code or configura
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import sys
@@ -47,7 +48,7 @@ def publish(work: Path, exp: str) -> list[str]:
     files += [(p, p.relative_to(root).as_posix()) for p in sorted((root / "reports").glob("posthoc_*.html")) +
               sorted((root / "artifacts" / "main").glob("posthoc_*.json"))]
     files = list({rel: (p, rel) for p, rel in files}.values())     # the experiment's own docs win over the export's
-    dest = ROOT / "results" / exp
+    dest = ROOT / "results" / "arc-metric" / (os.environ.get("PERISIM_ARM") or "arc") / exp   # never over the published results
     shutil.rmtree(dest, ignore_errors=True)
     copied, refused = [], []
     for p, rel in files:
@@ -71,7 +72,7 @@ def publish(work: Path, exp: str) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("experiments", nargs="*", default=["t2", "t1", "t3"])
-    ap.add_argument("--workdir", default=str(ROOT / "work"))
+    ap.add_argument("--workdir", default=str(ROOT / f"work_{os.environ.get('PERISIM_ARM') or 'arc'}"))
     a = ap.parse_args()
     for exp in a.experiments:
         out = publish(Path(a.workdir), exp)

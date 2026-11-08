@@ -40,7 +40,7 @@ TAG = "nwicu"
 
 
 def work() -> Path:
-    return Path(os.environ.get("PERISIM_WORKDIR", "work")) / "experiments" / TAG
+    return Path(os.environ.get("PERISIM_WORKDIR") or f"work_{os.environ.get('PERISIM_ARM') or 'arc'}") / "experiments" / TAG
 
 
 def landmarks(cfg: dict):
@@ -242,6 +242,9 @@ def main(argv=None) -> int:
     ap.add_argument("--quick", action="store_true", help="quick frozen artefacts (tests)")
     ap.add_argument("--tag", default="nwicu", help="work folder: nwicu (primary) or nwicu_ivonly (post hoc sensitivity)")
     a = ap.parse_args(argv)
+    from perisim.arc_guard import ensure_arc_workdir
+
+    ensure_arc_workdir()                        # branch arc-metric: never a work folder of the published runs
     global TAG
     TAG = a.tag
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import time
 
@@ -73,7 +74,8 @@ def freeze(registration: str | None, cfg: dict, cohorts: dict, *, no_git: bool =
         git = {"tag": tag, "commit": subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"],
                                                     capture_output=True, text=True).stdout.strip()}
     rec = {"tag": tag, "at": time.strftime("%Y-%m-%d %H:%M:%S"), "registration": registration or "PENDING", "git": git,
-           "hashes": hashes(cfg, cohorts), "prereg_sha": sha(REPO / "docs" / "prereg_roll.md")}
+           "hashes": hashes(cfg, cohorts), "prereg_sha": sha(REPO / "docs" / "prereg_roll.md"),
+           "arm": os.environ.get("PERISIM_ARM") or "arc", "prereg_arc_sha": sha(REPO / "docs" / "prereg_arc.md")}
     state_dir().mkdir(parents=True, exist_ok=True)
     (state_dir() / "freeze.json").write_text(json.dumps(rec, indent=1), encoding="utf-8")
     return rec

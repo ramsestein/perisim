@@ -23,7 +23,7 @@ import yaml
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 DATA = Path(os.environ.get("PERISIM_DATASETS", "data")) / "nwicu" / "northwestern-icu-nwicu-database-0.1.0" / "data"
-WORK = Path(os.environ.get("PERISIM_WORKDIR", "work")) / "experiments" / "nwicu"
+WORK = Path(os.environ.get("PERISIM_WORKDIR") or f"work_{os.environ.get('PERISIM_ARM') or 'arc'}") / "experiments" / "nwicu"
 IV_ONLY = False
 
 ITEMS = {"art_sbp": "320050", "art_dbp": "320051", "nibp_sbp": "320179", "nibp_dbp": "320180", "hr": "320045",
@@ -152,6 +152,11 @@ def main(argv=None) -> int:
     ap.add_argument("--threads", type=int, default=8)
     ap.add_argument("--iv-only", action="store_true", help="post hoc sensitivity: intravenous vasopressor forms only")
     a = ap.parse_args(argv)
+    if (ROOT / "src" / "perisim" / "arc_guard.py").is_file():   # in the repository (not when copied alone)
+        sys.path.insert(0, str(ROOT / "src"))
+        from perisim.arc_guard import ensure_arc_workdir
+
+        ensure_arc_workdir()                    # branch arc-metric: never a work folder of the published runs
     import duckdb
 
     global WORK, IV_ONLY

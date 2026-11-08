@@ -8,6 +8,8 @@ import json
 import os
 from pathlib import Path
 
+from perisim.arc_guard import default_workdir_name
+
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
@@ -24,7 +26,7 @@ def load(path: str | Path | None = None) -> dict:
 
 
 def base_workdir() -> Path:
-    return Path(os.environ.get("PERISIM_WORKDIR") or REPO / "work")
+    return Path(os.environ.get("PERISIM_WORKDIR") or REPO / default_workdir_name())
 
 
 def workdir() -> Path:

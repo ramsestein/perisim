@@ -239,7 +239,7 @@ def render(S: dict, R: dict) -> str:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--workdir", default=os.environ.get("PERISIM_WORKDIR", "work"))
+    ap.add_argument("--workdir", default=os.environ.get("PERISIM_WORKDIR") or f"work_{os.environ.get('PERISIM_ARM') or 'arc'}")
     ap.add_argument("--sites", nargs="*", default=list(SITES))
     a = ap.parse_args(argv)
     base = Path(a.workdir) / "experiments" / "posthoc_alignment"

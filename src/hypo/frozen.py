@@ -24,6 +24,8 @@ from pathlib import Path
 import numpy as np
 from joblib.externals import cloudpickle
 
+from perisim.arc_guard import current_arm
+
 from . import compare
 from .config import REPO, code_hash, load, workdir
 from .cv import cv_dir, settings
@@ -75,6 +77,10 @@ def config_hash(n: int = 12) -> str:
     for f in ("hypo.yaml", "model_space.yaml"):
         h.update(f.encode())
         h.update((REPO / "config" / f).read_bytes().replace(b"\r\n", b"\n"))
+    # branch arc-metric: hypo.yaml reads the placement from ${PERISIM_ARM}, so the resolved value is hashed too
+    from perisim.arc_guard import current_arm
+
+    h.update(f"shape_embedding={current_arm()}".encode())
     return h.hexdigest()[:n]
 
 
@@ -300,7 +306,8 @@ def freeze(registration: str | None, *, no_git: bool = False, quick: bool = Fals
         shutil.copyfile(REPO / "config" / f, st / "frozen_config" / f)
     rec = {"tag": tag, "at": time.strftime("%Y-%m-%d %H:%M:%S"), "registration": registration or "PENDING",
            "quick": quick,
-           "git": git, "hashes": _hashes(cfg), "prereg_sha": sha(REPO / "docs" / "prereg_hypo.md")}
+           "git": git, "hashes": _hashes(cfg), "prereg_sha": sha(REPO / "docs" / "prereg_hypo.md"),
+           "arm": current_arm(), "prereg_arc_sha": sha(REPO / "docs" / "prereg_arc.md")}
     (st / "freeze.json").write_text(json.dumps(rec, indent=1), encoding="utf-8")
     LOG.info("frozen: %s (registration %s)", tag, rec["registration"])
     return rec
@@ -318,6 +325,8 @@ def check() -> dict:
     diff = [k for k in HASHED if now[k] != rec["hashes"].get(k)]
     if sha(REPO / "docs" / "prereg_hypo.md") != rec.get("prereg_sha"):
         diff.append("prereg")
+    if "arm" in rec and (rec["arm"] != current_arm() or sha(REPO / "docs" / "prereg_arc.md") != rec.get("prereg_arc_sha")):
+        diff.append("arc-metric arm or docs/prereg_arc.md")
     if diff:
         raise Stop(f"changed since the freeze {rec['tag']}: {', '.join(diff)}. Restore the frozen version "
                    f"(git checkout {rec['tag']}); a change after external results exist is a deviation")

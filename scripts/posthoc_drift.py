@@ -99,7 +99,8 @@ def frozen_points(enc, w) -> list[dict]:
         if b.kind in ("continuous", "ordinal"):
             e = b.params["edges"]
             if b.shape is not None:
-                pts = b.shape * f
+                pts, exact = enc.shape_points(b)        # arc-metric: arc length at each bin's node (inexact)
+                pts = pts * f
             else:
                 srt = b.params["sorted"]
                 mid = (np.searchsorted(srt, e[:-1], "left") + np.searchsorted(srt, e[1:], "right")) / (2.0 * srt.size)

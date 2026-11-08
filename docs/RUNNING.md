@@ -3,6 +3,54 @@
 Operational guide: environments, commands, pipeline stages and outputs for every experiment. For what the project is
 and what it found, start with the [README](../README.md) and [docs/FINDINGS.md](FINDINGS.md).
 
+## Branch `arc-metric`: every experiment in two arms
+
+Plan: [prereg_arc.md](prereg_arc.md). Every experiment is re-run twice on this branch's code, changing only how a
+shaped continuous / ordinal value is placed on its axis: arm `value` (the published placement, v0.6) and arm `arc`
+(arc length of g_j). **Register prereg_arc.md on OSF before the first real-data run of either arm**, and pass its ID to
+every freeze.
+
+- **The arm** is the environment variable `PERISIM_ARM` (`arc` by default, or `value`). It enters the configuration
+  and therefore every hash and freeze.
+- **Each arm has its own work folder**, `work_<arm>` (pod: `perisim_work_<arm>`), with its own logs folder
+  `perisim_run_<arm>`.
+  - The folder is bound to its arm by the marker `ARC_METRIC_WORKDIR`.
+  - A folder of the published runs (`work`) or of the other arm is refused by the runners and by every command line.
+- **Results** are published under `results/arc-metric/<arm>/`, never over the published `results/`.
+
+On Windows, once per arm (shown for `arc`; repeat everything with `$env:PERISIM_ARM = "value"`):
+
+```powershell
+$env:PERISIM_ARM = "arc"
+# 0. optional: copy the metric-independent inputs of the published run (extraction, hypo's extracts, NWICU build)
+.\run_local.ps1 seed-arc --from .\work          # leaves .\work untouched; writes work_arc\SEED_MANIFEST.json
+# 1. T2: the pipeline up to the freeze, then the freeze, then external + transport
+.\run_local.ps1 fg                              # stops at the external gate (PERISIM_ACK_AUDIT=true if the audit asks)
+.\run_local.ps1 freeze --registration <OSF_ID>
+.\run_local.ps1 fg
+# 2. hypo
+.\run_local.ps1 hypo landmarks ; .\run_local.ps1 hypo audit ; .\run_local.ps1 hypo cv ; .\run_local.ps1 hypo cv-report
+.\run_local.ps1 hypo final ; .\run_local.ps1 hypo freeze --registration <OSF_ID>
+.\run_local.ps1 hypo external ; .\run_local.ps1 hypo external-report
+# 3. NWICU (the frozen hypo metrics of this arm)
+.\run_local.ps1 nwicu-build ; .\run_local.ps1 nwicu-transport
+# 4. roll
+.\run_local.ps1 roll check ; .\run_local.ps1 roll streams ; .\run_local.ps1 roll freeze --registration <OSF_ID>
+.\run_local.ps1 roll run ; .\run_local.ps1 roll endpoints ; .\run_local.ps1 roll t2
+# 5. the pre-specified post hoc analyses (no PERISIM_SRC: they run on this branch's code)
+.\run_local.ps1 equivalence ; python scripts\posthoc_hospital_transport.py ; python scripts\posthoc_cosine.py
+# 6. this arm's per-row log-losses for the paired contrast
+python scripts\arc_dump.py
+```
+
+When both arms have finished: `python scripts\arc_compare.py --value work_value --arc work_arc` writes
+`work_arc\reports\arc_compare.md` and `work_arc\arc_compare\compare.json` (aggregates only).
+
+Do not set `PERISIM_SRC` on this branch: the frozen v0.5 code in `frozen/` is the published runs' code, not either
+arm's.
+The PRAM factors study (`docs/prereg_pram_factors.md`, `scripts/pram_*.py`) is not part of this re-run: it runs on
+`hypo`'s frozen v0.5 code against the published work folder, from `main`.
+
 ## Running in the KHDP pod
 
 In the pod's VSCode terminal, from the workspace root (all the commands below are run from `~/workspace`):
