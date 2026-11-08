@@ -15,6 +15,20 @@ if sys.platform == "win32":
     os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 
+@pytest.fixture(autouse=True)
+def _arc_guard_off_for_synthetic_chains(request, monkeypatch):
+    """Branch arc-metric: the end-to-end tests build synthetic work folders in tmp_path (with experiments/ inside)
+    and call the command lines, which would refuse them as unmarked. The guard itself is tested in test_arc.py."""
+    if request.module.__name__.endswith("test_arc"):
+        return
+    import perisim.arc_guard as G
+
+    def _noop(path=None, arm=None):
+        return Path(path if path is not None else os.environ.get("PERISIM_WORKDIR") or G.default_workdir_name(arm))
+
+    monkeypatch.setattr(G, "ensure_arc_workdir", _noop)
+
+
 @pytest.fixture(scope="session")
 def cfg():
     from perisim.config import load_config
