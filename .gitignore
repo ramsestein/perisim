@@ -56,3 +56,4 @@ Thumbs.db
 !/results/**/reports/
 !/results/**/reports/*
 !/results/**/*.csv
+catboost_info/

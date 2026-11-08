@@ -95,7 +95,8 @@ def base_models(X: np.ndarray, y: np.ndarray, threads: int):
     from sklearn.linear_model import LogisticRegression
 
     lr = LogisticRegression(C=1.0, max_iter=1000).fit(X, y)
-    gbm = CatBoostClassifier(iterations=500, depth=6, random_seed=SEED, verbose=0, thread_count=threads).fit(X, y)
+    gbm = CatBoostClassifier(iterations=500, depth=6, random_seed=SEED, verbose=0, thread_count=threads,
+                             allow_writing_files=False).fit(X, y)
     return {"lr": lambda Z: lr.predict_proba(Z)[:, 1], "gbm": lambda Z: gbm.predict_proba(Z)[:, 1]}
 
 
