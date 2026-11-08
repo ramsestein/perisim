@@ -25,7 +25,8 @@ def _cohort(n: int, seed: int, site: str) -> pl.DataFrame:
         v[rng.random(n) < 0.3] = np.nan                     # missingness for the imputer
     df = pl.DataFrame({"id": [f"{site}{i}" for i in range(n)], "site": site, **cols})
     return df.with_columns(pl.Series("aki", rng.random(n) < 1 / (1 + np.exp(-(lin - 1.5)))),
-                           pl.Series("death", rng.random(n) < 1 / (1 + np.exp(-(0.8 * lin - 2.0)))))
+                           pl.Series("death", rng.random(n) < 1 / (1 + np.exp(-(0.8 * lin - 2.0)))),
+                           pl.Series("aki_kdigo48", rng.random(n) < 1 / (1 + np.exp(-(lin - 2.0)))))
 
 
 def test_dev_split_proportions():
@@ -60,9 +61,9 @@ def test_t2_chain(tmp_path, monkeypatch):
     monkeypatch.setattr(T2, "NCA_N", {"ncaf": 300, "ncaf2k": 200, "ncaf10k": 400})
     assert T2.main(["--threads", "1", "--quick"]) == 0
     out = json.loads((w / "t2.json").read_text())
-    assert set(out["outcomes"]) == {"aki", "death"} and "reproduced" in out["r0"]
+    assert set(out["outcomes"]) == {"aki", "death", "aki_kdigo48"} and set(out["r0"]["delta"]) == {"aki", "death"}
     r = out["outcomes"]["aki"]["a"]
     assert set(r["rule"]["switch"]) == set(T2.SWITCH) and set(r["rule"]["effects"]) == {"U", "V", "I"}
     assert "ncad_t|ours|mix_gbm" in r["cells"] and "ncaf10k|inv|alone" in r["cells"]
     rep = (w / "t2.md").read_text()
-    assert "R0: replication" in rep and "H-S" in rep
+    assert "R0: replication" in rep and "H-S" in rep and "Sensitivity: aki_kdigo48" in rep

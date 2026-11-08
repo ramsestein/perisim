@@ -370,6 +370,16 @@ def render(out: dict, build_md: str | None) -> str:
     for o in ("aki", "death"):
         for k, a in out["outcomes"][o]["a"]["arms"].items():
             L.append(f"| {o} | {k} | {a['auroc']:.4f} | {a['logloss']:.4f} | {a['citl']:+.3f} | {a['slope']:.3f} |")
+    for o in PB.SENSITIVITY:
+        if o in out["outcomes"]:
+            rule = out["outcomes"][o]["a"]["rule"]
+            r = out["outcomes"][o]
+            L += ["", f"## Sensitivity: {o} (KDIGO's 48 h window for the 0.3 mg/dL rise; prevalence in eICU "
+                  f"{r['prevalence_target']:.1%}; deviation 2026-11-08)", "",
+                  f"- home Δ: {f(rule['home']['delta'])} ({rule['home']['verdict']}); frozen logistic AUROC "
+                  f"{r['a']['arms']['base|lr']['auroc']:.3f}; cosine-mixture gain {f(r['a']['gain_over_frozen_lr']['cos'])}"]
+            for F, s_ in rule["switch"].items():
+                L.append(f"- switch {F}: {f(s_['delta'])} ({s_['verdict']}){' — sufficient' if s_['sufficient'] else ''}")
     L += ["", "## Sensitivity: a chosen by log-loss", "", "| outcome | home Δ | U switch Δ (verdict) |", "|---|---|---|"]
     for o in ("aki", "death"):
         rule = out["outcomes"][o]["a_logloss"]["rule"]
@@ -405,11 +415,12 @@ def main(argv=None) -> int:
     prep = Prep(S["mimic"].filter(pl.Series(split == 0)))
     out = {"outcomes": {}, "n_dev": int(S["mimic"].height), "split": {k: int((split == i).sum()) for i, k in
                                                                        enumerate(("train", "validation", "test"))}}
-    for o in PB.OUTCOMES:
+    for o in PB.OUTCOMES + PB.SENSITIVITY:       # aki_kdigo48: deviation 2026-11-08, sensitivity only
         out["outcomes"][o] = run_outcome(o, S, split, prep, mcfg, ncfg, not a.no_sensitivity, a.threads,
                                          work() / "units")
-    out["r0"] = r0(out["outcomes"])
-    out["h_s"] = h_s(out["outcomes"])
+    primary = {o: out["outcomes"][o] for o in PB.OUTCOMES}
+    out["r0"] = r0(primary)
+    out["h_s"] = h_s(primary)
     (work() / "t2.json").write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
     bm = work() / "build.md"
     (work() / "t2.md").write_text(render(out, bm.read_text(encoding="utf-8") if bm.exists() else None),

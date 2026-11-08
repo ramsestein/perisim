@@ -5,6 +5,38 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-08 — PRAM factors study: registered; Tier 2 cohort check and deviations (before any model)
+
+**Registered** on OSF by the lead (as an addition to the project's OSF registrations) before any analysis. Code at
+registration: plan commit `89ce86a` (with §11's implementation clarifications); Tier 1 started on the lead's
+workstation at 12:58 KST, and all five gates passed at INSPIRE.
+
+**Tier 2 cohort check (prereg §8).** The first build was compared with PRAM's Table 1 and Table S1 before any model was
+fitted or any outcome joined to a model:
+- **Cohort size.** About 30 % more stays than PRAM: MIMIC-IV 44,021 vs 33,455; eICU 88,597 vs 68,041. No error was
+  found; the cause is unknown (PRAM may apply exclusions it does not report). Kept as built; reported as a fidelity
+  limit.
+- **Acute kidney injury prevalence about doubled:** MIMIC-IV 28.3 % vs 14.7 %; eICU 17.6 % vs 6.1 %. Death is closer
+  (6.0 % vs 4.4 %; 6.4 % vs 4.6 %).
+- **Missingness of two features far above PRAM's:**
+  - MIMIC-IV weight, 19.9 % vs 0.6 %;
+  - eICU GCS, 28.9 % vs 4.6 %.
+- The other features' missingness and medians are close to PRAM's (e.g. eICU temperature 88.3 % vs 88.9 % missing,
+  INR 59.5 % vs 60.9 %).
+
+**Deviations, decided after seeing these aggregates and before any model:**
+1. **MIMIC-IV weight (extraction error, prereg §8).** Admission weight is often charted shortly before `intime`, and
+   the [0, 24 h] window dropped it. Weight, a static attribute, now takes any record of the stay up to 24 h.
+2. **eICU GCS (extraction error, prereg §8).** The GCS is also charted as eye, verbal and motor components, in
+   `nurseCharting` and in `physicalExam` (paths `Neurologic/GCS/{Eyes,Verbal,Motor} Score`). Their sum, at times when
+   all three are present, is added to the GCS totals.
+3. **Acute kidney injury (sensitivity, not a correction).** The pre-registered definition is kept as the primary
+   outcome. A sensitivity outcome, `aki_kdigo48`, applies KDIGO's 48 h window to the 0.3 mg/dL rise (a value in
+   (24 h, 72 h]), keeping the 1.5 × baseline rise over (24 h, 192 h]. It is run through the same Tier 2 analysis and
+   is descriptive. R0 and H-S stay on the two pre-registered outcomes.
+
+The cohort is rebuilt with 1–2 and re-checked before Tier 2's models run.
+
 ## 2026-11-08 — Pre-registration: why a learned metric beats cosine in PERISIM but not in PRAM (two tiers; OSF)
 
 The full plan is `docs/prereg_pram_factors.md`, fixed before any analysis and to be registered on OSF before any run.

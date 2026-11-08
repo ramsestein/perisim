@@ -42,7 +42,9 @@ def _mimic(d: Path) -> None:
         "1,11,101,0,2150-01-01 03:00:00,,220739,4,4,,0", "1,11,101,0,2150-01-01 03:00:00,,223900,5,5,,0",
         "1,11,101,0,2150-01-01 03:00:00,,223901,6,6,,0", "1,11,101,0,2150-01-01 04:00:00,,220739,1,1,,0",        # incomplete GCS
         "1,11,101,0,2150-01-01 00:30:00,,226531,220,220,,0",                                                     # 99.8 kg
-        "5,51,501,0,2150-01-01 01:00:00,,220179,110,110,,0"])
+        "5,51,501,0,2150-01-01 01:00:00,,220179,110,110,,0",
+        "5,51,501,0,2149-12-31 23:00:00,,226512,60,60,,0",                                                       # weight before intime
+        "5,51,501,0,2149-12-31 23:00:00,,220045,70,70,,0"])                                                      # HR before intime: out
     _w(m / "hosp" / "labevents.csv.gz", "labevent_id,subject_id,hadm_id,specimen_id,itemid,order_provider_id,charttime,"
        "storetime,value,valuenum,valueuom", [
         "1,1,11,900,50912,x,2150-01-01 02:00:00,,1.0,1.0,", "2,1,11,900,51006,x,2150-01-01 02:00:00,,20,20,",
@@ -72,6 +74,12 @@ def _eicu(d: Path) -> None:
     _w(e / "lab.csv.gz", "labid,patientunitstayid,labresultoffset,labtypeid,labname,labresult", [
         "1,1001,30,1,creatinine,2.0", "2,1001,30,1,BUN,40", "3,1001,3000,1,creatinine,2.2",          # +0.2 and 1.1×: no AKI
         "4,1005,40,1,creatinine,0.8", "5,1005,2000,1,creatinine,1.2"])                              # 1.5×: AKI
+    _w(e / "physicalExam.csv.gz", "physicalexamid,patientunitstayid,physicalexamoffset,physicalexampath,physicalexamvalue,"
+       "physicalexamtext", [
+        "1,1005,50,notes/Progress Notes/Physical Exam/Physical Exam/Neurologic/GCS/Eyes Score/4,4,4",
+        "2,1005,50,notes/Progress Notes/Physical Exam/Physical Exam/Neurologic/GCS/Verbal Score/5,5,5",
+        "3,1005,50,notes/Progress Notes/Physical Exam/Physical Exam/Neurologic/GCS/Motor Score/6,6,6",
+        "4,1005,90,notes/Progress Notes/Physical Exam/Physical Exam/Neurologic/GCS/Eyes Score/2,2,2"])   # incomplete
 
 
 def test_build_on_synthetic_tables(tmp_path, monkeypatch):
@@ -87,9 +95,10 @@ def test_build_on_synthetic_tables(tmp_path, monkeypatch):
     assert (r["hr_min"], r["hr_max"], r["hr_last"]) == (80, 120, 100)
     assert r["temp_c_last"] == pytest.approx(37.0) and r["gcs_total_min"] == 15 and r["weight_kg_max"] == pytest.approx(99.79, abs=0.01)
     assert r["baseline_scr"] == 1.0 and r["scr_feat_last"] == 1.2 and r["bun_cr_ratio_last"] == pytest.approx(20)
-    assert r["aki"] and not r["death"] and r["sex_male"] == 1
+    assert r["aki"] and r["aki_kdigo48"] and not r["death"] and r["sex_male"] == 1
     r5 = m.row(1, named=True)
     assert r5["death"] and not r5["aki"] and r5["age"] == 18 and r5["sbp_last"] == 110
+    assert r5["weight_kg_last"] == 60 and r5["hr_min"] is None
     e = pl.read_parquet(tmp_path / "work" / "eicu.parquet").sort("id")
     assert e["id"].to_list() == ["1001", "1005"]
     a = e.row(0, named=True)
@@ -98,6 +107,7 @@ def test_build_on_synthetic_tables(tmp_path, monkeypatch):
     assert (a["sbp_min"], a["sbp_last"]) == (100, 100) and a["gcs_total_last"] == 9 and a["weight_kg_last"] == 70
     assert a["bun_cr_ratio_max"] == pytest.approx(20)
     b = e.row(1, named=True)
-    assert b["aki"] and not b["death"] and b["weight_kg_last"] is None
+    assert b["aki"] and b["aki_kdigo48"] and not b["death"] and b["weight_kg_last"] is None
+    assert b["gcs_total_min"] == 15 and b["gcs_total_last"] == 15
     rep = (tmp_path / "work" / "build.md").read_text()
     assert "with_creatinine_24h" in rep and "aki" in rep

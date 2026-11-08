@@ -25,6 +25,8 @@ VARS = ["hr", "rr", "spo2", "temp_c", "sbp", "dbp", "gcs_total", "weight_kg", "b
         "bun_cr_ratio"]
 FEATURES = ["age", "sex_male", "baseline_scr"] + [f"{v}_{s}" for v in VARS for s in ("min", "max", "last")]
 OUTCOMES = ["aki", "death"]
+SENSITIVITY = ["aki_kdigo48"]          # deviation 2026-11-08: KDIGO's 48 h window for the 0.3 mg/dL rise
+WEIGHT_ITEMS = ["226512", "224639", "226531"]
 RANGES = {"hr": (20, 300), "rr": (2, 80), "spo2": (50, 100), "temp_c": (25, 45), "sbp": (30, 300), "dbp": (10, 200),
           "gcs_total": (3, 15), "weight_kg": (20, 300), "bun": (1, 300), "calcium": (2, 20), "inr": (0.5, 20),
           "scr": (0.1, 30)}
@@ -43,7 +45,7 @@ def csv(p: Path) -> str:
 
 
 def q(con, sql: str) -> pl.DataFrame:
-    return pl.from_arrow(con.execute(sql).arrow())
+    return pl.from_arrow(con.execute(sql).fetch_arrow_table())
 
 
 def in_range(df: pl.DataFrame) -> pl.DataFrame:
@@ -83,12 +85,15 @@ def assemble(st: pl.DataFrame, feat_long: pl.DataFrame, scr_after: pl.DataFrame)
         if c not in df.columns:
             df = df.with_columns(pl.lit(None, pl.Float64).alias(c))
     df = df.with_columns(pl.col("scr_feat_min").alias("baseline_scr")).filter(pl.col("baseline_scr").is_not_null())
-    peak = scr_after.group_by("id").agg(pl.col("value").max().alias("_peak"))
+    peak = scr_after.group_by("id").agg(pl.col("value").max().alias("_peak"),
+                                        pl.col("value").filter(pl.col("h") <= H24 + 48).max().alias("_peak48"))
     df = df.join(peak, on="id", how="left").with_columns(
         ((pl.col("_peak") >= pl.col("baseline_scr") + 0.3) | (pl.col("_peak") >= 1.5 * pl.col("baseline_scr")))
         .fill_null(False).alias("aki"),
+        ((pl.col("_peak48") >= pl.col("baseline_scr") + 0.3) | (pl.col("_peak") >= 1.5 * pl.col("baseline_scr")))
+        .fill_null(False).alias("aki_kdigo48"),
         (pl.col("death_h").is_not_null() & (pl.col("death_h") > H24) & (pl.col("death_h") <= H192)).alias("death"))
-    return df.select(["id", "site"] + FEATURES + OUTCOMES + ["n_stays_before_filters"]).with_columns(
+    return df.select(["id", "site"] + FEATURES + OUTCOMES + SENSITIVITY + ["n_stays_before_filters"]).with_columns(
         [pl.col(c).cast(pl.Float64) for c in FEATURES])
 
 
@@ -120,8 +125,9 @@ def mimic(con) -> tuple[pl.DataFrame, dict]:
     ce = q(con, f"""SELECT k.id, c.itemid, c.charttime, c.valuenum, k.tin FROM {csv(d / 'icu' / 'chartevents.csv.gz')} c
                     JOIN k ON c.stay_id = k.id WHERE c.itemid IN ({', '.join(repr(i) for i in MIMIC_CHART)})
                     AND c.valuenum IS NOT NULL
-                    AND TRY_CAST(c.charttime AS TIMESTAMP) BETWEEN CAST(k.tin AS TIMESTAMP)
-                        AND CAST(k.tin AS TIMESTAMP) + INTERVAL 24 HOUR""")
+                    AND TRY_CAST(c.charttime AS TIMESTAMP) <= CAST(k.tin AS TIMESTAMP) + INTERVAL 24 HOUR
+                    AND (TRY_CAST(c.charttime AS TIMESTAMP) >= CAST(k.tin AS TIMESTAMP)
+                         OR c.itemid IN ({', '.join(repr(i) for i in WEIGHT_ITEMS)}))""")
     lab = q(con, f"""SELECT k.id, l.itemid, l.specimen_id, l.charttime, l.valuenum, k.tin FROM {csv(d / 'hosp' / 'labevents.csv.gz')} l
                      JOIN k ON l.subject_id = k.subject_id WHERE l.itemid IN ({', '.join(repr(i) for i in MIMIC_LAB)})
                      AND l.valuenum IS NOT NULL
@@ -182,6 +188,16 @@ def eicu(con) -> tuple[pl.DataFrame, dict]:
                     FROM {csv(d / 'nurseCharting.csv.gz')} n JOIN k ON n.patientunitstayid = k.id
                     WHERE n.nursingchartcelltypevallabel = 'Glasgow coma score' AND n.nursingchartcelltypevalname = 'GCS Total'
                     AND TRY_CAST(n.nursingchartoffset AS DOUBLE) BETWEEN 0 AND 1440""")
+    gcomp = q(con, f"""SELECT n.patientunitstayid AS id, n.nursingchartoffset AS o, n.nursingchartcelltypevalname AS part,
+                       n.nursingchartvalue AS v FROM {csv(d / 'nurseCharting.csv.gz')} n JOIN k ON n.patientunitstayid = k.id
+                       WHERE n.nursingchartcelltypevallabel = 'Glasgow coma score'
+                       AND n.nursingchartcelltypevalname IN ('Eyes', 'Verbal', 'Motor')
+                       AND TRY_CAST(n.nursingchartoffset AS DOUBLE) BETWEEN 0 AND 1440""")
+    pe = q(con, f"""SELECT p.patientunitstayid AS id, p.physicalexamoffset AS o,
+                    regexp_extract(p.physicalexampath, 'GCS/(Eyes|Verbal|Motor) Score', 1) AS part, p.physicalexamvalue AS v
+                    FROM {csv(d / 'physicalExam.csv.gz')} p JOIN k ON p.patientunitstayid = k.id
+                    WHERE regexp_matches(p.physicalexampath, 'Neurologic/GCS/(Eyes|Verbal|Motor) Score/')
+                    AND TRY_CAST(p.physicalexamoffset AS DOUBLE) BETWEEN 0 AND 1440""")
     lb = q(con, f"""SELECT l.patientunitstayid AS id, l.labresultoffset AS o, l.labname, l.labresult
                     FROM {csv(d / 'lab.csv.gz')} l JOIN k ON l.patientunitstayid = k.id
                     WHERE l.labname IN ({', '.join(repr(n) for n in EICU_LAB)})
@@ -192,8 +208,15 @@ def eicu(con) -> tuple[pl.DataFrame, dict]:
         return (df.unpivot(index=["id", "o"], on=cols, variable_name="var", value_name="value")
                 .select("id", (num("o") / 60).alias("h"), "var", num("value").alias("value")).drop_nulls())
 
+    comp = (pl.concat([gcomp, pe]).select("id", (num("o") / 60).alias("h"), "part", num("v").alias("v")).drop_nulls()
+            .group_by("id", "h", "part").agg(pl.col("v").mean()).pivot(on="part", index=["id", "h"], values="v"))
+    for c in ("Eyes", "Verbal", "Motor"):
+        if c not in comp.columns:
+            comp = comp.with_columns(pl.lit(None, pl.Float64).alias(c))
+    comp = comp.drop_nulls(["Eyes", "Verbal", "Motor"]).select(
+        "id", "h", pl.lit("gcs_total").alias("var"), (pl.col("Eyes") + pl.col("Verbal") + pl.col("Motor")).alias("value"))
     vit = pl.concat([melt(vp, ["hr", "rr", "spo2", "temp_c", "sbp", "dbp"]), melt(va, ["sbp", "dbp"]),
-                     melt(gc, ["gcs_total"]),
+                     melt(gc, ["gcs_total"]), comp,
                      st.select("id", pl.lit(0.0).alias("h"), pl.lit("weight_kg").alias("var"),
                                num("admissionweight").alias("value")).drop_nulls()])
     lab = lb.select("id", (num("o") / 60).alias("h"), pl.col("labname").replace_strict(EICU_LAB).alias("var"),
@@ -203,7 +226,8 @@ def eicu(con) -> tuple[pl.DataFrame, dict]:
 
 def finish(st: pl.DataFrame, vit: pl.DataFrame, lab: pl.DataFrame, flow: dict) -> tuple[pl.DataFrame, dict]:
     st = st.with_columns(pl.col("id").cast(pl.Utf8), pl.col("age").cast(pl.Float64))
-    vit = in_range(vit.with_columns(pl.col("id").cast(pl.Utf8)).filter(pl.col("h").is_between(0, H24)))
+    vit = in_range(vit.with_columns(pl.col("id").cast(pl.Utf8)).filter(
+        pl.col("h").is_between(0, H24) | ((pl.col("var") == "weight_kg") & (pl.col("h") <= H24))))
     lab = in_range(lab.with_columns(pl.col("id").cast(pl.Utf8), pl.col("spec").cast(pl.Utf8)))
     lab24 = lab.filter(pl.col("h").is_between(0, H24))
     feat = pl.concat([vit, lab24.drop("spec"), ratio(lab24)], how="diagonal_relaxed").select("id", "h", "var", "value")
@@ -222,7 +246,7 @@ def report(res: dict) -> str:
     for s in steps:
         L.append(f"| {s} | " + " | ".join(f"{r['flow'][s]:,}" if s in r["flow"] else "—" for r in res.values()) + " |")
     L += ["", "## Outcomes", "", "| outcome | " + " | ".join(res) + " |", "|---|" + "---|" * len(res)]
-    for o in OUTCOMES:
+    for o in OUTCOMES + SENSITIVITY:
         L.append(f"| {o} | " + " | ".join(f"{r['df'][o].mean():.1%}" for r in res.values()) + " |")
     L += ["", "## Features: missing (%) and median [IQR]", "",
           "| feature | " + " | ".join(f"{s} missing | {s} median [IQR]" for s in res) + " |",
