@@ -23,6 +23,9 @@ placement measures the path walked along g_j (∫ ‖g_j′‖), continuous and 
 - **Pre-registration:** [prereg_arc.md](prereg_arc.md), registered on OSF by the lead on 2026-11-08
   ([10.17605/OSF.IO/NAQ2T](https://doi.org/10.17605/OSF.IO/NAQ2T); code at registration `0addc45`), before the first
   real-data run of either arm. Every freeze of both arms carries this ID.
+- **2026-11-08, mechanical fix before any real-data run (§7):** `scripts/nwicu_build.py` read duckdb results with
+  `.arrow()`, which duckdb ≥ 1.2 no longer offers on a connection (the lead's machine has 1.5.4). It now uses whichever
+  Arrow export the installed version has. Same SQL, same tables; the script is in no code hash. No method change.
 
 ## 2026-11-08 — PRAM factors study: registered; Tier 2 cohort check and deviations (before any model)
 

@@ -38,6 +38,15 @@ SURGICAL_ICU = ["SICU", "CTICU"]
 EMERGENCY = ["EMERGENCY", "URGENT", "TRAUMA"]
 
 
+
+def _arrow(rel) -> "pl.DataFrame":
+    """A duckdb result as a polars frame on any duckdb version (.arrow() was renamed in duckdb 1.2+)."""
+    for name in ("fetch_arrow_table", "to_arrow_table", "arrow"):
+        f = getattr(rel, name, None)
+        if f is not None:
+            return pl.from_arrow(f())
+    raise RuntimeError("this duckdb version has no Arrow export")
+
 def landmarks_module():
     """v0.6's landmark code: hypo/landmarks.py beside this script (as nwicu_landmarks.py) or the repository's."""
     for p in (HERE / "nwicu_landmarks.py", ROOT / "src" / "hypo" / "landmarks.py"):
@@ -69,9 +78,9 @@ def epoch_min(col: str) -> pl.Expr:
 
 
 def stays(con) -> pl.DataFrame:
-    st = pl.from_arrow(con.execute(f"SELECT * FROM {csv(DATA / 'nw_icu' / 'icustays.csv.gz')}").arrow())
-    pt = pl.from_arrow(con.execute(f"SELECT subject_id, gender, anchor_age FROM {csv(DATA / 'nw_hosp' / 'patients.csv.gz')}").arrow())
-    ad = pl.from_arrow(con.execute(f"SELECT hadm_id, admission_type, deathtime FROM {csv(DATA / 'nw_hosp' / 'admissions.csv.gz')}").arrow())
+    st = _arrow(con.execute(f"SELECT * FROM {csv(DATA / 'nw_icu' / 'icustays.csv.gz')}"))
+    pt = _arrow(con.execute(f"SELECT subject_id, gender, anchor_age FROM {csv(DATA / 'nw_hosp' / 'patients.csv.gz')}"))
+    ad = _arrow(con.execute(f"SELECT hadm_id, admission_type, deathtime FROM {csv(DATA / 'nw_hosp' / 'admissions.csv.gz')}"))
     s = (st.join(pt, on="subject_id", how="left").join(ad, on="hadm_id", how="left")
          .with_columns(epoch_min("intime").alias("icu_in_min"), epoch_min("outtime").alias("icu_out_min"),
                        epoch_min("deathtime").alias("death_min"), pl.col("anchor_age").cast(pl.Float64).alias("age"))
@@ -94,10 +103,10 @@ def tables(con, st: pl.DataFrame, cfg: dict) -> dict[str, pl.DataFrame]:
     def hours(col: str) -> pl.Expr:
         return (epoch_min(col) - pl.col("icu_in_min")) / 60
 
-    ce = pl.from_arrow(con.execute(
+    ce = _arrow(con.execute(
         f"""SELECT k.stay_id, c.itemid, c.charttime, c.valuenum, k.icu_in_min FROM {csv(DATA / 'nw_icu' / 'chartevents.csv.gz')} c
             JOIN k ON c.stay_id = k.stay_id WHERE c.itemid IN ({', '.join(repr(v) for v in ITEMS.values())})
-            AND c.valuenum IS NOT NULL""").arrow())
+            AND c.valuenum IS NOT NULL"""))
     name = {v: k for k, v in ITEMS.items()}
     ce = ce.select("stay_id", hours("charttime").alias("h"), pl.col("itemid").replace_strict(name).alias("item"),
                    pl.col("valuenum").cast(pl.Float64, strict=False).alias("value")).drop_nulls()
@@ -112,17 +121,17 @@ def tables(con, st: pl.DataFrame, cfg: dict) -> dict[str, pl.DataFrame]:
         pl.when(pl.col("item") == "temp_f").then((pl.col("value") - 32) * 5 / 9).otherwise(pl.col("value")).alias("value"),
         pl.col("item").replace({"temp_f": "temp"}).alias("var")).select("stay_id", "h", "var", "value")
     v = pl.concat(bp + [other])
-    lab = pl.from_arrow(con.execute(
+    lab = _arrow(con.execute(
         f"""SELECT k.stay_id, l.itemid, l.charttime, l.storetime, l.valuenum, k.icu_in_min
             FROM {csv(DATA / 'nw_hosp' / 'labevents.csv.gz')} l JOIN k ON l.hadm_id = k.hadm_id
-            WHERE l.itemid IN ({', '.join(repr(i) for i in LABS)}) AND l.valuenum IS NOT NULL""").arrow())
+            WHERE l.itemid IN ({', '.join(repr(i) for i in LABS)}) AND l.valuenum IS NOT NULL"""))
     lab = lab.with_columns(pl.coalesce(pl.col("storetime"), pl.col("charttime")).alias("t")).select(
         "stay_id", hours("t").alias("h"), pl.col("itemid").replace_strict(LABS).alias("var"),
         pl.col("valuenum").cast(pl.Float64, strict=False).alias("value"))
-    em = pl.from_arrow(con.execute(
+    em = _arrow(con.execute(
         f"""SELECT k.stay_id, e.charttime, e.medication, k.icu_in_min FROM {csv(DATA / 'nw_hosp' / 'emar.csv.gz')} e
             JOIN k ON e.hadm_id = k.hadm_id WHERE e.event_txt IN ('Confirmed', 'Applied')
-            AND (regexp_matches(e.medication, '{VASO[4:]}', 'i') OR regexp_matches(e.medication, '{SEDATION[4:]}', 'i'))""").arrow())
+            AND (regexp_matches(e.medication, '{VASO[4:]}', 'i') OR regexp_matches(e.medication, '{SEDATION[4:]}', 'i'))"""))
     med = pl.col("medication")
     vaso = med.str.contains(VASO) & ~med.str.contains(VASO_NOT)
     if IV_ONLY:
