@@ -5,6 +5,22 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-08 — Pre-registration: why a learned metric beats cosine in PERISIM but not in PRAM (two tiers; OSF)
+
+The full plan is `docs/prereg_pram_factors.md`, fixed before any analysis and to be registered on OSF before any run.
+Four candidate factors, each with a PERISIM and a PRAM level:
+- U, the use of the neighbours (standalone or mixed with a frozen model);
+- V, the vote;
+- I, the NCA implementation (diagonal or full matrix);
+- S, the setting.
+
+The two tiers:
+- **Tier 1** crosses U, V and I on `hypo`'s frozen artefacts (INSPIRE, MIMIC-IV, eICU, NWICU).
+- **Tier 2** rebuilds PRAM's setting (MIMIC-IV → eICU, 42 static first-24 h features, acute kidney injury and 168 h
+  mortality) from its published recipe, checks the replication of its Table S13, and crosses the same factors.
+
+Primary measure: AUROC; attribution by the pre-specified rule of §6. No code has been run for either tier.
+
 ## 2026-11-08 — Result: a cosine kNN against the transported learned metric (REPORT §21)
 
 Run on the lead's workstation with `hypo`'s frozen code (v0.5), plan commit `3f52b4d`; the gate passed at all four
