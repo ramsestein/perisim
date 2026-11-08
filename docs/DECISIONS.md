@@ -37,6 +37,15 @@ fitted or any outcome joined to a model:
 
 The cohort is rebuilt with 1–2 and re-checked before Tier 2's models run.
 
+**Re-check after the rebuild (13:27 KST, before any model).**
+- Cohort sizes and outcomes are unchanged.
+- MIMIC-IV weight is now 0.5 % missing (PRAM 0.6 %), and eICU GCS 3.6 % (PRAM 4.6 %).
+- `aki_kdigo48`: MIMIC-IV 25.0 %, eICU 15.5 %; still far above PRAM's 14.7 % and 6.1 %.
+
+The acute kidney injury prevalence remains the main difference from PRAM's cohort; its cause is unknown and it is
+reported as a fidelity limit. A first copy of the corrected build script did not reach the workstation (the bridge
+wrote the previous version), which was found by checksum and re-copied. Tier 2's models then started.
+
 ## 2026-11-08 — Pre-registration: why a learned metric beats cosine in PERISIM but not in PRAM (two tiers; OSF)
 
 The full plan is `docs/prereg_pram_factors.md`, fixed before any analysis and to be registered on OSF before any run.
