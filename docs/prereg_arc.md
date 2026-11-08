@@ -1,11 +1,12 @@
-# Pre-registration — arc-length placement of the shape functions: every PERISIM experiment re-run in two arms (draft)
+# Pre-registration — arc-length placement of the shape functions: every PERISIM experiment re-run in two arms
 
 **Status.** Draft of 2026-11-08 (branch `arc-metric`), written by the lead with the analyst **before either arm has
 run on any real data**. It is meant to be uploaded to OSF as written, and the OSF identifier is then passed to every
 freeze of this re-run (`--registration <OSF ID>`). The code of both arms has run only on synthetic data (the test
 suite and the smoke tests).
 
-**Registered on OSF:** _pending_ (to be filled in, with the commit of the branch at registration).
+**Registered on OSF:** https://doi.org/10.17605/OSF.IO/NAQ2T (2026-11-08, before any real-data run of either arm;
+code at registration: branch `arc-metric`, commit `0addc45`).
 
 ## 1. Question
 

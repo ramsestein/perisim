@@ -20,8 +20,9 @@ placement measures the path walked along g_j (∫ ‖g_j′‖), continuous and 
   own work folder, guarded against the published one (`src/perisim/arc_guard.py`).
 - **Primary contrast.** Bioequivalence of Q = (L_euclid − L_arc)/(L_euclid − L_value), with the 90 % CI inside
   [0.80, 1.25], in the six `hypo` and NWICU units, plus the paired D = L_arc − L_value.
-- **Pre-registration:** [prereg_arc.md](prereg_arc.md), to be registered on OSF before the first real-data run of
-  either arm.
+- **Pre-registration:** [prereg_arc.md](prereg_arc.md), registered on OSF by the lead on 2026-11-08
+  ([10.17605/OSF.IO/NAQ2T](https://doi.org/10.17605/OSF.IO/NAQ2T); code at registration `0addc45`), before the first
+  real-data run of either arm. Every freeze of both arms carries this ID.
 
 ## 2026-11-08 — PRAM factors study: registered; Tier 2 cohort check and deviations (before any model)
 
