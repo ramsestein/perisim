@@ -7,7 +7,7 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 
 ## 2026-11-08 — PRAM factors study: registered; Tier 2 cohort check and deviations (before any model)
 
-**Registered** on OSF by the lead (as an addition to the project's OSF registrations) before any analysis. Code at
+**Registered** on OSF by the lead before any analysis: https://doi.org/10.17605/OSF.IO/3SBFG. Code at
 registration: plan commit `89ce86a` (with §11's implementation clarifications); Tier 1 started on the lead's
 workstation at 12:58 KST, and all five gates passed at INSPIRE.
 

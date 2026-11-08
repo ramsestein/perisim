@@ -1,6 +1,6 @@
 # Pre-registration: why does a learned metric beat cosine in PERISIM but not in PRAM?
 
-**Registered on OSF:** pending (to be filled in after registration).
+**Registered on OSF:** https://doi.org/10.17605/OSF.IO/3SBFG (2026-11-08, before any analysis).
 **Author:** Ramsés Marrero García (Hospital Clínic de Barcelona).
 **Repository:** https://github.com/ramsestein/perisim (this file: `docs/prereg_pram_factors.md`).
 
