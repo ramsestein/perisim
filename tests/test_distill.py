@@ -213,3 +213,25 @@ def test_hypotheses_from_fake_dumps(tmp_path):
     assert h["H2"]["holds"] and h["H2"]["n_ind_worse"] == 6
     assert all(v == "not shown" for v in h["Q_IND"].values())
     assert all(v == "equivalent" for v in h["H3"]["units"].values())
+
+
+def test_teacher_labelled_keeps_rows_and_changes_only_labels(lm, aggs):
+    from hypo import compare
+
+    learn, _ = aggs
+    teacher, _ = compare.fit("logreg", lm, {"inner_folds": 2}, {"logreg_C_grid": [1.0]}, n_inner=2, seed=0, threads=1)
+    y0 = learn.y.copy()
+    t, info = S.teacher_labelled(learn, teacher, 3, 0)
+    assert np.array_equal(learn.y, y0)                       # the real sample is not modified
+    assert t.ft is learn.ft and len(t) == len(learn) and set(np.unique(t.y)) <= {0, 1}
+    assert 0.5 < info["agreement_with_real_y"] < 1.0
+    t2, _ = S.teacher_labelled(learn, teacher, 3, 0)
+    assert np.array_equal(t.y, t2.y)                         # fixed seed
+
+
+def test_render_teach_runs():
+    v = {"est": 0.001, "ci95": [0.0, 0.002], "ci90": [0.0, 0.002]}
+    u = {"D_COP": v, "D_model": v, "D_synthesis": v, "D_synthesis_ind": v, "Q_TEACH": v, "H1_rule_TEACH": "x",
+         "Q_synthesis": v, "H1_rule_synthesis": "y", "share_synthesis": 0.5}
+    m = {"labels": {"agreement_with_real_y": 0.7, "mean_p_teacher": 0.2}, "weights": {"spearman": 0.8}}
+    assert "50 %" in DR.render_teach({"status": "post hoc", "units": {"hypo_eicu": u}, "metrics": {"eicu": m}})

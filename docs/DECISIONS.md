@@ -5,6 +5,31 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-13 — Branch `distill`, post hoc arm TEACH: cost of the model vs cost of the synthesis (lead; written before it runs)
+
+**Not registered.** Written after the registered result (H1 not met: Q_COP non-inferior in 4 of 6 units; H2 not
+met), and before arm TEACH is fitted. H1–H3 stand as they came out; this is reported separately and labelled post hoc.
+
+**Question.** M_COP changes two things at once with respect to M_REAL: the rows (synthetic from aggregates: the
+privacy step) and the outcome (labels drawn from the teacher: the model step). Which one costs the gain?
+
+**Arm TEACH.** The real learning sample of M_REAL (same rows), with y ~ Bernoulli(p_T(x)) from the same frozen teacher
+(seed `[final seed, 29, rotation, 2]`), through the same `fit_metric` call and seed, evaluated at the same six units
+with the same case bases and folds. Then, per unit, with `scripts/arc_compare.py`'s statistics and replicates:
+
+- **D_model = L_TEACH − L_REAL** (cost of replacing the outcome by the teacher);
+- **D_synthesis = L_COP − L_TEACH** (cost of replacing the rows by the copula cohort); also L_IND − L_TEACH;
+- D_model + D_synthesis = D_COP exactly; each with its 95 % CI;
+- **Q_TEACH** (vs M_REAL) and **Q_synthesis = (L_euclid − L_COP)/(L_euclid − L_TEACH)**, each read by the H1 rule
+  (non-inferior if the lower 90 % limit ≥ 0.80), i.e. how H1 would have read for distillation without synthesis, and
+  for synthesis given the teacher;
+- the share of D_COP due to synthesis (D_synthesis / D_COP), point estimate only, reported only where D_COP's 95 % CI
+  excludes 0 (hypo INSPIRE, hypo MIMIC).
+
+**Reading, fixed now.** The privacy step is called the main cost in a unit when D_synthesis's 95 % CI excludes 0 and
+D_model's does not; the model step when the reverse holds; both or neither otherwise. No change to the registered
+artefacts (TEACH lives in `work_distill/distill/posthoc/`, outside the freeze record, which is checked first).
+
 ## 2026-11-13 — Branch `distill`: a pooled rare cell on fewer than 50 patients (lead; deviation, before any cohort)
 
 The rerun of `aggregates` (18:35) named the cells: at INSPIRE, in rotations mimic and eicu, the pooled rare values of

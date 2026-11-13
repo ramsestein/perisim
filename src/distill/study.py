@@ -59,6 +59,19 @@ def synthetic_cohort(aggs: dict[str, A.SiteAggregates], teacher, specs, seed: in
     return lm, info
 
 
+def teacher_labelled(learn: Landmarks, teacher, seed: int, rotation: int) -> tuple[Landmarks, dict]:
+    """Post hoc (DECISIONS 2026-11-13, arm TEACH): the REAL learning rows with y ~ Bernoulli(p_T), separating the cost
+    of replacing the outcome by the teacher from the cost of replacing the rows by synthetic ones."""
+    import copy
+
+    lm = copy.copy(learn)
+    p = np.clip(np.asarray(teacher(learn), dtype=np.float64), 0.0, 1.0)
+    rng = np.random.default_rng(np.random.SeedSequence([seed, 29, rotation, 2]))
+    lm.y = (rng.random(len(lm)) < p).astype(np.int64)
+    return lm, {"n": len(lm), "mean_p_teacher": float(p.mean()), "prevalence_drawn": float(lm.y.mean()),
+                "agreement_with_real_y": float((lm.y == learn.y).mean())}
+
+
 def fit_on(learn: Landmarks, mcfg: dict, space: dict, seed: int, threads: int):
     from hypo.metric import fit_metric
 

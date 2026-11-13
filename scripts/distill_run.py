@@ -54,6 +54,7 @@ OSF = re.compile(r"^10\.17605/OSF\.IO/[A-Z0-9]{4,}$")
 ROTATIONS = ("inspire", "mimic", "eicu")
 CHECK_TOL = 1e-6
 STEPS = ("aggregates", "fit", "check", "freeze", "evaluate", "dump", "compare")
+POSTHOC = ("teach",)            # not registered: DECISIONS 2026-11-13 (arm TEACH); run by name, never by `all`
 
 
 # ---------------------------------------------------------------------------- folders, hashes, registration
@@ -328,25 +329,31 @@ def _write_unit(path: Path, rows: np.ndarray, p: np.ndarray, info: dict) -> None
 
 
 def step_evaluate(c: Ctx) -> None:
+    from distill.study import ARMS
+
+    frozen(c)
+    _evaluate(c, ARMS, c.metric_path)
+
+
+def _evaluate(c: Ctx, arms, metric_path) -> None:
     import nwicu_transport as NT
-    from distill.study import ARMS, predict_folds
+    from distill.study import predict_folds
     from hypo.cv import Sites, cv_dir, outer_folds
     from hypo.frozen import load_pickle
 
-    frozen(c)
     U = _units_dir(c)
     S = Sites(c.cfg, cv_dir(False))
     n_f = int(c.cfg["cv"]["outer_folds"])
     for X in ROTATIONS:                                          # hypo: the target's own folds and case base
         lm = S.lm(X)
-        for arm in ARMS:
+        for arm in arms:
             m = E = None
             for f in range(n_f):
                 path = U / f"hypo_{X}_{arm}_f{f}.parquet"
                 if path.exists():
                     continue
                 if m is None:
-                    m = load_pickle(c.metric_path(arm, X))
+                    m = load_pickle(metric_path(arm, X))
                     E = m.embed(lm)
                 tr, te = S.split(X, f)
                 t = time.perf_counter()
@@ -357,14 +364,14 @@ def step_evaluate(c: Ctx) -> None:
     nw = NT.landmarks(c.cfg)                                     # NWICU: its pre-registered folds and case base
     fold = outer_folds(nw, n_f, c.seed)
     for e in ROTATIONS:
-        for arm in ARMS:
+        for arm in arms:
             m = E = None
             for f in sorted(set(fold.tolist())):
                 path = U / f"nwicu_{e}_{arm}_f{f}.parquet"
                 if path.exists():
                     continue
                 if m is None:
-                    m = load_pickle(c.metric_path(arm, e))
+                    m = load_pickle(metric_path(arm, e))
                     E = m.embed(nw)
                 tr, te = np.where(fold != f)[0], np.where(fold == f)[0]
                 p = predict_folds(m, nw, [(f, tr, te)], c.mcfg, c.seed, E=E)
@@ -386,11 +393,16 @@ def _gather(U: Path, unit: str, arm: str, n: int) -> np.ndarray:
 
 
 def step_dump(c: Ctx) -> None:
-    import nwicu_transport as NT
     from distill.study import ARMS
-    from hypo.stats import logloss_rows
 
     frozen(c)
+    _dump(c, ARMS)
+
+
+def _dump(c: Ctx, arms) -> None:
+    import nwicu_transport as NT
+    from hypo.stats import logloss_rows
+
     U = _units_dir(c)
     src = c.a.source / "arc_compare"
     sets = {f"hypo_{X}": c.lm(X) for X in ROTATIONS}
@@ -406,7 +418,7 @@ def step_dump(c: Ctx) -> None:
         rows = np.array([pos[s] for s in v["ids"]])
         if not np.array_equal(lm.y[rows].astype(v["y"].dtype), v["y"]):
             raise SystemExit(f"[distill] {unit}: labels do not match arm value's dump")
-        for arm in ARMS:
+        for arm in arms:
             p = _gather(U, unit, arm, len(lm))[rows]
             if not np.isfinite(p).all():
                 raise SystemExit(f"[distill] {unit} {arm}: rows of arm value's dump without a prediction")
@@ -537,9 +549,84 @@ def render(res: dict) -> str:
     return "\n".join(L) + "\n"
 
 
+
+# ---------------------------------------------------------------------------- post hoc: arm TEACH (not registered)
+def teach_path(c: Ctx, e: str) -> Path:
+    return d(c.out, "posthoc", "metrics") / f"metric_teach_ext-{e}.pkl"
+
+
+def step_teach(c: Ctx) -> None:
+    """DECISIONS 2026-11-13: real learning rows labelled by the teacher (TEACH), fitted, evaluated and contrasted, so
+    that D_COP = (L_TEACH - L_REAL) [cost of the model] + (L_COP - L_TEACH) [cost of the synthesis]."""
+    import arc_compare as AC
+    from distill.study import fit_on, teacher_labelled, weight_agreement
+    from hypo.frozen import dump, load_pickle
+
+    rec = frozen(c)                                   # the registered artefacts are untouched
+    for i, e in enumerate(ROTATIONS):
+        path = teach_path(c, e)
+        if path.exists():
+            continue
+        _, learn = c.learn(e)
+        t = time.perf_counter()
+        lm, info = teacher_labelled(learn, c.teacher(e), c.final_seed, i)
+        m = fit_on(lm, c.mcfg, c.space, c.final_seed, c.a.threads)
+        wjson(path.with_suffix(".json"), {"rotation": e, "arm": "teach", "labels": info, "code_hash": code_hash(),
+                                          "seconds": time.perf_counter() - t,
+                                          "weights": weight_agreement(m, load_pickle(c.final / f"metric_ext-{e}.pkl"))})
+        dump(m, path)
+        LOG.info("metric teach ext-%s: %.0f s", e, time.perf_counter() - t)
+    _evaluate(c, ("teach",), lambda arm, e: teach_path(c, e))
+    _dump(c, ("teach",))
+    src, te, cop, ind = c.a.source, c.out / "teach", c.out / "cop", c.out / "ind"
+    r_te, te_cop, te_ind, r_cop = AC.compare(src, te), AC.compare(te, cop), AC.compare(te, ind), AC.compare(src, cop)
+    units = {}
+    for u in sorted(r_te["units"]):
+        dm, dp, dc = r_te["units"][u]["D"], te_cop["units"][u]["D"], r_cop["units"][u]["D"]
+        sig = dc["ci95"][0] > 0 or dc["ci95"][1] < 0
+        units[u] = {"D_COP": dc, "D_model": dm, "D_synthesis": dp, "D_synthesis_ind": te_ind["units"][u]["D"],
+                    "Q_TEACH": r_te["units"][u]["Q"], "H1_rule_TEACH": _ni(r_te["units"][u]),
+                    "Q_synthesis": te_cop["units"][u]["Q"], "H1_rule_synthesis": _ni(te_cop["units"][u]),
+                    "share_synthesis": (dp["est"] / dc["est"]) if sig else None,
+                    "additivity_error": abs(dm["est"] + dp["est"] - dc["est"]),
+                    "logloss": {"euclidean": r_te["units"][u]["logloss"]["euclidean"],
+                                "real": r_te["units"][u]["logloss"]["value"], "teach": r_te["units"][u]["logloss"]["arc"],
+                                "cop": te_cop["units"][u]["logloss"]["arc"], "ind": te_ind["units"][u]["logloss"]["arc"]}}
+    res = {"status": "post hoc, not registered (DECISIONS 2026-11-13, arm TEACH)", "registration": rec["registration"],
+           "code_hash": code_hash(), "units": units,
+           "metrics": {e: json.loads(teach_path(c, e).with_suffix(".json").read_text(encoding="utf-8"))
+                       for e in ROTATIONS}}
+    for e in res["metrics"]:
+        res["metrics"][e]["weights"].pop("weights", None)
+    wjson(d(c.out, "posthoc") / "teach.json", res)
+    (d(c.out, "posthoc") / "teach.md").write_text(render_teach(res), encoding="utf-8")
+    LOG.info("post hoc TEACH: %s", d(c.out, "posthoc") / "teach.md")
+
+
+def render_teach(res: dict) -> str:
+    def ci(x, k="ci95", sign=True):
+        f = "{:+.4f}" if sign else "{:.3f}"
+        return f"{f.format(x['est'])} ({f.format(x[k][0])} to {f.format(x[k][1])})"
+
+    L = ["# Post hoc: cost of the model vs cost of the synthesis (arm TEACH)", "",
+         f"{res['status']}. D_COP = D_model + D_synthesis; nats, patient bootstrap (2,000), same replicates per unit.",
+         "", "| unit | D_COP | D_model = L_TEACH − L_REAL | D_synthesis = L_COP − L_TEACH | share of D_COP from synthesis | "
+         "Q_TEACH (90 % CI) | H1 rule | Q_synthesis (90 % CI) | H1 rule | D_synthesis IND |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
+    for u, v in res["units"].items():
+        sh = "—" if v["share_synthesis"] is None else f"{100 * v['share_synthesis']:.0f} %"
+        L.append(f"| {u} | {ci(v['D_COP'])} | {ci(v['D_model'])} | {ci(v['D_synthesis'])} | {sh} | "
+                 f"{ci(v['Q_TEACH'], 'ci90', False)} | {v['H1_rule_TEACH']} | {ci(v['Q_synthesis'], 'ci90', False)} | "
+                 f"{v['H1_rule_synthesis']} | {ci(v['D_synthesis_ind'])} |")
+    L += ["", "| rotation | teacher labels = real labels | mean p_T | Spearman TEACH vs M_REAL weights |", "|---|---|---|---|"]
+    for e, m in res["metrics"].items():
+        L.append(f"| {e} | {m['labels']['agreement_with_real_y']:.3f} | {m['labels']['mean_p_teacher']:.4f} | "
+                 f"{m['weights']['spearman']:.3f} |")
+    return "\n".join(L) + "\n"
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("step", choices=STEPS + ("all",))
+    ap.add_argument("step", choices=STEPS + POSTHOC + ("all",))
     ap.add_argument("--source", type=Path, required=True, help="arm value's work folder (read only)")
     ap.add_argument("--out", type=Path, default=None, help="this study's work folder (default: work_distill)")
     ap.add_argument("--registration", default=os.environ.get("PERISIM_DISTILL_OSF"))
