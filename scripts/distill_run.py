@@ -54,7 +54,8 @@ OSF = re.compile(r"^10\.17605/OSF\.IO/[A-Z0-9]{4,}$")
 ROTATIONS = ("inspire", "mimic", "eicu")
 CHECK_TOL = 1e-6
 STEPS = ("aggregates", "fit", "check", "freeze", "evaluate", "dump", "compare")
-POSTHOC = ("teach",)            # not registered: DECISIONS 2026-11-13 (arm TEACH); run by name, never by `all`
+POSTHOC = ("teach",)            # not registered: DECISIONS 2026-11-13 (arm TEACH); `all` runs them after every
+                                # registered step has finished (those resume: nothing registered is recomputed)
 
 
 # ---------------------------------------------------------------------------- folders, hashes, registration
@@ -644,7 +645,7 @@ def main(argv=None) -> int:
     if marker_arm(a.source) != "value":
         raise SystemExit(f"[distill] {a.source} is not arm value's work folder (marker)")
     c = Ctx(a)
-    for s in (STEPS if a.step == "all" else (a.step,)):
+    for s in (STEPS + POSTHOC if a.step == "all" else (a.step,)):
         LOG.info("step %s", s)
         globals()[f"step_{s}"](c)
     return 0
