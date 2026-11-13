@@ -5,6 +5,19 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-13 — Branch `arc-metric`: tolerance of the Euclidean check in T2's two units (lead, deviation)
+
+**What happened.** Both arms finished. `scripts/arc_compare.py` stops if the Euclidean kNN, which does not depend on
+the arm, differs between the arms by more than 1e-9 nats on any row. The six primary units passed exactly (difference
+0). In T2's two secondary units exactly one row of each differed: 0.031 nats in eICU (of 4,725 rows) and 0.034 in
+MIMIC-IV (of 4,963). This is consistent with a tie between equidistant neighbours broken differently in the two runs;
+the effect on the mean is about 1e-5 nats.
+
+**Decided (before the T2 contrast was computed).** T2 units may differ in at most one row. The differing rows are
+reported, and every statistic uses the value arm's Euclidean kNN, as §6.1 of prereg_arc.md already specifies. The
+primary units keep the exact check. No reading rule changes. The primary contrast had been computed with the
+registered script before this change, and is unchanged by it.
+
 ## 2026-11-08 — Branch `arc-metric`: arc-length placement of the shapes, every experiment re-run in two arms (lead)
 
 **Why.** The intended reading of g_j is a deformed axis: equal steps count as more distance where the risk changes

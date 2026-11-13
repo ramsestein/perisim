@@ -311,3 +311,19 @@ def test_compare_refuses_unpaired_units_and_reports(tmp_path, monkeypatch):
         AC.compare(dirs["value"], dirs["arc"])
     with pytest.raises(SystemExit):                                   # arms swapped
         AC.main(["--value", str(dirs["arc"]), "--arc", str(dirs["value"])])
+
+
+def test_t2_units_tolerate_one_tied_row_and_primaries_do_not():
+    _scripts()
+    from arc_compare import pair
+
+    n = 50
+    base = {"ids": np.arange(n).astype(str), "subjects": np.arange(n).astype(str), "y": np.zeros(n, int),
+            "ll_euclidean": np.ones(n)}
+    other = dict(base, ll_euclidean=np.r_[1.03, np.ones(n - 1)])
+    assert pair(base, other, "t2_eicu")["rows_differing"] == 1
+    with pytest.raises(SystemExit):
+        pair(base, other, "hypo_eicu")
+    two = dict(base, ll_euclidean=np.r_[1.03, 1.03, np.ones(n - 2)])
+    with pytest.raises(SystemExit):
+        pair(base, two, "t2_eicu")

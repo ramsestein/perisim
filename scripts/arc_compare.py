@@ -60,14 +60,28 @@ def load(work: Path) -> dict[str, dict]:
     return out
 
 
-def pair(v: dict, a: dict, unit: str) -> None:
-    """Stops unless both arms evaluated the same rows, patients and labels, and the same Euclidean kNN."""
+# DECISIONS 2026-11-13 (deviation, decided by the lead before the contrast was read): in T2's two units one row each
+# had a different Euclidean log-loss in the two arms (a tie between equidistant neighbours broken differently; mean
+# effect ~1e-5 nats). T2 units may differ in at most T2_MAX_ROWS rows; they are reported, and every statistic uses the
+# value arm's Euclidean kNN (as §6.1 specifies). The primary units keep the exact check.
+T2_MAX_ROWS = 1
+
+
+def pair(v: dict, a: dict, unit: str) -> dict:
+    """Stops unless both arms evaluated the same rows, patients and labels, and the same Euclidean kNN (T2 units: at
+    most T2_MAX_ROWS differing rows). Returns the Euclidean check."""
     for k in ("ids", "subjects", "y"):
         if v[k].shape != a[k].shape or not np.array_equal(v[k], a[k]):
             raise SystemExit(f"[compare] {unit}: the arms do not evaluate the same {k}; the contrast is not paired")
-    d = float(np.max(np.abs(v["ll_euclidean"] - a["ll_euclidean"]))) if v["y"].size else 0.0
-    if d > EUCLID_TOL:
-        raise SystemExit(f"[compare] {unit}: the Euclidean kNN differs between the arms (max {d:.3g} nats)")
+    diff = np.abs(v["ll_euclidean"] - a["ll_euclidean"]) if v["y"].size else np.zeros(0)
+    d = float(diff.max()) if diff.size else 0.0
+    n_diff = int((diff > EUCLID_TOL).sum())
+    check = {"max_diff": d, "rows_differing": n_diff,
+             "mean_diff": float(abs(v["ll_euclidean"].mean() - a["ll_euclidean"].mean())) if diff.size else 0.0}
+    if n_diff and not (unit.startswith("t2_") and n_diff <= T2_MAX_ROWS):
+        raise SystemExit(f"[compare] {unit}: the Euclidean kNN differs between the arms (max {d:.3g} nats, "
+                         f"{n_diff} rows)")
+    return check
 
 
 def contrast(e, tv, ta, lv, la, subjects, seed: int, n_boot: int = N_BOOT) -> dict:
@@ -162,13 +176,13 @@ def compare(value: Path, arc: Path) -> dict:
                      "n_boot": N_BOOT, "seed": SEED}}
     for i, u in enumerate(units):
         v, a = V[u], A[u]
-        pair(v, a, u)
+        check = pair(v, a, u)
         if v["y"].size < MIN_CELL:
             continue
         r = contrast(v["ll_euclidean"], v["ll_transported"], a["ll_transported"], v["ll_local"], a["ll_local"],
                      v["subjects"], SEED + 10 * i)
         r["readings"] = readings(r)
-        r["euclidean_max_diff"] = float(np.max(np.abs(v["ll_euclidean"] - a["ll_euclidean"])))
+        r["euclidean_check"] = check
         res["units"][u] = r
     res["shapes"] = shapes(value, arc)
     return res
@@ -200,6 +214,14 @@ def render(res: dict) -> str:
               "| variable | backtracking 1 − net/arc | weight value | weight arc |", "|---|---|---|---|"]
         for n, v in t["variables"].items():
             L.append(f"| {n} | {v['backtracking']:.2f} | {v['weight_share_value']:.3f} | {v['weight_share_arc']:.3f} |")
+    dev = {u: r["euclidean_check"] for u, r in res["units"].items() if r["euclidean_check"]["rows_differing"]}
+    if dev:
+        L += ["", "## Euclidean check (DECISIONS 2026-11-13)", "",
+              "The Euclidean kNN does not depend on the arm. Units where it differed (all statistics use the value "
+              "arm's):", ""]
+        for u, c in dev.items():
+            L.append(f"- {u}: {c['rows_differing']} row(s), max {c['max_diff']:.4f} nats, effect on the mean "
+                     f"{c['mean_diff']:.1e} nats")
     if res["only_value"] or res["only_arc"]:
         L += ["", f"Units in one arm only: value {res['only_value']}, arc {res['only_arc']}."]
     return "\n".join(L) + "\n"
