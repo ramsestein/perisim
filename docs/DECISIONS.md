@@ -5,6 +5,14 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-13 — Branch `distill`: the small-cell stop names the cell and writes nothing partial (mechanical)
+
+First run of the step `aggregates` (18:33): rotation inspire passed; rotation mimic stopped at site INSPIRE because a
+released cell rests on fewer than 50 patients (the rule of prereg §3.3 worked as written). The stop did not say
+which cell, and it had already written that rotation's eICU file. Mechanical fix, no change of method: the stop now
+lists every offending cell (input, kind, cell; no counts) across all rotations before writing anything, and a
+rotation counts as done only when its summary file exists. No synthetic cohort or metric exists yet.
+
 ## 2026-11-13 — Branch `distill`: distillation of the metric into a synthetic cohort (lead; plan before any real aggregate)
 
 Plan: [prereg_distill.md](prereg_distill.md), registered on OSF on 2026-11-13: 10.17605/OSF.IO/UHYDS (text of commit `2925c1e`). Code: `src/distill/` and

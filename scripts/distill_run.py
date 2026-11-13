@@ -141,7 +141,7 @@ class Ctx:
 
         p = d(self.out, "aggregates", f"ext-{e}")
         files = sorted(p.glob("*.json"))
-        if not files:
+        if not files or not (d(self.out) / f"aggregates_ext-{e}.json").exists():
             raise SystemExit(f"[distill] no aggregates for rotation {e}: run the step `aggregates`")
         return {f.stem: SiteAggregates.from_json(json.loads(f.read_text(encoding="utf-8"))) for f in files}
 
@@ -160,15 +160,21 @@ def step_aggregates(c: Ctx) -> None:
     from distill.study import rotation_aggregates
 
     reg = registered(c.a.registration)
+    done, bad = {}, []
     for i, e in enumerate(ROTATIONS):
-        p = d(c.out, "aggregates", f"ext-{e}")
-        if any(p.glob("*.json")):
+        if (d(c.out) / f"aggregates_ext-{e}.json").exists():        # written last: the rotation is complete
             continue
         _, learn = c.learn(e)
         ag = rotation_aggregates(learn, c.final_seed + 1000 * (i + 1))
         for s, a in ag.items():
-            if A.released_min_patients(a) < A.MIN_PATIENTS and a.n_patients >= A.MIN_PATIENTS:
-                raise SystemExit(f"[distill] {e}/{s}: a released cell has fewer than {A.MIN_PATIENTS} patients")
+            bad += [f"ext-{e}/{s}: {x}" for x in A.small_cells(a)]
+        done[e] = (learn, ag)
+    if bad:                                                            # nothing is written while any cell is small
+        raise SystemExit(f"[distill] released cells on fewer than {A.MIN_PATIENTS} patients (nothing written):\n  "
+                         + "\n  ".join(bad))
+    for e, (learn, ag) in done.items():
+        p = d(c.out, "aggregates", f"ext-{e}")
+        for s, a in ag.items():
             wjson(p / f"{s}.json", a.to_json())
         wjson(d(c.out) / f"aggregates_ext-{e}.json",
               {"rotation": e, "registration": reg, "n_learn": len(learn), "seed": c.final_seed,

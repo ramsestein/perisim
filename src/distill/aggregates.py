@@ -45,6 +45,7 @@ class Marginal:
     shares: list[float] | None = None           # their shares among observed rows (rare values: shared mass)
     rare_from: int | None = None                # index from which values are pooled as rare (mass spread evenly)
     min_patients: int = 0                       # smallest patient count behind any released cell
+    small_cells: list[str] | None = None        # labels of released cells resting on < MIN_PATIENTS patients
 
 
 @dataclass
@@ -86,7 +87,8 @@ def _marginal(name: str, col: np.ndarray, subjects: np.ndarray, nominal: bool) -
         lo, hi = np.percentile(obs, CLIP)
         q = np.quantile(np.clip(obs, lo, hi), np.linspace(0, 1, GRID))
         n_pat = np.unique(subjects[~miss]).size
-        return Marginal(name, "continuous", m, quantiles=[float(x) for x in q], min_patients=int(n_pat))
+        return Marginal(name, "continuous", m, quantiles=[float(x) for x in q], min_patients=int(n_pat),
+                        small_cells=["observed values"] if n_pat < MIN_PATIENTS else None)
     pp = _patients_per_value(obs, subjects[~miss])
     order = sorted(distinct.tolist(), key=lambda v: (-(obs == v).sum(), str(v)))
     shares = [float((obs == v).mean()) for v in order]
@@ -101,9 +103,11 @@ def _marginal(name: str, col: np.ndarray, subjects: np.ndarray, nominal: bool) -
     else:
         rare_pat = None
     released = [pp[order[i]] for i in big] + ([rare_pat] if rare else [])
+    small = ([f"pooled rare values ({len(rare)})"] if rare and rare_pat < MIN_PATIENTS else [])
     vals = [v if nominal else float(v) for v in vals]
     return Marginal(name, "nominal" if nominal else "discrete", m, values=vals, shares=sh,
-                    rare_from=len(big) if rare else None, min_patients=int(min(released)))
+                    rare_from=len(big) if rare else None, min_patients=int(min(released)),
+                    small_cells=small or None)
 
 
 def _missing(marg: Marginal, col: np.ndarray) -> np.ndarray:
@@ -237,6 +241,11 @@ def sample(agg: SiteAggregates, n: int, seed: int, *, copula: bool, specs) -> Fe
             num[mg.name] = np.asarray(col, dtype=np.float64)
     ids = np.array([f"syn-{agg.site}-{i}" for i in range(n)], dtype=object)
     return FeatureTable(ids, ids.copy(), specs, num, cat)
+
+
+def small_cells(agg: SiteAggregates) -> list[str]:
+    """'<input> (<kind>): <cell>' for every released cell on fewer than MIN_PATIENTS patients (no counts)."""
+    return [f"{mg.name} ({mg.kind}): {c}" for mg in agg.marginals for c in (mg.small_cells or [])]
 
 
 def released_min_patients(agg: SiteAggregates) -> int:
