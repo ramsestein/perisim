@@ -7,7 +7,7 @@ temporal validation omitted…) are logged automatically in `<workdir>/docs/DECI
 
 ## 2026-11-13 — Branch `distill`: distillation of the metric into a synthetic cohort (lead; plan before any real aggregate)
 
-Plan: [prereg_distill.md](prereg_distill.md) (OSF registration pending). Code: `src/distill/` and
+Plan: [prereg_distill.md](prereg_distill.md), registered on OSF on 2026-11-13: 10.17605/OSF.IO/UHYDS (text of commit `2925c1e`). Code: `src/distill/` and
 `scripts/distill_run.py`, tested on synthetic test data only (`tests/test_distill.py`).
 - **Teacher:** arm `value`'s frozen transported LightGBM (`final/comp_ext-<e>_lightgbm.pkl`); not re-fitted.
 - **Aggregates:** on each source site's rows of the real learning sample of M_REAL; quantiles (201, tails clipped

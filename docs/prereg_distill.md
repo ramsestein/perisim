@@ -4,7 +4,7 @@
 computed and before any distilled metric has been fitted on any real-derived data**. It is meant to be uploaded to OSF as written. The OSF identifier is then recorded in every freeze of this
 study (`--registration <OSF ID>`).
 
-**Registered on OSF:** _pending_ (to be filled in, together with the commit of the branch at registration).
+**Registered on OSF:** [10.17605/OSF.IO/UHYDS](https://doi.org/10.17605/OSF.IO/UHYDS), 2026-11-13. The text registered is that of commit `2925c1e` of branch `distill`; this line is the only change since.
 
 **Author:** Ramsés Marrero García (Hospital Clínic de Barcelona; SIMTRI, Seoul National University Hospital).
 
