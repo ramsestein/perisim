@@ -5,6 +5,22 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-13 — Branch `distill`: distillation of the metric into a synthetic cohort (lead; plan before any real aggregate)
+
+Plan: [prereg_distill.md](prereg_distill.md) (OSF registration pending). Code: `src/distill/` and
+`scripts/distill_run.py`, tested on synthetic test data only (`tests/test_distill.py`).
+- **Teacher:** arm `value`'s frozen transported LightGBM (`final/comp_ext-<e>_lightgbm.pkl`); not re-fitted.
+- **Aggregates:** on each source site's rows of the real learning sample of M_REAL; quantiles (201, tails clipped
+  to 1–99 %), shares (values of < 50 patients pooled), missingness shares, and a Gaussian copula over one value and
+  one missingness dimension per input (pairwise-complete normal-score correlations). While writing the code, the
+  first draft's idea of placing a missing value at the bottom of its input's score scale was replaced by the
+  separate missingness dimension: on test data the single-scale version cut a planted correlation of 0.79 to 0.32.
+  The draft was changed before registration.
+- **Work folders:** arm `value`'s work folder is only read; the study writes to `work_distill` (marker
+  `DISTILL_WORKDIR`). Aggregates of real sites are refused until the OSF ID is written in the pre-registration.
+- **Integrity checks** added to the plan before registration: the case-base prediction of the distillation code
+  must reproduce arm `value`'s published transported predictions to 1e-9 (`hypo` eICU fold 0, NWICU fold 0).
+
 ## 2026-11-13 — Result: arc-length placement of the shapes (prereg_arc, OSF 10.17605/OSF.IO/NAQ2T)
 
 Both arms ran on commit `05ecffd`. Full report: [results/arc-metric/REPORT.md](../results/arc-metric/REPORT.md).

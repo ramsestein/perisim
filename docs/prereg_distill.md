@@ -1,7 +1,7 @@
 # Pre-registration — a similarity metric learned without patient rows: distillation from a frozen model into a synthetic cohort built from population aggregates (draft)
 
-**Status.** Draft of 2026-11-13. The lead and the analyst wrote it **before any distilled metric has been fitted on
-any data**. It is meant to be uploaded to OSF as written. The OSF identifier is then recorded in every freeze of this
+**Status.** Draft of 2026-11-13. The lead and the analyst wrote it **before any aggregate of the real sites has been
+computed and before any distilled metric has been fitted on any real-derived data**. It is meant to be uploaded to OSF as written. The OSF identifier is then recorded in every freeze of this
 study (`--registration <OSF ID>`).
 
 **Registered on OSF:** _pending_ (to be filled in, together with the commit of the branch at registration).
@@ -42,9 +42,11 @@ target.
      (REPORT §17).
   3. A transported LightGBM (the teacher's model class), recalibrated, predicts better than the transported kNN.
      Without recalibration it is miscalibrated at the target.
-- **Not done before this registration:** no synthetic cohort has been generated from these sites, and no metric has
-  been fitted on synthetic data. The generator and the distillation code are written and tested on the project's
-  synthetic test data only (`tests/`).
+- **Not done before this registration:** no aggregate has been computed on these sites, no synthetic cohort has been
+  generated from them, and no metric has been fitted on synthetic data. The generator and the distillation code
+  (`src/distill/`, `scripts/distill_run.py`) are written and tested on the project's synthetic test data only
+  (`tests/test_distill.py`). The code refuses to compute aggregates of the real sites unless the OSF ID is written in
+  this file.
 - **The same patients are reused.** This study uses the same source and target data as `hypo` and NWICU. It is a
   comparison of how the metric is learned, on known data. It is not an independent replication of transport.
 
@@ -67,37 +69,54 @@ value`; arm `value` of `prereg_arc.md`). The reference numbers for the real-data
 
 ### 3.2 Teacher
 
-For each rotation, the teacher is a LightGBM fitted on the two source sites pooled. It uses the inputs, model space,
-inner-fold tuning and seed of `hypo`'s transported LightGBM comparator (`config/hypo.yaml`, external comparators).
-The teacher is fitted once per rotation and frozen. Its predicted probability p_T(x) labels the synthetic cohort.
+For each rotation, the teacher is the transported LightGBM comparator that arm `value` already froze
+(`final/comp_ext-<target>_lightgbm.pkl`, fitted by `hypo.frozen.final` on all landmarks of the two source sites
+pooled, with `hypo`'s inputs, model space, inner-fold tuning and seed). It is not re-fitted. Its predicted
+probability p_T(x) labels the synthetic cohort.
 
 ### 3.3 Synthetic cohorts (the only thing the source contributes beyond the teacher)
 
-All inputs below are computed on the source sites' training rows. They are the only quantities taken from those
-rows. Each is computed on at least 50 patients.
+**Rows the aggregates are computed on.** For each rotation, the real learning sample of the real-data metric
+M_REAL (the rows `hypo.frozen.final` drew: at most 3 landmarks per patient, the same number per source site, same
+seed). These aggregates are the only quantities taken from patient rows. Each source site's aggregates are computed
+on that site's rows alone.
 
-- **Marginals.** For each continuous or ordinal input:
-  - the empirical quantiles at 1/200 steps, with the outer tails clipped to the 1st and 99th percentiles;
-  - the missingness share, if the input can be missing.
+**Marginals.** Per input and site:
 
-  For each nominal input: the category shares. A category with fewer than 50 patients is merged into "other". Binary
-  inputs and missingness indicators are treated as nominal.
-- **Joint structure.** A Gaussian copula:
-  - Each input is mapped to normal scores through its marginal. A nominal input is mapped through its categories
-    ordered by frequency, with the normal-score midpoint of each category's share. A missing value is placed at a
-    fixed score outside the observed range.
-  - The rank correlation (Spearman) matrix of these scores is estimated on the source rows and made positive
-    definite by eigenvalue clipping at 1e-6.
-- **Site.** Each site's aggregates are computed separately. The synthetic cohort is a mixture of the two source
-  sites, in proportion to their numbers of landmarks.
+- **continuous** (more than 30 distinct observed values): the observed values clipped to their 1st and 99th
+  percentiles, then their quantiles at 1/200 steps (201 values);
+- **discrete** (numeric with at most 30 distinct values: the binary inputs and the landmark time L) and **nominal**
+  (surgical group): the share of each value. Values held by fewer than 50 patients are pooled: they share one
+  released mass, spread evenly over them when sampling (the value labels are the variable's vocabulary, not data);
+- the **missingness share**. An input that a site never measures (INSPIRE's source-missing inputs) stays entirely
+  missing.
 
-From these, two synthetic cohorts are generated per rotation, each with the same number of rows as the rotation's
-real learning sample:
+Every released cell rests on at least 50 patients; the code stops otherwise.
 
-- **SYN-COP (primary).** Draws from each site's Gaussian copula, mapped back through the marginals.
-- **SYN-IND (control).** Independent draws from each marginal, with no joint structure.
+**Joint structure (Gaussian copula).** The copula has one *value* dimension per input with observed values, and one
+*missingness* dimension per input that is missing in some but not all rows:
 
-Each synthetic row is its own synthetic patient. No row of the source is copied or perturbed.
+- a value dimension is the normal score of the observed value under its own observed marginal (ties, discrete values
+  and categories spread uniformly inside their segment, categories ordered by frequency); it is undefined where the
+  input is missing;
+- a missingness dimension places a missing row uniformly in [0, m) and an observed row in [m, 1), m being the
+  missingness share, then takes its normal score.
+
+The correlation matrix is the Pearson correlation of these normal scores on pairwise-complete rows (a pair with
+fewer than 50 complete rows gets 0), made positive definite by eigenvalue clipping at 1e-6 and rescaled to a unit
+diagonal. It is therefore a rank (Spearman-type) correlation, not a polychoric one.
+
+**Generation.** Two synthetic cohorts are generated per rotation. Each source site contributes as many synthetic rows
+as it has in the real learning sample (so the cohort has the learning sample's size and site mix):
+
+- **SYN-COP (primary).** A draw from the site's Gaussian copula. Each value dimension is mapped back through its
+  marginal (linear interpolation between the 201 quantiles; the category or discrete value of its segment); the
+  input is set missing where its missingness dimension falls below m.
+- **SYN-IND (control).** The same, with every dimension drawn independently (no joint structure; missingness
+  independent of everything).
+
+Each synthetic row is its own synthetic patient. No row of the source is copied or perturbed, and no synthetic value
+lies outside the clipped 1st–99th percentile range of its input.
 
 ### 3.4 Labels and metric
 
@@ -116,26 +135,38 @@ Each synthetic row is its own synthetic patient. No row of the source is copied 
 ### 3.5 Integrity checks (run before any target is evaluated)
 
 1. **Re-fit of M_REAL.** The real-data metric is re-fitted on one rotation (target eICU) with the distillation code
-   path. It must reproduce arm `value`'s weights to 1e-6. If it does not, the run stops and the difference is
-   investigated and logged.
-2. **Copying.** For each synthetic cohort, the distance from every synthetic row to its closest real source row is
-   computed in the standardised input space (distance to closest record, DCR). It is reported against the same
-   distance between two disjoint halves of the real source rows. Only aggregates are reported. This shows that no
-   synthetic row reproduces a real one. It is descriptive, not a decision rule.
-3. **Fidelity.** These are reported per rotation and are descriptive:
-   - the teacher's AUROC on held-out real source rows;
-   - the agreement between the teacher's mean p_T on SYN-COP and the real source prevalence;
-   - the marginal and pairwise-correlation errors of SYN-COP and SYN-IND.
+   path (the real learning sample through the same `fit_metric` call). It must reproduce arm `value`'s weights to
+   1e-6.
+2. **Case-base reproduction.** The distillation code's case-base prediction, run with arm `value`'s frozen metric,
+   must reproduce arm `value`'s published transported predictions to 1e-9 for `hypo` eICU fold 0 and for NWICU
+   (rotation eICU) fold 0.
+
+   If check 1 or 2 fails, the run stops before freezing; the difference is investigated and logged.
+3. **Copying (descriptive).** For each synthetic cohort, the distance from each synthetic row (up to 20,000, drawn at
+   random) to its closest real learning row (distance to closest record, DCR). The space is the numeric inputs
+   standardised by the real rows' median and IQR, a missing value at the centre plus a missingness indicator. It is
+   reported against the same distance from one half of the real patients to the other half. Only the 1st and 5th
+   percentiles, the median and the share of exact copies (distance < 1e-9) are reported.
+4. **Fidelity (descriptive), per rotation:**
+   - the teacher's AUROC on the real learning rows (in sample: the teacher was fitted on all source landmarks) and
+     at the target;
+   - the teacher's mean p_T on each synthetic cohort against the real learning sample's prevalence;
+   - per site, the marginal errors of each cohort (mean and maximum error of the 5–95 % quantiles in units of the
+     real IQR, maximum missingness-share error, maximum total-variation error of the category shares) and the mean
+     absolute error of its copula correlations against the real ones.
 
 ## 4. Hypotheses and pre-specified readings
 
 The patient-level bootstrap uses 2,000 resamples per unit, with one set of replicates for every statistic of a unit.
-Log-loss is the primary metric. The paired contrast is computed with `scripts/arc_compare.py`'s statistics:
+Log-loss is the primary metric. The paired contrast is computed with `scripts/arc_compare.py`'s statistics (same
+seed, same replicates per unit in every contrast):
 
-- the "value" arm is M_REAL;
+- the "value" arm is M_REAL (arm `value`'s per-row log-losses, `work_value/arc_compare/`);
 - the "arc" arm is M_COP (or M_IND);
-- the Euclidean kNN is common to all;
+- the Euclidean kNN and the local metric are arm `value`'s, common to all;
 - every unit is checked to evaluate identical rows, patients and labels.
+
+H2 uses the same statistics with M_COP as "value" and M_IND as "arc" (its D is D_IND − D_COP).
 
 ### 4.1 Primary (H1): the copula-distilled metric is non-inferior to the real-data metric
 

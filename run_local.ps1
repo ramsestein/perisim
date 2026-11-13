@@ -1,7 +1,7 @@
 <#
 PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
 
-  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|seed-arc|nwicu-build|nwicu-transport|hospital-transport|cosine|arc-dump|arc-compare|resources] [args]
+  powershell -ExecutionPolicy Bypass -File run_local.ps1 [start|fg|status|logs|stop|smoke|test|ksweep|freeze|posthoc|drift|drift-missing|case-base|equivalence|fixed-metric|vaso-repair|hypo|hypo-posthoc|hypo-ablation|hypo-strata|hypo-map-vaso|alignment|roll|seed-arc|nwicu-build|nwicu-transport|hospital-transport|cosine|arc-dump|arc-compare|distill|resources] [args]
 
   start      smoke test the first time a code version runs, then the WHOLE pipeline in the background
   fg         the same in the foreground
@@ -55,6 +55,8 @@ PERISIM - local entry point on Windows (the KHDP pod uses run_pod.sh).
   hospital-transport / cosine   the pre-specified post hoc analyses REPORT §20 and §21, on this branch's code
   arc-dump   branch arc-metric: this arm's per-row log-losses for the paired contrast (scripts\arc_dump.py)
   arc-compare  branch arc-metric: the paired contrast of <repo>\work_value and <repo>\work_arc (scripts\arc_compare.py)
+  distill    branch distill: scripts\distill_run.py <step> on arm value's work folder (read only), writing to
+             <repo>\work_distill (docs\prereg_distill.md); e.g. `distill all --registration <OSF ID> --threads 16`
 Any extra argument after start / fg goes to `python -m perisim run` (e.g. `fg --until audit`).
 
 The data stay on this computer (PhysioNet data use agreement): everything lives in the project folder, in folders
@@ -239,8 +241,9 @@ switch ($Command) {
     "hospital-transport" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_hospital_transport.py") @Rest; exit $LASTEXITCODE }
     "cosine" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\posthoc_cosine.py") @Rest; exit $LASTEXITCODE }
     "arc-dump" { Invoke-Setup; & $Py (Join-Path $RepoDir "scripts\arc_dump.py") @ProfArgs @Rest; exit $LASTEXITCODE }
+    "distill" { & $Py (Join-Path $RepoDir "scripts\distill_run.py") @Rest --source (Join-Path $RepoDir "work_value") --out (Join-Path $RepoDir "work_distill"); exit $LASTEXITCODE }
     "arc-compare" { & $Py (Join-Path $RepoDir "scripts\arc_compare.py") --value (Join-Path $RepoDir "work_value") --arc (Join-Path $RepoDir "work_arc") @Rest; exit $LASTEXITCODE }
     "freeze" { Invoke-Setup; & $Py -m perisim freeze @ProfArgs @Rest; exit $LASTEXITCODE }
     "resources" { & $Py -m perisim resources; exit $LASTEXITCODE }
-    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | seed-arc | nwicu-build | nwicu-transport | hospital-transport | cosine | arc-dump | arc-compare | resources)" }
+    default { Die "Unknown command: $Command (start | fg | status | logs | stop | smoke | test | ksweep | freeze | posthoc | drift | drift-missing | case-base | equivalence | fixed-metric | vaso-repair | hypo | hypo-posthoc | hypo-ablation | hypo-strata | hypo-map-vaso | alignment | roll | seed-arc | nwicu-build | nwicu-transport | hospital-transport | cosine | arc-dump | arc-compare | distill | resources)" }
 }

@@ -50,6 +50,20 @@ arm's.
 The PRAM factors study (`docs/prereg_pram_factors.md`, `scripts/pram_*.py`) is not part of this re-run: it runs on
 `hypo`'s frozen v0.5 code against the published work folder, from `main`.
 
+## Branch `distill`: a metric distilled into a synthetic cohort
+
+Plan: [prereg_distill.md](prereg_distill.md). It runs after arm `value` of `arc-metric` has finished, on that arm's
+work folder (read only) and its `arc_compare/` dumps:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File run_local.ps1 distill all --registration <OSF ID> --threads 16
+```
+
+(with `PERISIM_ARM=value` and `PERISIM_WORKDIR=<repo>\work_value`; `perisim_run\distill_run.bat <OSF ID>` sets
+them). Steps: `aggregates`, `fit`, `check`, `freeze`, `evaluate`, `dump`, `compare` (each resumes). Output:
+`work_distill\distill\results.md` and `results.json` (aggregates). About 7 metric fits (≈ 5 min each on 16 threads)
+plus 60 case-base folds.
+
 ## Running in the KHDP pod
 
 In the pod's VSCode terminal, from the workspace root (all the commands below are run from `~/workspace`):
