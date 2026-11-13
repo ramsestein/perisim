@@ -5,6 +5,16 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-13 — Branch `distill`: a pooled rare cell on fewer than 50 patients (lead; deviation, before any cohort)
+
+The rerun of `aggregates` (18:35) named the cells: at INSPIRE, in rotations mimic and eicu, the pooled rare values of
+`spo2_last`, `spo2_min_6h` and `age` (discrete there: INSPIRE records them as integers / bands) and of
+`surgical_group` rest on fewer than 50 patients. Prereg §3.3 pools values of < 50 patients but does not say what
+happens when the pool itself is that small. Decided by the lead (only cell sizes known; no synthetic cohort, metric
+or outcome of this study exists): such a pool is not released; each rare value joins the nearest released value
+(discrete inputs, as the 1–99 % clipping does for continuous ones) or the most frequent category (nominal), with its
+mass. It affects a handful of patients per input. Pools of ≥ 50 patients keep the registered rule.
+
 ## 2026-11-13 — Branch `distill`: the small-cell stop names the cell and writes nothing partial (mechanical)
 
 First run of the step `aggregates` (18:33): rotation inspire passed; rotation mimic stopped at site INSPIRE because a

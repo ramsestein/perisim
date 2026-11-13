@@ -94,6 +94,17 @@ def _marginal(name: str, col: np.ndarray, subjects: np.ndarray, nominal: bool) -
     shares = [float((obs == v).mean()) for v in order]
     big = [i for i, v in enumerate(order) if pp[v] >= MIN_PATIENTS]
     rare = [i for i in range(len(order)) if i not in big]
+    if rare and big and np.unique(subjects[~miss][np.isin(obs, [order[i] for i in rare])]).size < MIN_PATIENTS:
+        # DECISIONS 2026-11-13 (lead, before any synthetic cohort): a pooled rare cell on < MIN_PATIENTS patients is
+        # not released; each rare value joins the nearest released value (discrete) or the most frequent category
+        # (nominal), and its mass with it
+        shares = list(shares)
+        for i in rare:
+            j = big[0] if nominal else min(big, key=lambda b: (abs(float(order[b]) - float(order[i])), b))
+            shares[j] += shares[i]
+        order = [order[i] for i in big]
+        shares = [shares[i] for i in big]
+        big, rare = list(range(len(order))), []
     vals = [order[i] for i in big] + [order[i] for i in rare]
     sh = [shares[i] for i in big]
     rare_mass = float(sum(shares[i] for i in rare))
@@ -134,7 +145,11 @@ def _u_value(marg: Marginal, col: np.ndarray, rng: np.random.Generator) -> np.nd
         cum = np.concatenate([[0.0], np.cumsum(marg.shares)])
         cum = cum / cum[-1]
         pos = {v: i for i, v in enumerate(vals)}
-        idx = np.array([pos.get(v, len(vals) - 1) for v in key.tolist()])
+        if marg.kind == "nominal":                 # an unreleased category was merged into the most frequent
+            idx = np.array([pos.get(v, 0) for v in key.tolist()])
+        else:                                      # an unreleased value joined the nearest released one
+            va = np.asarray(vals, dtype=np.float64)
+            idx = np.array([pos[v] if v in pos else int(np.argmin(np.abs(va - v))) for v in key.tolist()])
         lo, hi = cum[idx], cum[idx + 1]
         u[o] = lo + (hi - lo) * rng.uniform(0, 1, idx.size)
     return np.clip(u, EPS, 1 - EPS)

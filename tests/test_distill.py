@@ -50,18 +50,32 @@ def test_aggregates_are_json_and_release_no_rows(aggs):
         assert np.allclose(np.diag(C), 1) and np.linalg.eigvalsh(C).min() > 0
 
 
-def test_rare_categories_are_pooled():
-    rng = np.random.default_rng(0)
+def test_small_rare_pool_joins_the_nearest_value():
+    rng = np.random.default_rng(1)
     n = 3000
     subj = np.array([f"p{i // 3}" for i in range(n)], dtype=object)
-    col = np.where(rng.random(n) < 0.98, "common", "x").astype(object)
-    col[:6] = "rare_a"                        # 2 patients
-    col[6:9] = "rare_b"                       # 1 patient
+    x = rng.choice([95.0, 96.0, 97.0, 98.0], n)
+    x[:3] = 70.0                              # one patient
+    mg = A._marginal("spo2", x, subj, nominal=False)
+    assert 70.0 not in mg.values and mg.rare_from is None and mg.small_cells is None
+    assert abs(sum(mg.shares) - 1) < 1e-12 and mg.min_patients >= A.MIN_PATIENTS
+    assert mg.shares[mg.values.index(95.0)] == pytest.approx(((x == 95) | (x == 70)).mean())
+    c = np.array(["a"] * 2000 + ["b"] * 997 + ["z"] * 3, dtype=object)
+    mg = A._marginal("g", c, subj, nominal=True)
+    assert mg.values == ["a", "b"] and mg.shares[0] == pytest.approx(2003 / 3000)
+    u = A._u_value(mg, c, np.random.default_rng(0))
+    assert np.isfinite(u).all()
+
+
+def test_rare_categories_are_pooled():
+    n = 3000
+    subj = np.array([f"p{i // 3}" for i in range(n)], dtype=object)
+    col = np.array(["common"] * n, dtype=object)
+    for k in range(30):                       # 30 rare categories of 2 patients each: a pool of 60 patients
+        col[6 * k: 6 * k + 6] = f"rare_{k}"
     mg = A._marginal("g", col, subj, nominal=True)
-    k = mg.values.index("rare_a")
-    assert mg.rare_from is not None and k >= mg.rare_from
-    assert mg.shares[mg.values.index("rare_a")] == mg.shares[mg.values.index("rare_b")]
-    assert mg.min_patients >= A.MIN_PATIENTS or mg.min_patients >= 3
+    assert mg.rare_from == 1 and mg.values[0] == "common" and mg.small_cells is None
+    assert len(set(mg.shares[1:])) == 1 and mg.min_patients >= A.MIN_PATIENTS
 
 
 def test_copula_keeps_marginals_missingness_and_correlation(aggs):
