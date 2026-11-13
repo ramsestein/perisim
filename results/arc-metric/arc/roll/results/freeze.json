@@ -1,0 +1,32 @@
+{
+ "tag": "perisim-freeze-roll-2026-11-12-115948",
+ "at": "2026-11-12 11:59:48",
+ "registration": "10.17605/OSF.IO/NAQ2T",
+ "git": {
+  "tag": "perisim-freeze-roll-2026-11-12-115948",
+  "commit": "05ecffdadf2e8bc33f48a8133f8bee3610729f10"
+ },
+ "hashes": {
+  "code": "b2fd1e82d722",
+  "config": "734680c6193c87c8",
+  "hypo": {
+   "tag": "perisim-freeze-hypo-2026-11-11-182104",
+   "code": "5c5b2fe1f006",
+   "config": "93021fecebea"
+  },
+  "t2": {
+   "tag": "perisim-freeze-t2-2026-11-11-084140",
+   "code_hash": "c4a5c4bcc9c0",
+   "config_hash": "3b11fe748af5"
+  },
+  "t2_final_model": "0d2c9f9fa607779c",
+  "streams": {
+   "all": "98e8c48712104ce5",
+   "n": 1190,
+   "skipped": 0
+  }
+ },
+ "prereg_sha": "c1626e504ccffc4a",
+ "arm": "arc",
+ "prereg_arc_sha": "0cd75b54f20523d2"
+}

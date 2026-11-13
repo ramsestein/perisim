@@ -1,0 +1,12 @@
+target,hypothesis,cohort,status,holds,summary
+t2,H1,mimic,confirmatory,false,local CITL inside ±0.1: False; mode A beyond: True
+t2,H2,mimic,confirmatory,false,"slope CI low (local): 0.971, 0.996, 0.424"
+t2,H3,mimic,confirmatory,true,"AUROC frozen − local = -0.0008 [-0.0154, 0.0139], margin −0.02"
+t2,H4,mimic,confirmatory,true,"OOD mode A − local = 0.1614 [0.1512, 0.1722]"
+t2,H5,mimic,confirmatory,false,"crossing at n_local = 2000; schedule − empty: {'50': {'mean': -0.17230610081619702, 'low': -0.5419488564829926, 'high': -0.01957354934047143, 'reps': 20}, '100': {'mean': -0.04751150403582073, 'low': -0.2940983844704753, 'high': 0.0065416761972531025, 'reps': 20}}"
+t2,H1,eicu,confirmatory,false,local CITL inside ±0.1: False; mode A beyond: True
+t2,H2,eicu,confirmatory,false,"slope CI low (local): 1.048, 0.950, 0.194"
+t2,H3,eicu,confirmatory,false,"AUROC frozen − local = -0.0139 [-0.0367, 0.0076], margin −0.02"
+t2,H4,eicu,confirmatory,true,"OOD mode A − local = 0.0315 [0.0265, 0.0369]"
+t2,H5,eicu,confirmatory,false,"crossing at n_local = 500; schedule − empty: {'50': {'mean': -0.19491988790849252, 'low': -0.3460416805901591, 'high': 0.004949483427286544, 'reps': 20}, '100': {'mean': -0.07244790971698331, 'low': -0.2970869164718457, 'high': 0.024988556620490505, 'reps': 20}}"
+t2,H6,all sites,confirmatory,false,"{'share_practice_coding_failing': 0.15384615384615385, 'share_practice_coding_passing': None, 'fisher_p': 1.0, 'n_failing': 26, 'n_passing': 0}"

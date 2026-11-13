@@ -1,0 +1,24 @@
+{
+  "tag": "perisim-freeze-t2-2026-11-09-092102",
+  "at": "2026-11-09T09:21:02",
+  "code_hash": "c4a5c4bcc9c0",
+  "config_hash": "c8fc340f19c2",
+  "git": {
+    "commit": "05ecffdadf2e8bc33f48a8133f8bee3610729f10",
+    "tag": "perisim-freeze-t2-2026-11-09-092102"
+  },
+  "registration": "10.17605/OSF.IO/NAQ2T",
+  "packages": {
+    "numpy": "2.3.5",
+    "polars": "1.36.1",
+    "pyarrow": "23.0.1",
+    "scipy": "1.16.2",
+    "sklearn": "1.6.1",
+    "lightgbm": "4.6.0",
+    "xgboost": "3.2.0",
+    "torch": "2.11.0+cu128",
+    "faiss": "1.12.0"
+  },
+  "arm": "value",
+  "prereg_arc_sha": "0cd75b54f20523d2"
+}

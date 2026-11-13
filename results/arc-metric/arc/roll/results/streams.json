@@ -1,0 +1,2009 @@
+{
+ "freeze_start": {
+  "t2": {
+   "tag": "perisim-freeze-t2-2026-11-11-084140",
+   "code_hash": "c4a5c4bcc9c0",
+   "config_hash": "3b11fe748af5"
+  },
+  "hypo": {
+   "tag": "perisim-freeze-hypo-2026-11-11-182104",
+   "code": "5c5b2fe1f006",
+   "config": "93021fecebea"
+  }
+ },
+ "cohorts": {
+  "inspire": {
+   "units": 11631,
+   "landmarks": 148293,
+   "gate_refused_landmarks": 0
+  },
+  "mimic": {
+   "units": 24464,
+   "landmarks": 387158,
+   "units_without_block": 0,
+   "gate_refused_landmarks": 0
+  },
+  "eicu": {
+   "units": 32032,
+   "landmarks": 466384,
+   "units_in_two_hospitals": 142,
+   "gate_refused_landmarks": 0
+  }
+ },
+ "streams": [
+  {
+   "stream": "mimic_temporal",
+   "kind": "temporal",
+   "order": 0,
+   "N": 500,
+   "metric": "ext-mimic",
+   "hospital": "",
+   "evaluated": 23964,
+   "windows": 240,
+   "segments": [
+    {
+     "segment": "2008 - 2010",
+     "patients": 6442,
+     "internal": false,
+     "patients_per_month": 192.83
+    },
+    {
+     "segment": "2011 - 2013",
+     "patients": 5929,
+     "internal": false,
+     "patients_per_month": 164.69
+    },
+    {
+     "segment": "2014 - 2016",
+     "patients": 5356,
+     "internal": false,
+     "patients_per_month": 148.78
+    },
+    {
+     "segment": "2017 - 2019",
+     "patients": 3686,
+     "internal": false,
+     "patients_per_month": 102.39
+    },
+    {
+     "segment": "2020 - 2022",
+     "patients": 2551,
+     "internal": false,
+     "patients_per_month": 70.86
+    }
+   ],
+   "digest": "f3b12b532f46361f",
+   "label": "all"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 1574,
+   "windows": 31,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 711,
+     "internal": false,
+     "patients_per_month": 67.58
+    },
+    {
+     "segment": "2015",
+     "patients": 863,
+     "internal": false,
+     "patients_per_month": 71.92
+    }
+   ],
+   "digest": "b9ce7ae1f6b04b0f",
+   "label": "H1"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 993,
+   "windows": 19,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 373,
+     "internal": false,
+     "patients_per_month": 39.42
+    },
+    {
+     "segment": "2015",
+     "patients": 620,
+     "internal": false,
+     "patients_per_month": 51.67
+    }
+   ],
+   "digest": "a9d6f571a7acff37",
+   "label": "H2"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 830,
+   "windows": 17,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 335,
+     "internal": false,
+     "patients_per_month": 36.25
+    },
+    {
+     "segment": "2015",
+     "patients": 495,
+     "internal": false,
+     "patients_per_month": 41.25
+    }
+   ],
+   "digest": "36750fe202159e0c",
+   "label": "H3"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 717,
+   "windows": 14,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 320,
+     "internal": false,
+     "patients_per_month": 35.0
+    },
+    {
+     "segment": "2015",
+     "patients": 397,
+     "internal": false,
+     "patients_per_month": 33.08
+    }
+   ],
+   "digest": "87b987b7d593ca12",
+   "label": "H4"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 671,
+   "windows": 14,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 289,
+     "internal": false,
+     "patients_per_month": 32.42
+    },
+    {
+     "segment": "2015",
+     "patients": 382,
+     "internal": false,
+     "patients_per_month": 31.83
+    }
+   ],
+   "digest": "f11aa819c596d440",
+   "label": "H5"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 643,
+   "windows": 13,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 287,
+     "internal": false,
+     "patients_per_month": 32.25
+    },
+    {
+     "segment": "2015",
+     "patients": 356,
+     "internal": false,
+     "patients_per_month": 29.67
+    }
+   ],
+   "digest": "73fe01fcc1d94213",
+   "label": "H6"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 626,
+   "windows": 13,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 277,
+     "internal": false,
+     "patients_per_month": 31.42
+    },
+    {
+     "segment": "2015",
+     "patients": 349,
+     "internal": false,
+     "patients_per_month": 29.08
+    }
+   ],
+   "digest": "40d1d4b654a4f19a",
+   "label": "H7"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 611,
+   "windows": 12,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 274,
+     "internal": false,
+     "patients_per_month": 31.17
+    },
+    {
+     "segment": "2015",
+     "patients": 337,
+     "internal": false,
+     "patients_per_month": 28.08
+    }
+   ],
+   "digest": "f6a986232bf1242a",
+   "label": "H8"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 599,
+   "windows": 12,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 258,
+     "internal": false,
+     "patients_per_month": 29.83
+    },
+    {
+     "segment": "2015",
+     "patients": 341,
+     "internal": false,
+     "patients_per_month": 28.42
+    }
+   ],
+   "digest": "e6536f876311c3e7",
+   "label": "H9"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 562,
+   "windows": 12,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 229,
+     "internal": false,
+     "patients_per_month": 27.42
+    },
+    {
+     "segment": "2015",
+     "patients": 333,
+     "internal": false,
+     "patients_per_month": 27.75
+    }
+   ],
+   "digest": "a069f6b39ea6cc0d",
+   "label": "H10"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 557,
+   "windows": 11,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 250,
+     "internal": false,
+     "patients_per_month": 29.17
+    },
+    {
+     "segment": "2015",
+     "patients": 307,
+     "internal": false,
+     "patients_per_month": 25.58
+    }
+   ],
+   "digest": "4cda2dc83022ac5c",
+   "label": "H11"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 546,
+   "windows": 11,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 230,
+     "internal": false,
+     "patients_per_month": 27.5
+    },
+    {
+     "segment": "2015",
+     "patients": 316,
+     "internal": false,
+     "patients_per_month": 26.33
+    }
+   ],
+   "digest": "eb7659a1a72b8076",
+   "label": "H12"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 549,
+   "windows": 11,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 245,
+     "internal": false,
+     "patients_per_month": 28.75
+    },
+    {
+     "segment": "2015",
+     "patients": 304,
+     "internal": false,
+     "patients_per_month": 25.33
+    }
+   ],
+   "digest": "abc5de911954afe4",
+   "label": "H13"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 547,
+   "windows": 11,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 221,
+     "internal": false,
+     "patients_per_month": 26.75
+    },
+    {
+     "segment": "2015",
+     "patients": 326,
+     "internal": false,
+     "patients_per_month": 27.17
+    }
+   ],
+   "digest": "a66b470659d48c3c",
+   "label": "H14"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 503,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 194,
+     "internal": false,
+     "patients_per_month": 24.5
+    },
+    {
+     "segment": "2015",
+     "patients": 309,
+     "internal": false,
+     "patients_per_month": 25.75
+    }
+   ],
+   "digest": "b46b3b4fc4dc36e3",
+   "label": "H15"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 474,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 176,
+     "internal": false,
+     "patients_per_month": 23.0
+    },
+    {
+     "segment": "2015",
+     "patients": 298,
+     "internal": false,
+     "patients_per_month": 24.83
+    }
+   ],
+   "digest": "152589a3040ef088",
+   "label": "H16"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 445,
+   "windows": 9,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 110,
+     "internal": false,
+     "patients_per_month": 17.5
+    },
+    {
+     "segment": "2015",
+     "patients": 335,
+     "internal": false,
+     "patients_per_month": 27.92
+    }
+   ],
+   "digest": "afaa0bafa31b0337",
+   "label": "H17"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 438,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 169,
+     "internal": false,
+     "patients_per_month": 22.42
+    },
+    {
+     "segment": "2015",
+     "patients": 269,
+     "internal": false,
+     "patients_per_month": 22.42
+    }
+   ],
+   "digest": "4446358828168388",
+   "label": "H18"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 424,
+   "windows": 9,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 180,
+     "internal": false,
+     "patients_per_month": 23.33
+    },
+    {
+     "segment": "2015",
+     "patients": 244,
+     "internal": false,
+     "patients_per_month": 20.33
+    }
+   ],
+   "digest": "9d976ed9da909c8b",
+   "label": "H19"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 408,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 153,
+     "internal": false,
+     "patients_per_month": 21.08
+    },
+    {
+     "segment": "2015",
+     "patients": 255,
+     "internal": false,
+     "patients_per_month": 21.25
+    }
+   ],
+   "digest": "40a65b0305f64b86",
+   "label": "H20"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 402,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 128,
+     "internal": false,
+     "patients_per_month": 19.0
+    },
+    {
+     "segment": "2015",
+     "patients": 274,
+     "internal": false,
+     "patients_per_month": 22.83
+    }
+   ],
+   "digest": "ac7f02fa19f565b9",
+   "label": "H21"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 395,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 145,
+     "internal": false,
+     "patients_per_month": 20.42
+    },
+    {
+     "segment": "2015",
+     "patients": 250,
+     "internal": false,
+     "patients_per_month": 20.83
+    }
+   ],
+   "digest": "13b80ec030c7d83a",
+   "label": "H22"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 380,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 204,
+     "internal": false,
+     "patients_per_month": 25.33
+    },
+    {
+     "segment": "2015",
+     "patients": 176,
+     "internal": false,
+     "patients_per_month": 14.67
+    }
+   ],
+   "digest": "2c0a55138dfca8b2",
+   "label": "H23"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 371,
+   "windows": 7,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 151,
+     "internal": false,
+     "patients_per_month": 20.92
+    },
+    {
+     "segment": "2015",
+     "patients": 220,
+     "internal": false,
+     "patients_per_month": 18.33
+    }
+   ],
+   "digest": "4e6ddb4f0b627008",
+   "label": "H24"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 374,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 134,
+     "internal": false,
+     "patients_per_month": 19.5
+    },
+    {
+     "segment": "2015",
+     "patients": 240,
+     "internal": false,
+     "patients_per_month": 20.0
+    }
+   ],
+   "digest": "bab67461fe867512",
+   "label": "H25"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 365,
+   "windows": 7,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 148,
+     "internal": false,
+     "patients_per_month": 20.67
+    },
+    {
+     "segment": "2015",
+     "patients": 217,
+     "internal": false,
+     "patients_per_month": 18.08
+    }
+   ],
+   "digest": "c964fd940f83274d",
+   "label": "H26"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 330,
+   "windows": 7,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 128,
+     "internal": false,
+     "patients_per_month": 19.0
+    },
+    {
+     "segment": "2015",
+     "patients": 202,
+     "internal": false,
+     "patients_per_month": 16.83
+    }
+   ],
+   "digest": "5ce743f34213088b",
+   "label": "H27"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 316,
+   "windows": 7,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 91,
+     "internal": false,
+     "patients_per_month": 15.92
+    },
+    {
+     "segment": "2015",
+     "patients": 225,
+     "internal": false,
+     "patients_per_month": 18.75
+    }
+   ],
+   "digest": "18f0762840e20631",
+   "label": "H28"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 289,
+   "windows": 6,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 97,
+     "internal": false,
+     "patients_per_month": 16.42
+    },
+    {
+     "segment": "2015",
+     "patients": 192,
+     "internal": false,
+     "patients_per_month": 16.0
+    }
+   ],
+   "digest": "afe80763cfa1bd1f",
+   "label": "H29"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 285,
+   "windows": 6,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 87,
+     "internal": false,
+     "patients_per_month": 15.58
+    },
+    {
+     "segment": "2015",
+     "patients": 198,
+     "internal": false,
+     "patients_per_month": 16.5
+    }
+   ],
+   "digest": "f4703ee483329a35",
+   "label": "H30"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 273,
+   "windows": 6,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 94,
+     "internal": false,
+     "patients_per_month": 16.17
+    },
+    {
+     "segment": "2015",
+     "patients": 179,
+     "internal": false,
+     "patients_per_month": 14.92
+    }
+   ],
+   "digest": "f4598b9ed0adc5ff",
+   "label": "H31"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 268,
+   "windows": 5,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 94,
+     "internal": false,
+     "patients_per_month": 16.17
+    },
+    {
+     "segment": "2015",
+     "patients": 174,
+     "internal": false,
+     "patients_per_month": 14.5
+    }
+   ],
+   "digest": "0a809767b762c46f",
+   "label": "H32"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 234,
+   "windows": 4,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 70,
+     "internal": false,
+     "patients_per_month": 14.17
+    },
+    {
+     "segment": "2015",
+     "patients": 164,
+     "internal": false,
+     "patients_per_month": 13.67
+    }
+   ],
+   "digest": "452b39d5b965da90",
+   "label": "H34"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 207,
+   "windows": 4,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 55,
+     "internal": false,
+     "patients_per_month": 12.92
+    },
+    {
+     "segment": "2015",
+     "patients": 152,
+     "internal": false,
+     "patients_per_month": 12.67
+    }
+   ],
+   "digest": "7b3cba215f937823",
+   "label": "H36"
+  },
+  {
+   "stream": "eicu_within",
+   "kind": "within",
+   "order": 0,
+   "N": 100,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 194,
+   "windows": 4,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 49,
+     "internal": false,
+     "patients_per_month": 12.42
+    },
+    {
+     "segment": "2015",
+     "patients": 145,
+     "internal": false,
+     "patients_per_month": 12.08
+    }
+   ],
+   "digest": "f708335f4a8ba2d0",
+   "label": "H37"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 1674,
+   "windows": 33,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 811,
+     "internal": false,
+     "patients_per_month": 67.58
+    },
+    {
+     "segment": "2015",
+     "patients": 863,
+     "internal": false,
+     "patients_per_month": 71.92
+    }
+   ],
+   "digest": "56766512980c8366",
+   "label": "H1"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 1093,
+   "windows": 21,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 473,
+     "internal": false,
+     "patients_per_month": 39.42
+    },
+    {
+     "segment": "2015",
+     "patients": 620,
+     "internal": false,
+     "patients_per_month": 51.67
+    }
+   ],
+   "digest": "f8eab073d3fd9345",
+   "label": "H2"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 930,
+   "windows": 19,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 435,
+     "internal": false,
+     "patients_per_month": 36.25
+    },
+    {
+     "segment": "2015",
+     "patients": 495,
+     "internal": false,
+     "patients_per_month": 41.25
+    }
+   ],
+   "digest": "2740cf04e5177a3c",
+   "label": "H3"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 817,
+   "windows": 16,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 420,
+     "internal": false,
+     "patients_per_month": 35.0
+    },
+    {
+     "segment": "2015",
+     "patients": 397,
+     "internal": false,
+     "patients_per_month": 33.08
+    }
+   ],
+   "digest": "432417d9f205433c",
+   "label": "H4"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 771,
+   "windows": 16,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 389,
+     "internal": false,
+     "patients_per_month": 32.42
+    },
+    {
+     "segment": "2015",
+     "patients": 382,
+     "internal": false,
+     "patients_per_month": 31.83
+    }
+   ],
+   "digest": "b9d92c134523535b",
+   "label": "H5"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 743,
+   "windows": 15,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 387,
+     "internal": false,
+     "patients_per_month": 32.25
+    },
+    {
+     "segment": "2015",
+     "patients": 356,
+     "internal": false,
+     "patients_per_month": 29.67
+    }
+   ],
+   "digest": "395956e9216a3d1d",
+   "label": "H6"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 726,
+   "windows": 15,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 377,
+     "internal": false,
+     "patients_per_month": 31.42
+    },
+    {
+     "segment": "2015",
+     "patients": 349,
+     "internal": false,
+     "patients_per_month": 29.08
+    }
+   ],
+   "digest": "83f2cce958b329f7",
+   "label": "H7"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 711,
+   "windows": 14,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 374,
+     "internal": false,
+     "patients_per_month": 31.17
+    },
+    {
+     "segment": "2015",
+     "patients": 337,
+     "internal": false,
+     "patients_per_month": 28.08
+    }
+   ],
+   "digest": "6d8c5742d35dcd56",
+   "label": "H8"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 699,
+   "windows": 14,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 358,
+     "internal": false,
+     "patients_per_month": 29.83
+    },
+    {
+     "segment": "2015",
+     "patients": 341,
+     "internal": false,
+     "patients_per_month": 28.42
+    }
+   ],
+   "digest": "52cd2cdbd9e58c7f",
+   "label": "H9"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 662,
+   "windows": 14,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 329,
+     "internal": false,
+     "patients_per_month": 27.42
+    },
+    {
+     "segment": "2015",
+     "patients": 333,
+     "internal": false,
+     "patients_per_month": 27.75
+    }
+   ],
+   "digest": "74b8bafc5f894929",
+   "label": "H10"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 657,
+   "windows": 13,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 350,
+     "internal": false,
+     "patients_per_month": 29.17
+    },
+    {
+     "segment": "2015",
+     "patients": 307,
+     "internal": false,
+     "patients_per_month": 25.58
+    }
+   ],
+   "digest": "ec17ffeacae51749",
+   "label": "H11"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 646,
+   "windows": 13,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 330,
+     "internal": false,
+     "patients_per_month": 27.5
+    },
+    {
+     "segment": "2015",
+     "patients": 316,
+     "internal": false,
+     "patients_per_month": 26.33
+    }
+   ],
+   "digest": "4f6064caa5a0e018",
+   "label": "H12"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 649,
+   "windows": 13,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 345,
+     "internal": false,
+     "patients_per_month": 28.75
+    },
+    {
+     "segment": "2015",
+     "patients": 304,
+     "internal": false,
+     "patients_per_month": 25.33
+    }
+   ],
+   "digest": "4bb76cde9f29e52e",
+   "label": "H13"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 647,
+   "windows": 13,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 321,
+     "internal": false,
+     "patients_per_month": 26.75
+    },
+    {
+     "segment": "2015",
+     "patients": 326,
+     "internal": false,
+     "patients_per_month": 27.17
+    }
+   ],
+   "digest": "91f03e7ab9ef315a",
+   "label": "H14"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 603,
+   "windows": 12,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 294,
+     "internal": false,
+     "patients_per_month": 24.5
+    },
+    {
+     "segment": "2015",
+     "patients": 309,
+     "internal": false,
+     "patients_per_month": 25.75
+    }
+   ],
+   "digest": "3012e74eff3ab106",
+   "label": "H15"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 574,
+   "windows": 12,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 276,
+     "internal": false,
+     "patients_per_month": 23.0
+    },
+    {
+     "segment": "2015",
+     "patients": 298,
+     "internal": false,
+     "patients_per_month": 24.83
+    }
+   ],
+   "digest": "b1c9dd0b36c71b3d",
+   "label": "H16"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 545,
+   "windows": 11,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 210,
+     "internal": false,
+     "patients_per_month": 17.5
+    },
+    {
+     "segment": "2015",
+     "patients": 335,
+     "internal": false,
+     "patients_per_month": 27.92
+    }
+   ],
+   "digest": "94f0f10fa9d56f94",
+   "label": "H17"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 538,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 269,
+     "internal": false,
+     "patients_per_month": 22.42
+    },
+    {
+     "segment": "2015",
+     "patients": 269,
+     "internal": false,
+     "patients_per_month": 22.42
+    }
+   ],
+   "digest": "8dd680ce8d03ecd2",
+   "label": "H18"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 524,
+   "windows": 11,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 280,
+     "internal": false,
+     "patients_per_month": 23.33
+    },
+    {
+     "segment": "2015",
+     "patients": 244,
+     "internal": false,
+     "patients_per_month": 20.33
+    }
+   ],
+   "digest": "aaa35bedb1a2f73a",
+   "label": "H19"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 508,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 253,
+     "internal": false,
+     "patients_per_month": 21.08
+    },
+    {
+     "segment": "2015",
+     "patients": 255,
+     "internal": false,
+     "patients_per_month": 21.25
+    }
+   ],
+   "digest": "f6b714968ea46d2a",
+   "label": "H20"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 502,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 228,
+     "internal": false,
+     "patients_per_month": 19.0
+    },
+    {
+     "segment": "2015",
+     "patients": 274,
+     "internal": false,
+     "patients_per_month": 22.83
+    }
+   ],
+   "digest": "8af8064f89eb6122",
+   "label": "H21"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 495,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 245,
+     "internal": false,
+     "patients_per_month": 20.42
+    },
+    {
+     "segment": "2015",
+     "patients": 250,
+     "internal": false,
+     "patients_per_month": 20.83
+    }
+   ],
+   "digest": "cf1b5348125b33f6",
+   "label": "H22"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 480,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 304,
+     "internal": false,
+     "patients_per_month": 25.33
+    },
+    {
+     "segment": "2015",
+     "patients": 176,
+     "internal": false,
+     "patients_per_month": 14.67
+    }
+   ],
+   "digest": "468efd6e6680a625",
+   "label": "H23"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 471,
+   "windows": 9,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 251,
+     "internal": false,
+     "patients_per_month": 20.92
+    },
+    {
+     "segment": "2015",
+     "patients": 220,
+     "internal": false,
+     "patients_per_month": 18.33
+    }
+   ],
+   "digest": "4cc0637f01ac08b0",
+   "label": "H24"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 474,
+   "windows": 10,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 234,
+     "internal": false,
+     "patients_per_month": 19.5
+    },
+    {
+     "segment": "2015",
+     "patients": 240,
+     "internal": false,
+     "patients_per_month": 20.0
+    }
+   ],
+   "digest": "0fa096e5aca6bb0f",
+   "label": "H25"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 465,
+   "windows": 9,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 248,
+     "internal": false,
+     "patients_per_month": 20.67
+    },
+    {
+     "segment": "2015",
+     "patients": 217,
+     "internal": false,
+     "patients_per_month": 18.08
+    }
+   ],
+   "digest": "fe3df0e7b7f69e85",
+   "label": "H26"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 430,
+   "windows": 9,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 228,
+     "internal": false,
+     "patients_per_month": 19.0
+    },
+    {
+     "segment": "2015",
+     "patients": 202,
+     "internal": false,
+     "patients_per_month": 16.83
+    }
+   ],
+   "digest": "cf1e91cdbb8e6849",
+   "label": "H27"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 416,
+   "windows": 9,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 191,
+     "internal": false,
+     "patients_per_month": 15.92
+    },
+    {
+     "segment": "2015",
+     "patients": 225,
+     "internal": false,
+     "patients_per_month": 18.75
+    }
+   ],
+   "digest": "b1a18e81163ac5a8",
+   "label": "H28"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 389,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 197,
+     "internal": false,
+     "patients_per_month": 16.42
+    },
+    {
+     "segment": "2015",
+     "patients": 192,
+     "internal": false,
+     "patients_per_month": 16.0
+    }
+   ],
+   "digest": "e0aac24b3c0bdea1",
+   "label": "H29"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 385,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 187,
+     "internal": false,
+     "patients_per_month": 15.58
+    },
+    {
+     "segment": "2015",
+     "patients": 198,
+     "internal": false,
+     "patients_per_month": 16.5
+    }
+   ],
+   "digest": "78824df5ef221fc9",
+   "label": "H30"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 373,
+   "windows": 8,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 194,
+     "internal": false,
+     "patients_per_month": 16.17
+    },
+    {
+     "segment": "2015",
+     "patients": 179,
+     "internal": false,
+     "patients_per_month": 14.92
+    }
+   ],
+   "digest": "40b4c216aa67e760",
+   "label": "H31"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 368,
+   "windows": 7,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 194,
+     "internal": false,
+     "patients_per_month": 16.17
+    },
+    {
+     "segment": "2015",
+     "patients": 174,
+     "internal": false,
+     "patients_per_month": 14.5
+    }
+   ],
+   "digest": "25156dfbca096f3c",
+   "label": "H32"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 334,
+   "windows": 6,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 170,
+     "internal": false,
+     "patients_per_month": 14.17
+    },
+    {
+     "segment": "2015",
+     "patients": 164,
+     "internal": false,
+     "patients_per_month": 13.67
+    }
+   ],
+   "digest": "85e6230cecf31415",
+   "label": "H34"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 307,
+   "windows": 6,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 155,
+     "internal": false,
+     "patients_per_month": 12.92
+    },
+    {
+     "segment": "2015",
+     "patients": 152,
+     "internal": false,
+     "patients_per_month": 12.67
+    }
+   ],
+   "digest": "cfae444c9c2cc99f",
+   "label": "H36"
+  },
+  {
+   "stream": "eicu_deploy",
+   "kind": "deploy",
+   "order": 0,
+   "N": 250,
+   "metric": "ext-eicu",
+   "hospital": "",
+   "evaluated": 294,
+   "windows": 6,
+   "segments": [
+    {
+     "segment": "2014",
+     "patients": 149,
+     "internal": false,
+     "patients_per_month": 12.42
+    },
+    {
+     "segment": "2015",
+     "patients": 145,
+     "internal": false,
+     "patients_per_month": 12.08
+    }
+   ],
+   "digest": "8971c80f45cff05d",
+   "label": "H37"
+  },
+  {
+   "stream": "inspire_mimic",
+   "kind": "cross",
+   "order": 0,
+   "N": 500,
+   "metric": "ext-mimic",
+   "hospital": "",
+   "evaluated": 6000,
+   "windows": 53,
+   "segments": [
+    {
+     "segment": "inspire",
+     "patients": 2000,
+     "internal": true,
+     "patients_per_month": 16.67
+    },
+    {
+     "segment": "mimic",
+     "patients": 4000,
+     "internal": false,
+     "patients_per_month": 22.22
+    }
+   ],
+   "digest": "7689cc4730b0b0cd",
+   "label": "all"
+  },
+  {
+   "stream": "eicu_mimic",
+   "kind": "cross",
+   "order": 0,
+   "N": 500,
+   "metric": "ext-mimic",
+   "hospital": "",
+   "evaluated": 6000,
+   "windows": 60,
+   "segments": [
+    {
+     "segment": "eicu",
+     "patients": 2000,
+     "internal": true,
+     "patients_per_month": 83.33
+    },
+    {
+     "segment": "mimic",
+     "patients": 4000,
+     "internal": false,
+     "patients_per_month": 22.22
+    }
+   ],
+   "digest": "69dbcfd6496bfa3e",
+   "label": "all"
+  },
+  {
+   "stream": "mimic_inspire",
+   "kind": "cross",
+   "order": 0,
+   "N": 500,
+   "metric": "ext-inspire",
+   "hospital": "",
+   "evaluated": 6000,
+   "windows": 47,
+   "segments": [
+    {
+     "segment": "mimic",
+     "patients": 2000,
+     "internal": true,
+     "patients_per_month": 11.11
+    },
+    {
+     "segment": "inspire",
+     "patients": 4000,
+     "internal": false,
+     "patients_per_month": 33.33
+    }
+   ],
+   "digest": "63bb60176f9a6079",
+   "label": "all"
+  },
+  {
+   "stream": "inspire_control",
+   "kind": "random",
+   "order": 0,
+   "N": 500,
+   "metric": "ext-inspire",
+   "hospital": "",
+   "evaluated": 11131,
+   "windows": 74,
+   "segments": [
+    {
+     "segment": "inspire",
+     "patients": 11131,
+     "internal": false,
+     "patients_per_month": 96.92
+    }
+   ],
+   "digest": "7abdda8fb7bcf58d",
+   "label": "all"
+  }
+ ],
+ "freeze_end": {
+  "t2": {
+   "tag": "perisim-freeze-t2-2026-11-11-084140",
+   "code_hash": "c4a5c4bcc9c0",
+   "config_hash": "3b11fe748af5"
+  },
+  "hypo": {
+   "tag": "perisim-freeze-hypo-2026-11-11-182104",
+   "code": "5c5b2fe1f006",
+   "config": "93021fecebea"
+  }
+ }
+}

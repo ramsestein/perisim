@@ -5,6 +5,19 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-13 — Result: arc-length placement of the shapes (prereg_arc, OSF 10.17605/OSF.IO/NAQ2T)
+
+Both arms ran on commit `05ecffd`. Full report: [results/arc-metric/REPORT.md](../results/arc-metric/REPORT.md).
+- **Primary units** (`hypo` × 3, NWICU × 3): D = L_arc − L_value is between −0.0014 and +0.0005 nats. D favours arc
+  in `hypo` eICU (−0.0006) and `hypo` MIMIC-IV (−0.0008), and arc is worse in none. Q is equivalent in five units.
+  NWICU with the MIMIC-IV rotation's metric is outside the band on the arc-better side (90 % CI 1.002–1.314).
+- **Overall:** equivalence is not established by the registered rule, and neither is "arc predicts better". The two
+  placements predict practically the same.
+- **Every experiment's conclusions are the same in both arms.** Two threshold readings of T2's transport in MIMIC-IV
+  (H3, H5) and roll's H1 in MIMIC-IV alone differ; no overall verdict changes.
+- **The consensus curves are identical in both arms.** The strongly backtracking variables carry almost no weight,
+  which explains the small effect.
+
 ## 2026-11-13 — Branch `arc-metric`: tolerance of the Euclidean check in T2's two units (lead, deviation)
 
 **What happened.** Both arms finished. `scripts/arc_compare.py` stops if the Euclidean kNN, which does not depend on
