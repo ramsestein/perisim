@@ -235,3 +235,13 @@ def test_render_teach_runs():
          "Q_synthesis": v, "H1_rule_synthesis": "y", "share_synthesis": 0.5}
     m = {"labels": {"agreement_with_real_y": 0.7, "mean_p_teacher": 0.2}, "weights": {"spearman": 0.8}}
     assert "50 %" in DR.render_teach({"status": "post hoc", "units": {"hypo_eicu": u}, "metrics": {"eicu": m}})
+
+
+def test_soft_expand_matches_p_without_bernoulli_noise(aggs):
+    learn, _ = aggs
+    p = np.linspace(0.01, 0.99, len(learn))
+    out, info = S.soft_expand(learn, p, 0, K=5)
+    assert len(out) == 5 * len(learn) and info["max_abs_share_error"] <= 0.2 + 1e-12
+    assert np.array_equal(out.ft.subjects, np.repeat(learn.ft.subjects, 5))
+    assert len(set(out.ft.ids.tolist())) == len(out)
+    assert abs(out.y.mean() - p.mean()) < 0.01

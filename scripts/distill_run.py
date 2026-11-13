@@ -54,7 +54,7 @@ OSF = re.compile(r"^10\.17605/OSF\.IO/[A-Z0-9]{4,}$")
 ROTATIONS = ("inspire", "mimic", "eicu")
 CHECK_TOL = 1e-6
 STEPS = ("aggregates", "fit", "check", "freeze", "evaluate", "dump", "compare")
-POSTHOC = ("teach",)            # not registered: DECISIONS 2026-11-13 (arm TEACH); `all` runs them after every
+POSTHOC = ("teach", "soft")            # not registered: DECISIONS 2026-11-13 (arm TEACH); `all` runs them after every
                                 # registered step has finished (those resume: nothing registered is recomputed)
 
 
@@ -623,6 +623,91 @@ def render_teach(res: dict) -> str:
     for e, m in res["metrics"].items():
         L.append(f"| {e} | {m['labels']['agreement_with_real_y']:.3f} | {m['labels']['mean_p_teacher']:.4f} | "
                  f"{m['weights']['spearman']:.3f} |")
+    return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------------------- post hoc: soft labels (not registered)
+SOFT_ARMS = ("teach_soft", "cop_soft")
+
+
+def soft_path(c: Ctx, arm: str, e: str) -> Path:
+    return d(c.out, "posthoc", "metrics") / f"metric_{arm}_ext-{e}.pkl"
+
+
+def step_soft(c: Ctx) -> None:
+    """DECISIONS 2026-11-14: TEACH and COP refitted with the teacher's probability (stratified soft labels, K copies per
+    row) instead of one Bernoulli draw; same rows (real for TEACH-SOFT, the same SYN-COP draw for COP-SOFT)."""
+    import arc_compare as AC
+    from distill.study import fit_on, soft_expand, synthetic_cohort, weight_agreement
+    from hypo.frozen import dump, load_pickle
+
+    rec = frozen(c)
+    for i, e in enumerate(ROTATIONS):
+        teacher = c.teacher(e)
+        _, learn = c.learn(e)
+        for arm in SOFT_ARMS:
+            path = soft_path(c, arm, e)
+            if path.exists():
+                continue
+            t = time.perf_counter()
+            if arm == "teach_soft":
+                base = learn
+            else:
+                base, _ = synthetic_cohort(c.aggs(e), teacher, learn.ft.specs, c.final_seed, i, "cop")
+            lm, info = soft_expand(base, teacher(base), int(np.random.SeedSequence([c.final_seed, 31, i]).generate_state(1)[0]))
+            m = fit_on(lm, c.mcfg, c.space, c.final_seed, c.a.threads)
+            wjson(path.with_suffix(".json"), {"rotation": e, "arm": arm, "labels": info, "code_hash": code_hash(),
+                                              "seconds": time.perf_counter() - t,
+                                              "weights": weight_agreement(m, load_pickle(c.final / f"metric_ext-{e}.pkl"))})
+            dump(m, path)
+            LOG.info("metric %s ext-%s: %.0f s", arm, e, time.perf_counter() - t)
+    _evaluate(c, SOFT_ARMS, lambda arm, e: soft_path(c, arm, e))
+    _dump(c, SOFT_ARMS)
+    o = c.out
+    src = c.a.source
+    pairs = {"real_vs_teach_soft": (src, o / "teach_soft"), "teach_soft_vs_cop_soft": (o / "teach_soft", o / "cop_soft"),
+             "real_vs_cop_soft": (src, o / "cop_soft"), "teach_vs_teach_soft": (o / "teach", o / "teach_soft"),
+             "cop_vs_cop_soft": (o / "cop", o / "cop_soft")}
+    R = {k: AC.compare(a, b)["units"] for k, (a, b) in pairs.items()}
+    units = {}
+    for u in sorted(R["real_vs_cop_soft"]):
+        units[u] = {"D_COP_SOFT": R["real_vs_cop_soft"][u]["D"], "D_model_soft": R["real_vs_teach_soft"][u]["D"],
+                    "D_synthesis_soft": R["teach_soft_vs_cop_soft"][u]["D"],
+                    "soft_minus_bernoulli_teach": R["teach_vs_teach_soft"][u]["D"],
+                    "soft_minus_bernoulli_cop": R["cop_vs_cop_soft"][u]["D"],
+                    "Q_COP_SOFT": R["real_vs_cop_soft"][u]["Q"], "H1_rule_COP_SOFT": _ni(R["real_vs_cop_soft"][u]),
+                    "Q_TEACH_SOFT": R["real_vs_teach_soft"][u]["Q"],
+                    "H1_rule_TEACH_SOFT": _ni(R["real_vs_teach_soft"][u]),
+                    "R_COP_SOFT": R["real_vs_cop_soft"][u]["R_arc"], "H3_rule_COP_SOFT": _r(R["real_vs_cop_soft"][u])}
+    res = {"status": "post hoc, not registered (DECISIONS 2026-11-14, soft labels)", "registration": rec["registration"],
+           "code_hash": code_hash(), "units": units,
+           "metrics": {f"{a}/{e}": json.loads(soft_path(c, a, e).with_suffix(".json").read_text(encoding="utf-8"))
+                       for a in SOFT_ARMS for e in ROTATIONS}}
+    for v in res["metrics"].values():
+        v["weights"].pop("weights", None)
+    wjson(d(c.out, "posthoc") / "soft.json", res)
+    (d(c.out, "posthoc") / "soft.md").write_text(render_soft(res), encoding="utf-8")
+    LOG.info("post hoc soft labels: %s", d(c.out, "posthoc") / "soft.md")
+
+
+def render_soft(res: dict) -> str:
+    def ci(x, k="ci95", sign=True):
+        f = "{:+.4f}" if sign else "{:.3f}"
+        return f"{f.format(x['est'])} ({f.format(x[k][0])} to {f.format(x[k][1])})"
+
+    L = ["# Post hoc: soft labels (teacher probability instead of one Bernoulli draw)", "", f"{res['status']}.", "",
+         "| unit | D_COP_SOFT | D_model_soft | D_synthesis_soft | soft − Bernoulli (TEACH) | soft − Bernoulli (COP) | "
+         "Q_COP_SOFT (90 % CI) | H1 rule | Q_TEACH_SOFT (90 % CI) | H1 rule | R_COP_SOFT (90 % CI) | H3 rule |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for u, v in res["units"].items():
+        L.append(f"| {u} | {ci(v['D_COP_SOFT'])} | {ci(v['D_model_soft'])} | {ci(v['D_synthesis_soft'])} | "
+                 f"{ci(v['soft_minus_bernoulli_teach'])} | {ci(v['soft_minus_bernoulli_cop'])} | "
+                 f"{ci(v['Q_COP_SOFT'], 'ci90', False)} | {v['H1_rule_COP_SOFT']} | "
+                 f"{ci(v['Q_TEACH_SOFT'], 'ci90', False)} | {v['H1_rule_TEACH_SOFT']} | "
+                 f"{ci(v['R_COP_SOFT'], 'ci90', False)} | {v['H3_rule_COP_SOFT']} |")
+    L += ["", "| metric | max error of the positive share vs p | Spearman with M_REAL weights |", "|---|---|---|"]
+    for k, m in res["metrics"].items():
+        L.append(f"| {k} | {m['labels']['max_abs_share_error']:.3f} | {m['weights']['spearman']:.3f} |")
     return "\n".join(L) + "\n"
 
 def main(argv=None) -> int:

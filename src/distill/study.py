@@ -72,6 +72,29 @@ def teacher_labelled(learn: Landmarks, teacher, seed: int, rotation: int) -> tup
                 "agreement_with_real_y": float((lm.y == learn.y).mean())}
 
 
+SOFT_K = 5
+
+
+def soft_expand(lm: Landmarks, p: np.ndarray, seed: int, K: int = SOFT_K) -> tuple[Landmarks, dict]:
+    """Post hoc (DECISIONS 2026-11-14, soft labels): every row K times, same patient, with labels 1{(k + U)/K < p}
+    (one U ~ U(0, 1) per row, k = 0..K-1): the share of positive copies is p to within 1/K and unbiased, without the
+    noise of one Bernoulli draw per row. The copies of a row never neighbour each other (the NCA and the case-base
+    searches exclude the same patient; the shape models split by patient)."""
+    n = len(lm)
+    p = np.clip(np.asarray(p, dtype=np.float64), 0.0, 1.0)
+    rng = np.random.default_rng(seed)
+    U = rng.random(n)
+    rows = np.repeat(np.arange(n), K)
+    k = np.tile(np.arange(K), n)
+    y = (((k + U[rows]) / K) < p[rows]).astype(np.int64)
+    out = lm.take(rows)
+    out.ft.ids = np.array([f"{i}#{r}#{j}" for i, r, j in zip(lm.ft.ids[rows].astype(str), rows, k)], dtype=object)
+    out.y = y
+    return out, {"n_rows": n, "K": K, "n_expanded": len(out), "mean_p_teacher": float(p.mean()),
+                 "share_positive": float(y.mean()), "max_abs_share_error": float(np.max(np.abs(
+                     y.reshape(n, K).mean(1) - p)))}
+
+
 def fit_on(learn: Landmarks, mcfg: dict, space: dict, seed: int, threads: int):
     from hypo.metric import fit_metric
 

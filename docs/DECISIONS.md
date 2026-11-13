@@ -5,6 +5,21 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-14 — Branch `distill`, post hoc soft labels (lead; written before it runs)
+
+**Not registered.** After arm TEACH (D_model significant in hypo MIMIC; teacher labels agree with the real outcome in
+70–78 % of rows), the lead asked to replace the single Bernoulli draw per row by the teacher's probability.
+`fit_metric` takes binary labels and no weights, and the core code is frozen, so the probability enters as
+**stratified soft labels**: each row K = 5 times, same patient, labels 1{(k + U)/5 < p_T}, one U ~ U(0, 1) per row
+(the positive share equals p_T to within 1/5, unbiased, with no draw-to-draw noise). The copies of a row never act as
+each other's neighbours (same patient). Arms: **TEACH-SOFT** (the real learning rows) and **COP-SOFT** (the same
+SYN-COP draw as M_COP). Same `fit_metric` call and seed, same units, case bases and folds.
+
+Reported per unit with `arc_compare`'s statistics: D_COP_SOFT = D_model_soft + D_synthesis_soft; soft − Bernoulli for
+TEACH and for COP (negative = soft labels help); Q_COP_SOFT and Q_TEACH_SOFT by the H1 rule; R_COP_SOFT by the H3
+rule. Reading: soft labels "help" in a unit when soft − Bernoulli has a 95 % CI below 0. Separate from H1–H3 and from
+TEACH; outside the freeze record (`work_distill/distill/posthoc/`).
+
 ## 2026-11-13 — Branch `distill`, post hoc arm TEACH: cost of the model vs cost of the synthesis (lead; written before it runs)
 
 **Not registered.** Written after the registered result (H1 not met: Q_COP non-inferior in 4 of 6 units; H2 not
