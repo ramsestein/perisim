@@ -5,6 +5,38 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-14 — Post hoc analyses for the article (lead; written before they run)
+
+**Not registered; exploratory.** Requested after the literature review for the article (reviewers' likely demands).
+All on stored predictions; nothing is refitted except where stated. Run on both code versions: the published v0.5
+results (`work`, frozen code) and the v0.6 re-run (arm `value` of `prereg_arc.md`, `work_value`). Units: the three
+`hypo` targets (transported metric of the rotation) and NWICU with each of the three frozen metrics. Patient
+bootstrap, 2,000 replicates (500 where a statistic needs refitting a smoother), one set of replicates per unit.
+`scripts/posthoc_paper.py`; outputs are aggregates only.
+
+1. **Absolute equivalence and the R denominator.** Per unit: G_local = L_euclid − L_local and G_transp = L_euclid −
+   L_transp (nats, 95 % CI); D = L_transp − L_local (95 % and 90 % CI); the bootstrap share of replicates with
+   G_local < 0.005; and an equivalence reading free of the ratio: **equivalent in absolute terms when D's 90 % CI lies
+   within ±0.005 nats** (the margin is the not-evaluable threshold of the published rule). R is recomputed for
+   reference.
+2. **Calibration beyond CITL and slope.** Per unit and arm (transported, local, Euclidean, LightGBM transported, LightGBM
+   recalibrated as stored: `hypo` on 500 local patients, mean over the 5 draws of its log-loss and first draw for the
+   curves; NWICU as pre-registered there): CITL, slope, ICI, E50 and E90 (|p − smoothed observed|, local-linear
+   tricube smoother of y on p, span 0.75, on a 200-point grid), with a 95 % CI for ICI (500 replicates).
+3. **Decision curves.** Net benefit at thresholds 0.05–0.50 (step 0.05) for the transported kNN, LightGBM transported,
+   LightGBM recalibrated, treat-all and treat-none, in every unit (NWICU was not reported before); ΔNB (kNN −
+   LightGBM recalibrated) at 0.10, 0.20 and 0.30 with 95 % CI.
+4. **A PRAM-style mixture** (Jeong et al., 2026, simplified: a linear mixture, not PRAM's similarity-dependent weight):
+   p_mix = λ·p_LightGBM-transported + (1 − λ)·p_kNN-transported, λ on a 0.05 grid chosen by cross-fitting across the
+   unit's folds (the λ of fold f minimises the log-loss of the other folds; local labels only, like the case base).
+   Reported: L, AUROC, AUPRC of the mixture against the transported kNN and LightGBM recalibrated (paired differences,
+   95 % CI) and the chosen λ.
+5. **Mutual-information weights from aggregates only.** §17's MI-transported weights are computed from contingency
+   tables (20 quantile bins, or categories, × outcome) of the two development sites. Audit: for each rotation, the
+   smallest patient count behind any cell and the share of cells under 50 patients (counts reported only as
+   "≥ 50" or "< 50"). If every cell has ≥ 50 patients, §17's MI-transported arm is an aggregate-only metric as it
+   stands, and is reported next to the distilled metrics as the simplest "no patient rows" alternative.
+
 ## 2026-11-14 — Branch `distill`, post hoc soft labels (lead; written before it runs)
 
 **Not registered.** After arm TEACH (D_model significant in hypo MIMIC; teacher labels agree with the real outcome in
