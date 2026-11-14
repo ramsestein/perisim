@@ -365,10 +365,10 @@ def render(res: dict) -> str:
                  f"{_c(m['auprc_vs_knn'])} | {_c(m['auprc_vs_lgbm_recal'])} |")
     if res.get("mi_audit"):
         L += ["", "## 5. Mutual-information weights from aggregates: cell audit", "",
-              "| rotation | blocks | cells | cells < 50 patients | all cells ≥ 50 | blocks with small cells |",
-              "|---|---|---|---|---|---|"]
+              "| rotation | blocks | cells | every cell ≥ 50 patients | blocks with a cell under 50 patients |",
+              "|---|---|---|---|---|"]
         for X, a in res["mi_audit"].items():
-            L.append(f"| {X} | {a['blocks']} | {a['cells']} | {a['cells_below_50']} | {a['all_cells_ge_50']} | "
+            L.append(f"| {X} | {a['blocks']} | {a['cells']} | {'yes' if a['all_cells_ge_50'] else 'no'} | "
                      f"{', '.join(a['blocks_with_small_cells']) or '—'} |")
     return "\n".join(L) + "\n"
 
