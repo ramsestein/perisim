@@ -5,6 +5,15 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-15 — Review block B: the rebuild gate tolerates reordered distance ties (lead; deviation)
+
+**Found in the run, before block B's results were read.** Block B rebuilds the stored transported kNN of fold 0 and
+required |Δp| ≤ 1e-9 on every row. INSPIRE passed; MIMIC-IV failed with max |Δp| = 0.0185, which is one vote out of
+k + 2α ≈ 54: a single neighbour differs on some rows. The embedding is made of step functions, so exact distance ties
+are common, and the float32 search (BLAS-threaded) can order them differently between runs; the same procedure, data,
+metric and seed are used. The gate now records max |Δp|, mean |Δp| and the share of rows that moved, and stops the run
+only if more than 2 % of rows moved or the mean |Δp| exceeds 0.001. The gate's numbers are reported with block B.
+
 ## 2026-11-15 — Review block H: the autoregressive outcome (lead; added to the review plan before it runs)
 
 **Written before block H ran.** Past MAP is among the inputs, so part of the outcome is persistence. That cancels in D

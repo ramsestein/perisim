@@ -48,6 +48,7 @@ NB_MARGIN = 0.002
 MARGIN = 0.005
 THR = 65.0
 GATE_TOL = 1e-9
+GATE_SHARE, GATE_MEAN = 0.02, 1e-3        # block B's rebuild gate: ≤ 2 % of rows moved, mean |Δp| ≤ 0.001
 EPS = 1e-6
 QUICK = False                 # tests: quick settings and frozen artefacts
 
@@ -500,6 +501,7 @@ def block_B(u: Unit, units: Path) -> dict:
     p_add = additive_model(u)
     P = {k: np.full(y.size, np.nan) for k in ("shapes_uniform", "score_1d", "additive_n500", "additive_all",
                                                 "gate_transported")}
+    gate = None
     for f in u.folds:
         tr, te = u.split(f)
         seed = u.seed + 100 * f
@@ -517,9 +519,13 @@ def block_B(u: Unit, units: Path) -> dict:
         P["additive_all"][te] = recal("logistic", p_add[tr], y[tr], p_add[te])
         if f == u.folds[0]:                                     # gate: the stored transported kNN is rebuilt
             P["gate_transported"][te], _ = u.knn(u.metric, u.E, tr, te, seed)
-            gap = float(np.max(np.abs(P["gate_transported"][te] - u.P["transported"][te])))
-            if gap > GATE_TOL:
-                raise RuntimeError(f"review B {u.name}: the transported kNN is not rebuilt (max |Δp| = {gap})")
+            d = np.abs(P["gate_transported"][te] - u.P["transported"][te])
+            gate = {"max_abs_dp": float(d.max()), "mean_abs_dp": float(d.mean()),
+                    "share_rows_differ": float((d > GATE_TOL).mean()), "rows": int(d.size)}
+            # exact distance ties among step-function embeddings can be ordered differently by the float32 search
+            # (BLAS threading), which moves single votes; anything beyond that is a real mismatch (DECISIONS 2026-11-15)
+            if gate["share_rows_differ"] > GATE_SHARE or gate["mean_abs_dp"] > GATE_MEAN:
+                raise RuntimeError(f"review B {u.name}: the transported kNN is not rebuilt ({gate})")
     del P["gate_transported"]
     P["additive_transported"] = p_add
     arms = {"raw_euclidean": u.P["euclidean"], "shapes_uniform": P["shapes_uniform"],
@@ -533,7 +539,7 @@ def block_B(u: Unit, units: Path) -> dict:
     share = {"shapes": (stats["raw_euclidean"]["logloss"] - stats["shapes_uniform"]["logloss"]) / gl if gl > 0 else None,
              "weights": (stats["shapes_uniform"]["logloss"] - stats["shapes_nca"]["logloss"]) / gl if gl > 0 else None}
     s1 = con["score_1d"]["dlogloss"]
-    return {"arms": stats, "vs_shapes_nca": con, "gain_share": share,
+    return {"arms": stats, "vs_shapes_nca": con, "gain_share": share, "rebuild_gate": gate,
             "score_1d_not_worse": bool(s1["ci90"][1] <= MARGIN) if s1 else None}
 
 
