@@ -5,6 +5,23 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-15 — The transport question is non-inferiority (lead; amends the entry below)
+
+**Written while `review_analyses.py` was running, before any of its outputs were read.** The question of the article is
+whether the transported metric is *not worse* than a metric learned at the target, not whether it is equal or better.
+The primary reading of every transport contrast is therefore one-sided non-inferiority at α = 0.05, read on the 90 %
+CI:
+- **D = L_transp − L_local (nats): non-inferior when the upper limit of the 90 % CI is ≤ +0.005.** Equivalence (whole
+  CI inside ±0.005) and superiority (upper limit < 0) are reported as secondary readings.
+- **Clinical anchor: ΔNB (transported − local) non-inferior when the lower limit of its 90 % CI is ≥ −0.002 per
+  prediction** at 0.10, 0.20 and 0.30.
+- **R** keeps its retention reading (lower limit of the 90 % CI ≥ 0.80), descriptive in the rotation.
+- The same one-sided reading applies to the review's comparator contrasts (block B: an arm is "not worse" than shapes +
+  NCA when the upper limit of its Δ log-loss 90 % CI is ≤ +0.005, as `score_1d_not_worse` already does).
+
+The rotation's v0.6 D estimates were known when this was written (all three inside ±0.005), so this reframing is
+disclosed as made after those results. The repository is archived on Zenodo as a whole (one DOI), not per version.
+
 ## 2026-11-15 — Review analyses for the article (lead; plan written before they run)
 
 **Not registered on OSF; dated here before any of them ran (the lead's choice).** They answer two internal reviews of
