@@ -5,6 +5,23 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-15 — Review block H: the autoregressive outcome (lead; added to the review plan before it runs)
+
+**Written before block H ran.** Past MAP is among the inputs, so part of the outcome is persistence. That cancels in D
+(both metrics see the same task) but inflates absolute AUROC and leaves open what the model adds to the last MAP. The
+primary outcome is unchanged; three post hoc sensitivity analyses, per unit, with `review_analyses.py --blocks H`:
+1. **Blanking hour.** Outcome: any hour with median MAP < 65 in [L + 1, L + 6), or death in the window; landmarks whose
+   [L + 1, L + 6) has no hourly MAP and no death are dropped. The case bases (training folds) are relabelled and the
+   vote recomputed for the transported metric, the local metric (refitted as stored, same rows, seed and space; gate:
+   it rebuilds the stored local predictions of fold 0) and the Euclidean kNN; LightGBM and persistence are recalibrated
+   on 500 local patients on the new outcome. α is not refitted. D and ΔNB read as non-inferiority (entry above), plus
+   each arm against persistence.
+2. **Far from the threshold.** D, ΔNB and AUROC on the landmarks with last MAP ≥ 75 mmHg, and on 65–75 mmHg, primary
+   outcome; a stratum is analysed only with ≥ 100 patients and ≥ 10 events and non-events.
+3. **Gain over persistence.** Δ log-loss (90 % and 95 % CI) and ΔAUROC (95 % CI) of transported, local and recalibrated
+   LightGBM against the last-MAP model recalibrated on 500 local patients, on all landmarks and in each stratum.
+Patient bootstrap, 1,000 replicates. Exploratory; reported in the supplement with a line in the Discussion.
+
 ## 2026-11-15 — The transport question is non-inferiority (lead; amends the entry below)
 
 **Written while `review_analyses.py` was running, before any of its outputs were read.** The question of the article is

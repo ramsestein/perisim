@@ -9,8 +9,9 @@ Blocks (each resumable; patient-level units in <experiments>/hypo/review/units, 
   D    cohort: dropped and partly observed windows, sustained hypotension, strata, ties, MAP weights
   E    deployment and use: artefact without exact ranks, episode level, neighbour stability
   G    distillation cells (aggregates file)
+  H    the autoregressive outcome: a blanking hour [L + 1, L + 6), the stratum last MAP ≥ 75 mmHg, gains over persistence
 
-Usage:  python scripts/review_analyses.py [--blocks est A B C D E G] [--units inspire mimic eicu nwicu] [--threads 16]
+Usage:  python scripts/review_analyses.py [--blocks est A B C D E G H] [--units inspire mimic eicu nwicu] [--threads 16]
                                           [--n-src 10] [--distill-dir work_distill/distill]
 Outputs (aggregates only): <experiments>/hypo/review/review.json and <experiments>/hypo/reports/review.md.
 """
@@ -162,6 +163,31 @@ def sustained(stay_lm: np.ndarray, L: np.ndarray, died: np.ndarray, stay_h: np.n
     return np.where(died, 1, out)
 
 
+def gap_outcome(stay_lm: np.ndarray, L: np.ndarray, died: np.ndarray, stay_h: np.ndarray, hour_h: np.ndarray,
+                map_h: np.ndarray, gap: int = 1, horizon: int = 6) -> tuple[np.ndarray, np.ndarray]:
+    """Hypotension with a blanking hour: any hour with median MAP < 65 in [L + gap, L + horizon), or death in the
+    window. Known when that span has an hourly MAP or the patient died in the window."""
+    fin = np.isfinite(map_h)
+    seen, low = {}, {}
+    for s, h, m in zip(stay_h[fin], hour_h[fin], map_h[fin]):
+        seen.setdefault(s, []).append(int(h))
+        if m < THR:
+            low.setdefault(s, []).append(int(h))
+    seen = {k: np.sort(np.array(v)) for k, v in seen.items()}
+    low = {k: np.sort(np.array(v)) for k, v in low.items()}
+
+    def count(d, s, a, b):
+        h = d.get(s)
+        return 0 if h is None else int(np.searchsorted(h, b, "left") - np.searchsorted(h, a, "left"))
+
+    y = np.zeros(L.size, dtype=np.int64)
+    k = np.zeros(L.size, dtype=bool)
+    for i, (s, l0) in enumerate(zip(stay_lm, L)):
+        y[i] = int(count(low, s, l0 + gap, l0 + horizon) > 0)
+        k[i] = count(seen, s, l0 + gap, l0 + horizon) > 0
+    return np.where(died, 1, y), k | died
+
+
 # =========================================================================== shared summaries
 def arm_stats(P: dict, y: np.ndarray, ici: bool = True) -> dict:
     out = {}
@@ -244,7 +270,8 @@ def estimands(P: dict, y, subj, seed: int, weights=None, n_boot: int = N_BOOT) -
     D90 = PP.ci(B["D"], 0.90)
     G = np.asarray(B["G"])
     out = {"D": {"est": est["transported"] - est["local"], "ci90": D90, "ci95": PP.ci(B["D"]),
-                 "equivalent": bool(D90[0] >= -MARGIN and D90[1] <= MARGIN)},
+                 "equivalent": bool(D90[0] >= -MARGIN and D90[1] <= MARGIN),
+                 "noninferior": bool(D90[1] <= MARGIN), "superior": bool(D90[1] < 0)},
            "R": {"est": (est["euclidean"] - est["transported"]) / g if g > 0 else float("nan"),
                  "ci90": PP.ci(B["R"], 0.90), "replicates_G_local_le_0": int((G <= 0).sum()),
                  "replicates_G_local_below_margin": int((G < MARGIN).sum()), "n_boot": int(G.size)},
@@ -252,9 +279,10 @@ def estimands(P: dict, y, subj, seed: int, weights=None, n_boot: int = N_BOOT) -
                       "ci95": PP.ci(B["dauc"])},
            "dnb": {}}
     for t in NB_T:
-        c = PP.ci(nb[t])
+        c, c90 = PP.ci(nb[t]), PP.ci(nb[t], 0.90)
         out["dnb"][f"{t:.2f}"] = {"est": PP.net_benefit(P["transported"], y, t) - PP.net_benefit(P["local"], y, t),
-                                  "ci95": c, "within_margin": bool(c[0] >= -NB_MARGIN and c[1] <= NB_MARGIN)}
+                                  "ci95": c, "ci90": c90, "within_margin": bool(c[0] >= -NB_MARGIN and c[1] <= NB_MARGIN),
+                                  "noninferior": bool(c90[0] >= -NB_MARGIN)}
     return out
 
 
@@ -728,6 +756,104 @@ def block_D(u: Unit, units: Path, Hcache: dict) -> dict:
 
 
 # =========================================================================== block E
+# =========================================================================== block H
+def _local_metric(u: Unit, f: int, tr: np.ndarray, units: Path, threads: int):
+    """The fold's local metric, refitted as the external stage / NWICU script fitted it (same rows, seed and space),
+    cached as a pickle (the stored units keep only its predictions)."""
+    import pickle
+    from hypo.data import learning_sample
+    from hypo.metric import fit_metric
+
+    path = units / f"H_local_{u.raw_path.stem}_f{f}.pkl"
+    if path.exists():
+        with open(path, "rb") as fh:
+            return pickle.load(fh)
+    _, mcfg, space = _cfg()
+    seed = u.seed + 100 * f
+    pool = u.lm.take(tr)
+    rows = learning_sample(pool, int(mcfg["learn"]["per_patient"]), int(mcfg["learn"]["per_site"]), seed)
+    m = fit_metric(pool.take(rows), mcfg, space, seed=seed, threads=threads)
+    with open(path, "wb") as fh:
+        pickle.dump(m, fh)
+    return m
+
+
+def block_H(u: Unit, units: Path, Hcache: dict, threads: int) -> dict:
+    """The autoregressive outcome: (1) a blanking hour, [L + 1, L + 6); (2) the stratum far from the threshold, last
+    MAP ≥ 75 mmHg; (3) every arm's gain over persistence (the last-MAP model recalibrated on 500 local patients)."""
+    import polars as pl
+    from hypo.casebase import CaseBase
+    from posthoc_cosine import neutral_metric
+
+    out = {}
+    y = u.y.astype(np.float64)
+    # (1) blanking hour
+    if u.raw_path not in Hcache:
+        Hcache[u.raw_path] = hourly_map(u)
+    sh, hh, mh = Hcache[u.raw_path]
+    died = u.lm.frame["died_in_window"].cast(pl.Boolean).to_numpy() if "died_in_window" in u.lm.frame.columns \
+        else np.zeros(len(u.lm), bool)
+    yg, kg = gap_outcome(u.stay, u.L, died, sh, hh, mh)
+    arms = ("transported", "local", "euclidean", "lgbm_n500", "persistence_n500")
+    Pg = {a: np.full(y.size, np.nan) for a in arms}
+    gate = None
+    for f in u.folds:
+        tr, te = u.split(f)
+        trk, tek = tr[kg[tr]], te[kg[te]]
+        seed = u.seed + 100 * f
+        path = units / f"H1_{u.name}_f{f}.npz"
+        if path.exists():
+            z = np.load(path)
+            for a in ("transported", "local", "euclidean"):
+                Pg[a][tek] = z[a]
+        else:
+            m_loc = _local_metric(u, f, tr, units, threads)
+            E_loc = m_loc.embed(u.lm)
+            if f == u.folds[0]:                  # gate: the refitted local metric rebuilds the stored local predictions
+                cb = CaseBase(m_loc, u.lm.take(tr), u.mcfg, E=E_loc[tr])
+                cb.fit_alpha(seed)
+                p0 = np.asarray(cb.predict(u.lm.take(te), E=E_loc[te])["p"], dtype=np.float64)
+                gate = float(np.max(np.abs(p0 - u.P["local"][te])))
+            nm = neutral_metric(u.lm.take(tr))
+            for a, (m, E) in {"transported": (u.metric, u.E), "local": (m_loc, E_loc),
+                              "euclidean": (nm, nm.embed(u.lm))}.items():
+                _, info = u.knn(m, E, trk, tek, seed)
+                Pg[a][tek] = info["cb"].vote(info["I"], info["valid"], yg[trk], 2)[:, 1]
+            np.savez(path, **{a: Pg[a][tek] for a in ("transported", "local", "euclidean")})
+        pos = u.draw(f, trk, 500, 0)
+        Pg["lgbm_n500"][tek] = recal("logistic", u.P["lgbm_transported"][trk[pos]], yg[trk[pos]],
+                                     u.P["lgbm_transported"][tek])
+        Pg["persistence_n500"][tek] = recal("logistic", u.P["last_map_transported"][trk[pos]], yg[trk[pos]],
+                                            u.P["last_map_transported"][tek])
+    m = kg
+    ygf = yg[m].astype(np.float64)
+    Pm = {a: v[m] for a, v in Pg.items()}
+    out["blanking_hour"] = {
+        "known_share": float(kg.mean()), "prevalence": float(ygf.mean()), "prevalence_primary": float(y.mean()),
+        "local_rebuild_gap": gate, "arms": arm_stats(Pm, ygf),
+        "estimands": estimands(Pm, ygf, u.subj[m], SEED + 31, n_boot=1000),
+        "vs_persistence": contrasts(Pm, ygf, u.subj[m], "persistence_n500",
+                                    ["transported", "local", "lgbm_n500"], SEED + 32, n_boot=1000)}
+    # (2) far from the threshold, and (3) gain over persistence, on the primary outcome
+    ml = np.asarray(u.lm.ft.num["map_last"], dtype=np.float64)
+    P = {"transported": u.P["transported"], "local": u.P["local"], "euclidean": u.P["euclidean"],
+         "lgbm_recal": u.P["lgbm_recal"], "persistence_recal": u.P["last_map_recal"]}
+    others = ["transported", "local", "lgbm_recal"]
+    out["vs_persistence"] = contrasts(P, y, u.subj, "persistence_recal", others, SEED + 33, n_boot=1000)
+    out["arms_all"] = arm_stats(P, y, ici=False)
+    for name, s in {"map_last_ge_75": np.nan_to_num(ml, nan=0.0) >= 75.0,
+                    "map_last_65_75": (ml >= 65.0) & (ml < 75.0)}.items():
+        n_pat = int(np.unique(u.subj[s]).size)
+        o = {"landmarks": int(s.sum()), "patients": n_pat, "share": float(s.mean()), "prevalence": float(y[s].mean())}
+        if n_pat >= 100 and 10 <= y[s].sum() <= s.sum() - 10:
+            Ps = {a: v[s] for a, v in P.items()}
+            o.update(arms=arm_stats(Ps, y[s], ici=False),
+                     estimands=estimands(Ps, y[s], u.subj[s], SEED + 34, n_boot=1000),
+                     vs_persistence=contrasts(Ps, y[s], u.subj[s], "persistence_recal", others, SEED + 35, n_boot=1000))
+        out[name] = o
+    return out
+
+
 def approx_embedding(metric, ft, nodes: int = 101) -> tuple[np.ndarray, dict]:
     enc = metric.enc
     E = np.array(enc.transform(ft), dtype=np.float32)
@@ -959,6 +1085,31 @@ def render(res: dict) -> str:
             L.append(f"- neighbour stability: Jaccard transported {ns['transported']['jaccard_mean']:.2f}, Euclidean "
                      f"{ns['euclidean']['jaccard_mean']:.2f}; |Δp| transported {ns['transported']['abs_dp_mean']:.4f}")
             L.append("")
+    if res.get("H"):
+        L += ["## H. The autoregressive outcome", "", "Non-inferiority: upper limit of D's 90 % CI ≤ +0.005. Gains over "
+              "persistence (last-MAP model recalibrated on 500 local patients): arm − persistence, negative = better.", ""]
+        for u, h in res["H"].items():
+            b = h["blanking_hour"]
+            e = b["estimands"]["D"]
+            L.append(f"### {u}")
+            L.append(f"- blanking hour [L + 1, L + 6): known {100 * b['known_share']:.1f} %, prevalence "
+                     f"{100 * b['prevalence']:.1f} % (primary {100 * b['prevalence_primary']:.1f} %); local rebuild gap "
+                     f"{_f(b['local_rebuild_gap'], '.1e')}; D {_f(e['est'])} ({_f(e['ci90'][0])} to {_f(e['ci90'][1])}), "
+                     f"non-inferior {e['noninferior']}; AUROC transported {b['arms']['transported']['auroc']:.3f}, local "
+                     f"{b['arms']['local']['auroc']:.3f}, persistence {b['arms']['persistence_n500']['auroc']:.3f}")
+            for name in ("map_last_ge_75", "map_last_65_75"):
+                o = h[name]
+                if "estimands" in o:
+                    d = o["estimands"]["D"]
+                    L.append(f"- {name}: {o['landmarks']} landmarks ({100 * o['share']:.0f} %), prevalence "
+                             f"{100 * o['prevalence']:.1f} %; D {_f(d['est'])} ({_f(d['ci90'][0])} to {_f(d['ci90'][1])}), "
+                             f"non-inferior {d['noninferior']}; AUROC transported {o['arms']['transported']['auroc']:.3f}, "
+                             f"persistence {o['arms']['persistence_recal']['auroc']:.3f}")
+            for a, c in h["vs_persistence"].items():
+                L.append(f"- {a} − persistence (all): Δ log-loss {_f(c['dlogloss']['est'])} ({_f(c['dlogloss']['ci95'][0])} "
+                         f"to {_f(c['dlogloss']['ci95'][1])}), ΔAUROC {_f(c['dauroc']['est'])} ({_f(c['dauroc']['ci95'][0])} "
+                         f"to {_f(c['dauroc']['ci95'][1])})")
+            L.append("")
     if res.get("G"):
         g = res["G"]
         L += ["## G. Distillation cells", "", f"Smallest patient count in any released cell: {g.get('min_patients_any_cell')}; "
@@ -968,7 +1119,7 @@ def render(res: dict) -> str:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--blocks", nargs="*", default=["est", "A", "B", "C", "D", "E", "G"])
+    ap.add_argument("--blocks", nargs="*", default=["est", "A", "B", "C", "D", "E", "G", "H"])
     ap.add_argument("--units", nargs="*", default=list(ROTATIONS) + ["nwicu"])
     ap.add_argument("--threads", type=int, default=16)
     ap.add_argument("--n-src", type=int, default=10)
@@ -1007,7 +1158,7 @@ def main(argv=None) -> int:
     t0 = time.perf_counter()
     for blk, fn in (("est", lambda u: block_est(u)), ("A", lambda u: block_A(u, units)),
                     ("B", lambda u: block_B(u, units)), ("D", lambda u: block_D(u, units, Hc)),
-                    ("E", lambda u: block_E(u, units, Hc))):
+                    ("E", lambda u: block_E(u, units, Hc)), ("H", lambda u: block_H(u, units, Hc, a.threads))):
         if blk not in a.blocks:
             continue
         res.setdefault(blk, {})

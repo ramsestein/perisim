@@ -176,7 +176,7 @@ def test_review_script_end_to_end(frozen_chain):
 
     Stage(quick=True, threads=1).run(["eicu"])                                  # every fold of eICU
     assert RA.main(["--quick", "--units", "eicu", "--threads", "1", "--n-src", "2",
-                    "--blocks", "est", "A", "B", "C", "D", "E", "G"]) == 0
+                    "--blocks", "est", "A", "B", "C", "D", "E", "G", "H"]) == 0
     import json
     res = json.loads((external_dir().with_name("review") / "review.json").read_text())
     u = "hypo_eicu"
@@ -186,6 +186,10 @@ def test_review_script_end_to_end(frozen_chain):
     assert res["C"][u]["n_src"] == 2
     assert res["D"][u]["windows"]["dropped_no_map_hour"] == 30
     assert res["E"][u]["artefact_quantiles"]["embedding_rebuild_gap"] == 0
+    assert res["est"][u]["D"]["noninferior"] in (True, False) and "ci90" in res["est"][u]["dnb"]["0.10"]
+    h = res["H"][u]
+    assert h["blanking_hour"]["local_rebuild_gap"] < 1e-6                     # the refitted local metric is the stored one
+    assert {"transported", "local", "lgbm_recal"} == set(h["vs_persistence"])
     assert (tmp / "experiments" / "hypo" / "reports" / "review.md").exists()
 
 
@@ -195,3 +199,15 @@ def test_cluster_weights_with_patients_in_several_hospitals():
     for w in RA.cluster_weights(subj, hosp, 50, 1):
         assert np.all(np.isfinite(w)) and np.all(w >= 0)
         assert w[0] == w[1] and w[3] == w[4]                 # a patient's rows share one weight
+
+
+def test_gap_outcome():
+    stay_lm = np.array(["a", "a", "b", "c"])
+    L = np.array([2, 4, 2, 2])
+    died = np.array([False, False, False, True])
+    sh = np.array(["a", "a", "b"])
+    hh = np.array([2, 6, 2])
+    mh = np.array([60.0, 70.0, 60.0])
+    y, k = RA.gap_outcome(stay_lm, L, died, sh, hh, mh)
+    assert y.tolist() == [0, 0, 0, 1]          # a@2: the low hour 2 is the blanked hour; b: only hour 2; c: death
+    assert k.tolist() == [True, True, False, True]
