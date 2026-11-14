@@ -5,6 +5,70 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-15 — Review analyses for the article (lead; plan written before they run)
+
+**Not registered on OSF; dated here before any of them ran (the lead's choice).** They answer two internal reviews of
+the article draft. Every analysis is **post hoc** and is reported as exploratory, on the v0.6 re-run (arm `value`,
+`work_value`), with `scripts/review_analyses.py`. Units: the three `hypo` targets (the rotation's transported metric)
+and NWICU with each frozen metric (eICU hospitals where stated). Patient bootstrap, 2,000 replicates unless stated,
+shared by the arms of a unit; outputs are aggregates only. The data were seen before: v0.5 and v0.6 results of every
+unit are known to the lead when this is written.
+
+**Estimands, fixed for all blocks.** The primary transport estimand becomes D = L_transp − L_local (nats) with its 90 %
+CI, read against ±0.005 nats (equivalence when the whole CI lies inside) **and** against a clinical anchor: ΔNB
+(transported − local) within ±0.002 per prediction (0.2 net true positives per 100 predictions) at thresholds 0.10,
+0.20 and 0.30, with 95 % CIs. R stays as a descriptive retention ratio and its test is named non-inferiority; the
+replicates where G_local ≤ 0 are counted and reported (they are dropped from R's percentile interval, never from D's).
+Every log-loss difference is reported with the AUROC difference. Net benefit is per prediction (landmark), not per
+patient.
+
+**A. Learning curves in local labelled patients.** For n = 50, 100, 250, 500, 1,000, 2,000, 4,000, 8,000 and all
+training patients of each fold (drawn as the external stage's `draw`, the same patients for every arm; 5 draws below
+2,000 patients, 3 from 2,000): PERISIM transported with a case base of the n patients (rotation: the stored S1 curve
+units; NWICU: computed here) and LightGBM transported recalibrated on the same n patients by (i) intercept only,
+(ii) logistic intercept and slope, (iii) isotonic regression. Per n: log-loss, AUROC, ICI (mean and range over draws).
+**Reading:** the smallest n at which each arm's ICI is ≤ 0.01 and the n at which the recalibrated LightGBM's log-loss
+first beats PERISIM's. The same design in the rotation and in NWICU.
+
+**B. Comparators that test the geometry.** Same case bases, k = 50, distinct patients and vote; only the space changes:
+(1) raw: the stored Euclidean comparator (neutral axes fitted on the case base, uniform weights); (2) shapes +
+uniform weights (the frozen encoder, all weights 1); (3) shapes + NCA (the transported metric); (4) a 1-D score: the
+logit of the transported LightGBM as the only axis. Parametric: (5) an additive model, a logistic regression (L2,
+C = 1) on the frozen encoder's shape embedding fitted on the development pool's learning sample, transported and
+recalibrated on 500 local patients and on the whole case base; (6) persistence: the stored `last_map` comparator,
+transported and recalibrated. **Reading:** if (4) is not worse than (3) by D's 90 % CI, the geometry adds nothing
+beyond the score (said so in the article); (2) − (1) is the share of the gain that comes from the shapes, (3) − (2)
+from the weights.
+
+**C. Uncertainty of learning the metric.** For each rotation, B = 10 metrics re-learnt on patient bootstrap resamples
+of the development pool (the frozen settings and a new seed per resample), each applied with the target's fold case
+bases. Reported: the between-resample SD of D, R and AUROC, and a total interval (target bootstrap variance + resample
+variance). The unit of generalisation is the system: n = 3 rotations (+3 correlated NWICU units), stated in the text.
+
+**D. Cohort.** (1) Landmarks dropped because no MAP hour of the window was observed: counts and inputs compared with
+the analysis landmarks; their predictions (frozen metric, the target's whole case base, own patient excluded) and
+the bounds of AUROC and log-loss with all of them y = 0 and all y = 1. Landmarks with a partly observed window: D and
+AUROC restricted to fully observed windows. (2) A second outcome definition from the hourly MAP: sustained hypotension,
+≥ 2 hours with median MAP < 65 mmHg in [L, L + 6 h) or death; the same neighbours re-vote with these labels (transported,
+Euclidean) and the LightGBM is recalibrated to it on 500 patients. (3) Strata: vasopressor at L (INSPIRE: in the last
+24 h) and arterial line in the last 6 h: D, AUROC and ICI per stratum. (4) Tie rule: the share of queries whose k-th
+and (k+1)-th neighbour distances tie (fold 0), and the rule as implemented. (5) The MAP summaries: effective weight
+share of the five MAP inputs. A low-rank NCA is not run (cost).
+
+**E. Deployment and use.** (1) The artefact without exact ranks: every neutral rank axis replaced by the rank at 101
+quantiles, interpolated (fnxsql_export's `rank_nodes`); predictions, Δp and ΔAUROC against the stored transported
+predictions. (2) Episode level: per stay, the first hour with median MAP < 65 after the first landmark; share of first
+episodes preceded by an alert (p ≥ t) in the 6 h before, median lead time, and false alerts per patient-day at
+t = 0.10, 0.20, 0.30, for PERISIM transported, local and LightGBM recalibrated. (3) Neighbour stability: fold 0,
+5,000 queries, each continuous input perturbed by ±5 % of its interquartile range (10 perturbations); Jaccard overlap of
+the 50 neighbour patients. (4) eICU: a hospital-then-patient cluster bootstrap of D, R and AUROC.
+
+**F. Leakage.** An automated test (synthetic data, the whole chain) asserts that no supervised step of the external
+stage (shape models, NCA, α, recalibration, local metric) receives a patient of the fold under test, and that the
+frozen artefacts of rotation X never see X.
+
+**G. Distillation cells.** Confirm from the distillation aggregates that every released cell has ≥ 50 patients.
+
 ## 2026-11-14 — Article: v0.6 is the primary version (lead)
 
 The article reports the v0.6 re-run (arm `value` of `prereg_arc.md`, OSF 10.17605/OSF.IO/NAQ2T: the code corrected
