@@ -5,6 +5,15 @@ the pod by declared rules (D7 from the pilot, chosen λ, Δ̃ plateaus, MLP drop
 temporal validation omitted…) are logged automatically in `<workdir>/docs/DECISIONS.md`.
 
 
+## 2026-11-14 — Article: v0.6 is the primary version (lead)
+
+The article reports the v0.6 re-run (arm `value` of `prereg_arc.md`, OSF 10.17605/OSF.IO/NAQ2T: the code corrected
+after the audit of 2026-11-05) as its primary results. The published v0.5 results stay in `results/` and are declared
+in the article, with the reason for the change and their differences (notably MIMIC-IV: R 0.74 in v0.5, 0.89 in v0.6).
+Framing: the RECAL line (transport and adjustment of methods between hospitals), end to end (learn at the source,
+distil without rows, ship an aggregate artefact, run it as SQL on the local case base); PRAM (Jeong et al., 2026) is
+independent concurrent work, discussed as such.
+
 ## 2026-11-14 — Post hoc analyses for the article (lead; written before they run)
 
 **Not registered; exploratory.** Requested after the literature review for the article (reviewers' likely demands).
