@@ -36,7 +36,7 @@ def _num_code(c: str, codes: dict | None):
         raise ValueError(f"nominal category {c!r} has no numeric code: pass codes={{category: code}}") from None
 
 
-def _steps(enc, b, codes: dict | None) -> tuple[list[dict], bool]:
+def _steps(enc, b, codes: dict | None, rank_nodes: int | None = None) -> tuple[list[dict], bool]:
     """fnxsql steps of one block (one per embedding dimension, divided by the block's scale), and whether they carry
     training values (neutral rank axis)."""
     from perisim.metric.encoding import MISSING, OTHER
@@ -62,11 +62,16 @@ def _steps(enc, b, codes: dict | None) -> tuple[list[dict], bool]:
         srt = np.asarray(p["sorted"], dtype=np.float64)       # neutral rank: (#{t < x} + #{t <= x}) / 2n
         u, cnt = np.unique(srt, return_counts=True)
         n = srt.size
+        r_med = (np.searchsorted(srt, med, "left") + np.searchsorted(srt, med, "right")) / (2.0 * n)
+        if rank_nodes and u.size > rank_nodes:                  # approximate: the rank at rank_nodes quantiles, linear
+            xs = np.unique(np.quantile(srt, np.linspace(0.0, 1.0, rank_nodes)))
+            ys = (np.searchsorted(srt, xs, "left") + np.searchsorted(srt, xs, "right")) / (2.0 * n)
+            return [{"tipo": "interpolar", "variable": v, "nodos_x": [_f(x) for x in xs],
+                     "nodos_y": [_f(y / s) for y in ys], "nulo": _f(r_med / s), "aproximado": True}], False
         le = np.cumsum(cnt)                                     # #{t <= u_i}
         lt = le - cnt                                           # #{t <  u_i}
         between = np.concatenate([[0.0], le]) / n               # x in (u_{i-1}, u_i): #{t <= x} = #{t < x} = le_{i-1}
         at = (lt + le) / (2.0 * n)
-        r_med = (np.searchsorted(srt, med, "left") + np.searchsorted(srt, med, "right")) / (2.0 * n)
         return [{"tipo": "tabla", "variable": v, "cortes": [_f(x) for x in u], "valores": [_f(x / s) for x in between],
                  "en_corte": [_f(x / s) for x in at], "nulo": _f(r_med / s)}], True
     if b.kind == "binary":
@@ -111,23 +116,29 @@ def _steps(enc, b, codes: dict | None) -> tuple[list[dict], bool]:
     raise ValueError(f"block kind {b.kind!r} not exported")
 
 
-def export(metric, *, k: int, alpha: float, distinct: bool = True, codes: dict | None = None, info: dict | None = None) -> dict:
-    """The artefact of a frozen `hypo.metric.Metric` with the case-base settings (k, α fitted at the target)."""
+def export(metric, *, k: int, alpha: float, distinct: bool = True, codes: dict | None = None, info: dict | None = None,
+           rank_nodes: int | None = None) -> dict:
+    """The artefact of a frozen `hypo.metric.Metric` with the case-base settings (k, α fitted at the target).
+
+    rank_nodes: the neutral rank axis of an unshaped continuous input is exact (a step on every training value) unless
+    the input has more distinct training values than this; then it is the rank at that many quantiles, interpolated
+    linearly (an approximation, flagged per step as `aproximado` and in the artefact: smaller SQL, no training values)."""
     enc = metric.enc
     steps, weights, train_values = [], [], False
     w_feat = np.asarray(metric.w, dtype=np.float64)
     for j, b in enumerate(enc.blocks):
-        st, tv = _steps(enc, b, codes)
+        st, tv = _steps(enc, b, codes, rank_nodes)
         if len(st) != b.dims:
             raise AssertionError(f"block {b.source}: {len(st)} steps for {b.dims} dimensions")
         train_values |= tv
         for d, x in enumerate(st):
-            x["salida"] = f"phi({b.source})" if len(st) == 1 else f"phi{d}({b.source})"
+            x["salida"] = f"phi{j:03d}_{d}_{b.kind}({b.source})"       # unique: an input can have several blocks
             steps.append(x)
             weights.append(float(w_feat[j]))
     return {"formato": FORMATO, "entradas": sorted({s["variable"] for s in steps}), "preproceso": steps,
             "pesos": weights, "k": int(k), "alfa": float(alpha), "un_vecino_por_paciente": bool(distinct),
-            "excluir_mismo_paciente": True, "valores_de_entrenamiento": bool(train_values), "info": info or {}}
+            "excluir_mismo_paciente": True, "valores_de_entrenamiento": bool(train_values),
+            "aproximado": any(x.get("aproximado") for x in steps), "info": info or {}}
 
 
 def embed_check(artefact: dict, metric, ft, codes: dict | None = None) -> float:
