@@ -187,3 +187,11 @@ def test_review_script_end_to_end(frozen_chain):
     assert res["D"][u]["windows"]["dropped_no_map_hour"] == 30
     assert res["E"][u]["artefact_quantiles"]["embedding_rebuild_gap"] == 0
     assert (tmp / "experiments" / "hypo" / "reports" / "review.md").exists()
+
+
+def test_cluster_weights_with_patients_in_several_hospitals():
+    subj = np.array(["a", "a", "b", "c", "c"])
+    hosp = np.array(["h1", "h2", "h1", "h3", "h2"])          # h2 holds only patients first seen elsewhere
+    for w in RA.cluster_weights(subj, hosp, 50, 1):
+        assert np.all(np.isfinite(w)) and np.all(w >= 0)
+        assert w[0] == w[1] and w[3] == w[4]                 # a patient's rows share one weight

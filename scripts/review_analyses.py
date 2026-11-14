@@ -203,16 +203,19 @@ def cluster_weights(subj: np.ndarray, hosp: np.ndarray, n_boot: int, seed: int):
     """Hospital-then-patient bootstrap weights per row."""
     s = np.asarray(subj).astype(str)
     h = np.asarray(hosp).astype(str)
-    hu, hinv = np.unique(h, return_inverse=True)
+    _, hinv = np.unique(h, return_inverse=True)
     su, sinv = np.unique(s, return_inverse=True)
-    pat_h = np.zeros(su.size, dtype=np.int64)
-    pat_h[sinv] = hinv
+    # a patient seen in several hospitals is assigned to the hospital of its first row; hospitals left without
+    # patients drop out of the resampling
+    first = np.unique(sinv, return_index=True)[1]
+    pat_h = hinv[first]
+    groups = [np.flatnonzero(pat_h == g) for g in np.unique(pat_h)]
     rng = np.random.default_rng(seed)
     for _ in range(n_boot):
-        wh = rng.multinomial(hu.size, np.full(hu.size, 1.0 / hu.size)).astype(np.float64)
+        wh = rng.multinomial(len(groups), np.full(len(groups), 1.0 / len(groups))).astype(np.float64)
         wp = np.zeros(su.size)
         for g in np.flatnonzero(wh):
-            idx = np.flatnonzero(pat_h == g)
+            idx = groups[g]
             wp[idx] = wh[g] * rng.multinomial(idx.size, np.full(idx.size, 1.0 / idx.size))
         yield wp[sinv]
 
