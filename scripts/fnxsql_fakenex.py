@@ -138,7 +138,7 @@ def main(argv=None) -> int:
     contrato = K.Contrato()
     variables, _ = K.variables_del_modelo(names, contrato)
     doc = json.loads((rep / "if_then.json").read_text(encoding="utf-8"))
-    bag, _ = validar.descargar_bolsa(doc, names)
+    bag, _ = validar.descargar_bolsa(doc, [v["nombre"] for v in doc["variables"]])   # the document's order
     bag = bag.rename(columns={"y": "muere"})
     comp = pd.read_csv(rep / "comparacion.csv")
     pids = inf.d["datos"]["sql"]["pacientes"]
